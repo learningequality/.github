@@ -145,7 +145,7 @@ async function run() {
             owner,
             repo,
             issue_number: issue.number,
-            body: `Automatically unassigning @${assignee.login} due to inactivity. @${assignee.login}, if you're still interested in this issue or already have work in progress, please message us here, and we'll assign you again. Thank you!`,
+            body: `Automatically unassigning @${assignee.login} due to no comments here, or updates on the associated pull request for 1 month.`,
           });
 
           console.log(`Added comment to issue #${issue.number}`);
