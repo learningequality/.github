@@ -1,0 +1,47 @@
+name: Unassign Inactive Issues
+run-name: Unassigns users from issues if they are inactive based on comments or PR activity.
+
+on:
+  workflow_call:
+    secrets:
+      WEB_Token:
+        description: "GitHub token for authentication"
+        required: true
+
+permissions:
+  issues: write
+
+jobs:
+  unassign_inactive_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout called repository
+        uses: actions/checkout@v3
+        with:
+          repository: learningequality/.github
+          ref: main
+          token: ${{ secrets.WEB_Token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Debug directory
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
+          echo "Scripts directory contents:"
+          ls -la scripts
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm install
+
+      - name: Run unassign-inactive-issues action
+        working-directory: scripts
+        run: node unassign-inactive-issues.mjs
+        env:
+          WEB_Token: ${{ secrets.WEB_Token }}  
