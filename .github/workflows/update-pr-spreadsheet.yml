@@ -11,7 +11,7 @@ on:
 jobs:
   update-spreadsheet:
     runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request }}
+    if: ${{ github.event.pull_request }}
     steps:
       # Checkout the code for the test-actions repository
     - name: Checkout code
