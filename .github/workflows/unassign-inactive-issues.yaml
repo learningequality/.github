@@ -7,6 +7,9 @@ on:
       WEB_Token:
         description: "GitHub token for authentication"
         required: true
+      SLACK_WEBHOOK_URL:
+        description: "Slack webhook URL for notifications"
+        required: true
 
 permissions:
   issues: write
@@ -45,3 +48,4 @@ jobs:
         run: node unassign-inactive-issues.mjs
         env:
           WEB_Token: ${{ secrets.WEB_Token }}  
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
