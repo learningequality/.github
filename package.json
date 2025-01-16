@@ -1,7 +1,5 @@
 {
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@octokit/rest": "^21.0.2",
     "axios": "^1.7.5",
     "dotenv": "^16.4.5",
     "googleapis": "^142.0.0",
