@@ -58,4 +58,3 @@ jobs:
             await script({github, context, core});
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }} 
