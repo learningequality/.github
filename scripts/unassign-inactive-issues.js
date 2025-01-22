@@ -1,5 +1,68 @@
 const fetch = require('node-fetch-native');
 
+const formatUnassignments = (unassignments) => {
+  if (unassignments.length === 0) return '';
+  
+  // Group unassignments by issue
+  const groupedByIssue = unassignments.reduce((acc, curr) => {
+    const key = `${curr.repo}#${curr.issueNumber}`;
+    if (!acc[key]) {
+      acc[key] = {
+        repo: curr.repo,
+        owner: curr.owner,
+        issueNumber: curr.issueNumber,
+        issueUrl: curr.issueUrl,
+        users: []
+      };
+    }
+    acc[key].users.push(curr.user);
+    return acc;
+  }, {});
+
+  // Format the grouped unassignments
+  return Object.values(groupedByIssue)
+    .map(({ users, repo, issueNumber, issueUrl }) => 
+      `• ${users.map(u => `@${u}`).join(', ')} from <${issueUrl}|${repo}#${issueNumber}>`
+    )
+    .join('\n\n');
+};
+
+async function getAllIssues(github, owner, repo) {
+  const allIssues = [];
+  let page = 1;
+  const perPage = 100;
+  
+  while (true) {
+    console.log(`Fetching page ${page} of issues...`);
+    
+    const response = await github.rest.issues.listForRepo({
+      owner,
+      repo,
+      state: 'open',
+      per_page: perPage,
+      page: page
+    });
+    
+    const issues = response.data;
+    
+    if (issues.length === 0) {
+      break; // No more issues to fetch
+    }
+    
+    allIssues.push(...issues);
+    console.log(`Fetched ${issues.length} issues from page ${page}`);
+    
+    if (issues.length < perPage) {
+      break; // Last page has fewer items than perPage
+    }
+    
+    page++;
+  }
+  
+  console.log(`Total issues fetched: ${allIssues.length}`);
+  return allIssues;
+}
+
 module.exports = async ({github, context, core}) => {
   try {
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
@@ -15,6 +78,7 @@ module.exports = async ({github, context, core}) => {
 
     const [owner, repo] = context.payload.repository.full_name.split('/');
     console.log(`Processing repository: ${owner}/${repo}`);
+    
     try {
       // Test API access by getting repository details
       const { data: repository } = await github.rest.repos.get({
@@ -30,34 +94,6 @@ module.exports = async ({github, context, core}) => {
         documentation_url: authError.documentation_url
       });
       throw new Error(`Repository access failed. Please check your GitHub App permissions for repository access. Error: ${authError.message}`);
-    }
-
-    // Function to send Slack notification via webhook
-    async function sendSlackNotification(unassignments) {
-      if (unassignments.length === 0) return;
-
-      try {
-        let message = "Automatically unassigned:\n";
-        unassignments.forEach(({ user, repo, issueNumber, owner }) => {
-          const issueUrl = `https://github.com/${owner}/${repo}/issues/${issueNumber}`;
-          message += `• '${user}' from <${issueUrl}|${repo}#${issueNumber}>\n`;
-        });
-
-        const response = await fetch(slackWebhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: message })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Slack notification sent successfully');
-      } catch (error) {
-        console.error('Error sending Slack notification:', error);
-      }
     }
 
     // Function to check user membership and ownership
@@ -76,7 +112,7 @@ module.exports = async ({github, context, core}) => {
 
         // Check if the user is an organization member
         try {
-          const membershipResponse = await github.rest.orgs.getMembershipForUser({
+          await github.rest.orgs.getMembershipForUser({
             org: owner,
             username: username
           });
@@ -90,16 +126,11 @@ module.exports = async ({github, context, core}) => {
       }
     };
 
-    // List open issues
-    const issues = await github.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: 'open',
-      per_page: 100,
-    });
-    console.log(`Found ${issues.data.length} open issues`);
+    // Get all issues using pagination
+    const issues = await getAllIssues(github, owner, repo);
+    console.log(`Processing ${issues.length} open issues`);
 
-    for (const issue of issues.data) {
+    for (const issue of issues) {
       const assignees = issue.assignees || [];
       if (assignees.length === 0) continue;
 
@@ -231,7 +262,8 @@ module.exports = async ({github, context, core}) => {
               user: login,
               repo,
               owner,
-              issueNumber: issue.number
+              issueNumber: issue.number,
+              issueUrl: `https://github.com/${owner}/${repo}/issues/${issue.number}`
             });
           });
 
@@ -245,13 +277,18 @@ module.exports = async ({github, context, core}) => {
       }
     }
 
-    if (unassignments.length > 0) {
-      await sendSlackNotification(unassignments);
+    const formattedUnassignments = formatUnassignments(unassignments);
+    try {
+    core.setOutput('unassignments', formattedUnassignments);
+    return formattedUnassignments;
+    }catch (error){
+      core.setFailed(error.message);
     }
-    
+
   } catch (error) {
     console.error('Full error details:', error);
     console.error('Action failed:', error.message);
     core.setFailed(error.message);
+    return '';
   }
 };

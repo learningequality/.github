@@ -50,11 +50,21 @@ jobs:
         run: npm install 
       
       - name: Run unassign script
+        id: unassign
         uses: actions/github-script@v6
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const script = require('./scripts/unassign-inactive-issues.js');
-            await script({github, context, core});
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+            return await script({github, context, core});
+
+      - name: Send Slack notifications
+        if: ${{ steps.unassign.outputs.unassignments != '' }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook-type: incoming-webhook
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "\nThe following users have been unassigned due to inactivity:\n${{ steps.unassign.outputs.unassignments }}"
+            }
