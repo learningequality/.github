@@ -65,14 +65,6 @@ async function getAllIssues(github, owner, repo) {
 
 module.exports = async ({github, context, core}) => {
   try {
-    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-    
-    if (!slackWebhookUrl) {
-      throw new Error('Slack webhook URL missing. Please ensure SLACK_WEBHOOK_URL is set in the workflow.');
-    }
-
-    console.log('Slack webhook URL exists:', !!slackWebhookUrl);
-
     const unassignments = [];
     const inactivityPeriodInMinutes = 1;
 
