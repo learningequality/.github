@@ -3,7 +3,11 @@ name: Community Contribution Label
 on:
     workflow_call:
       secrets:
-          token:
+        LE_BOT_APP_ID:
+            description: "GitHub App ID for authentication"
+            required: true
+        LE_BOT_PRIVATE_KEY:
+            description: "GitHub App Private Key for authentication"
             required: true
 jobs:
   reusable-job:
@@ -13,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-            repository: iamshobhraj/.github
+            repository: iamshobraj/.github
             path: .github-repo
 
       - name: Generate App Token
