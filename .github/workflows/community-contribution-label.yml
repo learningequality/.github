@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-            repository: iamshobraj/.github
+            repository: learningequality/.github
             path: .github-repo
 
       - name: Generate App Token
