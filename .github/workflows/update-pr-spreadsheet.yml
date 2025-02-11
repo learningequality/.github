@@ -1,5 +1,7 @@
-name: Update PR Spreadsheet
+name: Update community pull requests spreadsheet
 on:
+  pull_request_target:
+    types: [assigned,unassigned,opened,closed,reopened]
   workflow_call:
     secrets:
       CONTRIBUTIONS_SPREADSHEET_ID:
