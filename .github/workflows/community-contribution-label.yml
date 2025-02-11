@@ -41,4 +41,3 @@ jobs:
         run: python .github-repo/scripts/community-contribution-label.py
         env:
           token: ${{ steps.generate-token.outputs.token }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
