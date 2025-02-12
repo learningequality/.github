@@ -20,28 +20,24 @@ HEADERS = {
     "Accept": "application/vnd.github+json"
 }
 
+def fetch_paginated_results(url):  
+    results = []  
+    while url:  
+        response = requests.get(url, headers=HEADERS)  
+        response.raise_for_status()  
+        results.extend(response.json())  
+        url = response.links.get("next", {}).get("url") 
+    return results  
+
 def get_team_members(org):
     """Fetch all team members for the organization."""
-    team_members = set()
-    url = f"{BASE_URL}/orgs/{org}/members"
-    while url:
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
-        members = response.json()
-        team_members.update(member["login"] for member in members)
-        url = response.links.get("next", {}).get("url")
+    results = fetch_paginated_results(f"{BASE_URL}/orgs/{org}/members")
+    team_members = [member["login"] for member in results]
     return team_members
 
 def get_issues_for_repo(org, repo):
     """Fetch all issues for a specific repository."""
-    issues = []
-    url = f"{BASE_URL}/repos/{org}/{repo}/issues?state=open"
-    while url:
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
-        issues.extend(response.json())
-        url = response.links.get("next", {}).get("url")
-    return issues
+    return fetch_paginated_results(f"{BASE_URL}/repos/{org}/{repo}/issues?state=open")
 
 def filter_issues(issues, team_members):
     """Filter issues assigned to external contributors"""
