@@ -91,9 +91,20 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
       
       for (const event of timelineEvents) {
         if (
+          // Check if the event type is 'connected' or 'cross-referenced'. 
+          // These events indicate that GitHub automatically linked the issue to a PR based on commit messages or references.
           (event.event === 'connected' || event.event === 'cross-referenced') ||
+
+          // Look for a 'referenced' event that includes a commit ID and a linked PR.
+          // This implies that the commit in a PR mentions the issue, suggesting a connection.
           (event.event === 'referenced' && event?.commit_id && event?.source?.issue?.pull_request) ||
+
+          // Check for a 'closed' event that has an associated commit and a linked PR.
+          // This typically means the issue was closed by a commit referenced in the PR.
           (event.event === 'closed' && event?.commit_id && event?.source?.issue?.pull_request) ||
+
+          // Confirm a 'connected' event where the linked PR is not merged yet.
+          // This ensures that we consider PRs that are still open and haven't been merged.
           (event.event === 'connected' && event?.source?.issue?.pull_request?.merged === false)
         ) {
           try {
@@ -112,7 +123,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
               
               if (pr && pr.state === 'open') {
                 console.log(`Found valid linked PR #${prNumber} (${pr.state})`);
-                linkedPRs.add(prNumber); // Use add() instead of push()
+                linkedPRs.add(prNumber); 
               }
             }else{
               console.log('founded pr linked in the issue');
@@ -149,7 +160,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
                 pull_number: pr.number
               });
               if (prDetails?.data?.state === 'open') {
-                linkedPRs.add(prDetails.data.number); // Use add() with PR number
+                linkedPRs.add(prDetails.data.number); 
               }
             } catch (e) {
               console.log(`Error fetching PR #${pr.number} details:`, e.message);
@@ -192,7 +203,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
             pull_number: prNumber
           });
           if (prDetails?.data?.state === 'open') {
-            linkedPRs.add(prNumber); // Use add() with PR number
+            linkedPRs.add(prNumber); 
           }
         } catch (e) {
           console.log(`Error fetching PR #${prNumber}:`, e.message);
