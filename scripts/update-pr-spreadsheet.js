@@ -9,7 +9,7 @@ const extractPRData = (payload) => {
     user_login: pr.user.login,
     title: pr.title,
     repo_name: pr.base.repo.name,
-    updated_at: pr.updated_at,
+    created_at: pr.created_at,
     requested_reviewers: pr.requested_reviewers.map(r => r.login).join(','),
     assignees: pr.assignees.map(a => a.login).join(','),
     user_site_admin: pr.user.site_admin,
@@ -63,8 +63,8 @@ async function updateSpreadsheet(pullRequest) {
     pullRequest.user_login || "",
     pullRequest.title || "",
     pullRequest.repo_name || "",
-    pullRequest.updated_at
-      ? pullRequest.updated_at.split("T")[0].replace("'", "")
+    pullRequest.created_at
+      ? pullRequest.created_at.split("T")[0].replace("'", "")
       : "",
     pullRequest.requested_reviewers || "",
     pullRequest.assignees || "",

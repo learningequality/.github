@@ -253,6 +253,7 @@ const checkUserMembership = async (owner, repo, username, github) => {
 
 module.exports = async ({ github, context, core }) => {
   try {
+
     const unassignments = [];
     const inactivityPeriodInMinutes = 1;
 
