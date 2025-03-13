@@ -145,74 +145,35 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
     // Method 2: Search for PRs that mention this issue
     try {
       const searchQuery = `repo:${owner}/${repo} type:pr is:open ${issue.number} in:body,title`;
-      console.log(`Searching for PRs with query: ${searchQuery}`);
-      
       const searchResult = await github.rest.search.issuesAndPullRequests({
-        q: searchQuery
+        q: searchQuery,
       });
 
-      if (searchResult?.data?.items) {
-        const foundPRs = searchResult.data.items.filter(item => item?.pull_request);
-        console.log(`Found ${foundPRs.length} PRs mentioning this issue through search`);
-        
-        for (const pr of foundPRs) {
-          if (pr?.number) {
-            try {
-              const prDetails = await github.rest.pulls.get({
-                owner,
-                repo,
-                pull_number: pr.number
-              });
-              if (prDetails?.data?.state === 'open') {
-                linkedPRs.add(prDetails.data.number); 
-              }
-            } catch (e) {
-              console.log(`Error fetching PR #${pr.number} details:`, e.message);
+      // Local regex for "closes/fixes/resolves #123"
+      const closingRegex = new RegExp(
+        `(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\\s*:?\\s*#${issue.number}`,
+        "i"
+      );
+
+      for (const prItem of searchResult.data.items || []) {
+        if (prItem.pull_request && prItem.number) {
+          const prDetails = await github.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prItem.number,
+          });
+
+          if (prDetails.data.state === "open") {
+            const prBody = prDetails.data.body || "";
+            const prTitle = prDetails.data.title || "";
+            if (closingRegex.test(prBody) || closingRegex.test(prTitle)) {
+              linkedPRs.add(prItem.number);
             }
           }
         }
       }
     } catch (searchError) {
       console.log('Search API error:', searchError.message);
-    }
-
-    // Method 3: Check issue body for PR references
-    if (issue.body) {
-      const prReferences = new Set();
-      const patterns = [
-        /#(\d+)/g,
-        new RegExp(`https?://github\\.com/${owner}/${repo}/pull/(\\d+)`, 'g'),
-        /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s*:?\s*#(\d+)/gi
-      ];
-
-      for (const pattern of patterns) {
-        const matches = [...issue.body.matchAll(pattern)];
-        for (const match of matches) {
-          if (match?.[1]) {
-            const prNumber = parseInt(match[1], 10);
-            if (!isNaN(prNumber)) {
-              prReferences.add(prNumber);
-            }
-          }
-        }
-      }
-
-      console.log(`Found ${prReferences.size} PR references in issue body`);
-
-      for (const prNumber of prReferences) {
-        try {
-          const prDetails = await github.rest.pulls.get({
-            owner,
-            repo,
-            pull_number: prNumber
-          });
-          if (prDetails?.data?.state === 'open') {
-            linkedPRs.add(prNumber); 
-          }
-        } catch (e) {
-          console.log(`Error fetching PR #${prNumber}:`, e.message);
-        }
-      }
     }
     // Return the Set of linked PR numbers (always return a Set)
     return linkedPRs;
