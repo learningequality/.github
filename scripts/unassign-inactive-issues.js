@@ -142,19 +142,24 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
       console.error(`Error fetching timeline for issue #${issue.number}:`, timelineError.message);
     }
 
-    // Method 2: Search for PRs that mention this issue
+    // Method 2: Search for PRs that mention this issue using the updated endpoint
     try {
       const searchQuery = `repo:${owner}/${repo} type:pr is:open ${issue.number} in:body,title`;
-      const searchResult = await github.rest.search.issuesAndPullRequests({
+    
+      const searchResult = await github.request('GET /search/issues', {
         q: searchQuery,
+        advanced_search: true, // Enable advanced search
+        headers: {
+          'Accept': 'application/vnd.github+json',
+        }
       });
-
+    
       // Local regex for "closes/fixes/resolves #123"
       const closingRegex = new RegExp(
         `(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\\s*:?\\s*#${issue.number}`,
         "i"
       );
-
+    
       for (const prItem of searchResult.data.items || []) {
         if (prItem.pull_request && prItem.number) {
           const prDetails = await github.rest.pulls.get({
@@ -162,7 +167,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
             repo,
             pull_number: prItem.number,
           });
-
+    
           if (prDetails.data.state === "open") {
             const prBody = prDetails.data.body || "";
             const prTitle = prDetails.data.title || "";
@@ -174,7 +179,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
       }
     } catch (searchError) {
       console.log('Search API error:', searchError.message);
-    }
+    }    
     // Return the Set of linked PR numbers (always return a Set)
     return linkedPRs;
   } catch (error) {
