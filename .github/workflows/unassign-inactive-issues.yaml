@@ -10,7 +10,7 @@ on:
       LE_BOT_PRIVATE_KEY:
         description: "GitHub App Private Key for authentication"
         required: true
-      SLACK_WEBHOOK_URL:
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Slack webhook URL for notifications"
         required: true
       
@@ -63,7 +63,7 @@ jobs:
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook-type: incoming-webhook
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
           payload: |
             {
               "text": "\nThe following users have been unassigned due to inactivity:\n${{ steps.unassign.outputs.unassignments }}"
