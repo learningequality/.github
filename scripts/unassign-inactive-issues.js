@@ -329,7 +329,7 @@ module.exports = async ({ github, context, core }) => {
           owner,
           repo,
           issue_number: issue.number,
-          body: `Automatically unassigning ${mentionList} due to inactivity. ${mentionList}, If you're still interested in this issue or already have work in progress, please message us here, and we'll assign you again. Thank you!`,
+          body: `Automatically unassigning ${mentionList} due to no comments here, or updates on the associated pull request for 1 month. ${mentionList}, if you're still interested in this issue or already have work in progress, please message us here, and we'll assign you again. Thank you!`,
         });
         //console.log(`Added comment to issue #${issue.number}`);
 
@@ -345,8 +345,7 @@ module.exports = async ({ github, context, core }) => {
         });
 
       } catch (issueError) {
-        console.error(`Error processing issue #${issue.number}:`, 
-          {
+        console.error(`Error processing issue #${issue.number}:`, {
           message: issueError.message,
           status: issueError.status
         });
