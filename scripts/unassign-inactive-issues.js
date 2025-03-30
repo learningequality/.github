@@ -225,7 +225,7 @@ module.exports = async ({ github, context, core }) => {
   try {
 
     const unassignments = [];
-    const inactivityPeriodInMinutes = 1;
+    const inactivityThresholdMs = 30 * 24 * 60 * 60 * 1000; // for 1 month
 
     const [owner, repo] = context.payload.repository.full_name.split('/');
     //console.log(`Processing repository: ${owner}/${repo}`);
@@ -275,7 +275,7 @@ module.exports = async ({ github, context, core }) => {
       const lastActivity = new Date(issue.updated_at);
       const now = new Date();
       
-      if (now - lastActivity <= inactivityPeriodInMinutes * 60 * 1000) {
+      if (now - lastActivity <= inactivityThresholdMs) {
         //console.log(`Issue #${issue.number} is still active, skipping`);
         continue;
       }
