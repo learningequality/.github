@@ -33,7 +33,7 @@ async function getAllIssues(github, owner, repo) {
   const perPage = 100;
   
   while (true) {
-    console.log(`Fetching page ${page} of issues...`);
+    //console.log(`Fetching page ${page} of issues...`);
     
     try {
       const response = await github.rest.issues.listForRepo({
@@ -53,7 +53,7 @@ async function getAllIssues(github, owner, repo) {
       }
       
       allIssues.push(...issues);
-      console.log(`Fetched ${issues.length} issues (excluding PRs) from page ${page}`);
+      //console.log(`Fetched ${issues.length} issues (excluding PRs) from page ${page}`);
       
       if (issues.length < perPage) {
         break; // Last page has fewer items than perPage
@@ -66,7 +66,7 @@ async function getAllIssues(github, owner, repo) {
     }
   }
   
-  console.log(`Total issues fetched (excluding PRs): ${allIssues.length}`);
+  //console.log(`Total issues fetched (excluding PRs): ${allIssues.length}`);
   return allIssues;
 }
 
@@ -117,7 +117,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
             }
 
             if (prNumber) {
-              console.log(`Checking PR #${prNumber} from timeline event`);
+              //console.log(`Checking PR #${prNumber} from timeline event`);
               const { data: pr } = await github.rest.pulls.get({
                 owner,
                 repo,
@@ -125,16 +125,16 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
               });
               
               if (pr && pr.state === 'open') {
-                console.log(`Found valid linked PR #${prNumber} (${pr.state})`);
+                //console.log(`Found valid linked PR #${prNumber} (${pr.state})`);
                 linkedPRs.add(prNumber); 
               }
             }else{
               // Fallback for PRs linked via GitHub UI where PR number cannot be retrieved from the payload
-              console.log('found pr linked in the issue');
+              //console.log('found pr linked in the issue');
               linkedPRs.add(1); // Adds a placeholder to indicate a linked PR was found
             }
           } catch (e) {
-            console.log(`Error fetching PR details:`, e.message);
+            //console.log(`Error fetching PR details:`, e.message);
           }
         }
       }
@@ -178,7 +178,7 @@ const checkLinkedPRs = async (issue, github, owner, repo) => {
         }
       }
     } catch (searchError) {
-      console.log('Search API error:', searchError.message);
+      //console.log('Search API error:', searchError.message);
     }    
     // Return the Set of linked PR numbers (always return a Set)
     return linkedPRs;
@@ -199,7 +199,7 @@ const checkUserMembership = async (owner, repo, username, github) => {
 
     // Check if the repository owner matches the username
     if (repoDetails.data.owner.login === username) {
-      console.log(`${username} is the repository owner`);
+      //console.log(`${username} is the repository owner`);
       return true;
     }
 
@@ -209,10 +209,10 @@ const checkUserMembership = async (owner, repo, username, github) => {
         org: owner,
         username: username
       });
-      console.log(`${username} is an organization member`);
+      //console.log(`${username} is an organization member`);
       return true;
     } catch (orgError) {
-      console.log(`${username} is not an organization member`);
+      //console.log(`${username} is not an organization member`);
       return false;
     }
   } catch (error) {
@@ -225,10 +225,10 @@ module.exports = async ({ github, context, core }) => {
   try {
 
     const unassignments = [];
-    const inactivityPeriodInMinutes = 1;
+    const inactivityThresholdMs = 30 * 24 * 60 * 60 * 1000; // for 1 month
 
     const [owner, repo] = context.payload.repository.full_name.split('/');
-    console.log(`Processing repository: ${owner}/${repo}`);
+    //console.log(`Processing repository: ${owner}/${repo}`);
     
     try {
       // Test API access by getting repository details
@@ -236,8 +236,8 @@ module.exports = async ({ github, context, core }) => {
         owner,
         repo
       });
-      console.log('Successfully authenticated with GitHub App and verified repository access');
-      console.log(`Repository: ${repository.full_name}`);
+      // console.log('Successfully authenticated with GitHub App and verified repository access');
+      // console.log(`Repository: ${repository.full_name}`);
     } catch (authError) {
       console.error('Authentication error details:', {
         message: authError.message,
@@ -249,7 +249,7 @@ module.exports = async ({ github, context, core }) => {
 
 
     const issues = await getAllIssues(github, owner, repo);
-    console.log(`Processing ${issues.length} open issues`);
+    //console.log(`Processing ${issues.length} open issues`);
 
     for (const issue of issues) {
       if (!issue || !issue.number) {
@@ -257,17 +257,17 @@ module.exports = async ({ github, context, core }) => {
         continue;
       }
 
-      console.log(`\nProcessing issue #${issue.number}`);
-      console.log('Issue data:', {
-        number: issue.number,
-        title: issue.title,
-        assignees: issue.assignees ? issue.assignees.length : 0,
-        updated_at: issue.updated_at
-      });
+      //console.log(`\nProcessing issue #${issue.number}`);
+      // console.log('Issue data:', {
+      //   number: issue.number,
+      //   title: issue.title,
+      //   assignees: issue.assignees ? issue.assignees.length : 0,
+      //   updated_at: issue.updated_at
+      // });
 
       const assignees = issue.assignees || [];
       if (assignees.length === 0) {
-        console.log(`Issue #${issue.number} has no assignees, skipping`);
+        //console.log(`Issue #${issue.number} has no assignees, skipping`);
         continue;
       }
 
@@ -275,41 +275,41 @@ module.exports = async ({ github, context, core }) => {
       const lastActivity = new Date(issue.updated_at);
       const now = new Date();
       
-      if (now - lastActivity <= inactivityPeriodInMinutes * 60 * 1000) {
-        console.log(`Issue #${issue.number} is still active, skipping`);
+      if (now - lastActivity <= inactivityThresholdMs) {
+        //console.log(`Issue #${issue.number} is still active, skipping`);
         continue;
       }
 
-      console.log(`Checking for linked PRs for issue #${issue.number}`);
+      //console.log(`Checking for linked PRs for issue #${issue.number}`);
       const hasOpenPRs = await checkLinkedPRs(issue, github, owner, repo);
       
       if (hasOpenPRs.size > 0) {
-        console.log(`Issue #${issue.number} has open PRs, skipping unassignment`);
+        //console.log(`Issue #${issue.number} has open PRs, skipping unassignment`);
         continue;
       }
 
-      console.log(`Processing inactive issue #${issue.number} with no open PRs`);
+      //console.log(`Processing inactive issue #${issue.number} with no open PRs`);
 
       const inactiveAssignees = [];
       const activeAssignees = [];
 
       for (const assignee of assignees) {
         if (!assignee || !assignee.login) {
-          console.log('Skipping invalid assignee:', assignee);
+          //console.log('Skipping invalid assignee:', assignee);
           continue;
         }
 
         if (assignee.site_admin || await checkUserMembership(owner, repo, assignee.login, github)) {
           activeAssignees.push(assignee.login);
-          console.log(`${assignee.login} is an active member, keeping assignment`);
+          //console.log(`${assignee.login} is an active member, keeping assignment`);
         } else {
           inactiveAssignees.push(assignee.login);
-          console.log(`${assignee.login} is inactive, will be unassigned`);
+          //console.log(`${assignee.login} is inactive, will be unassigned`);
         }
       }
 
       if (inactiveAssignees.length === 0) {
-        console.log(`No inactive assignees for issue #${issue.number}, skipping`);
+        //console.log(`No inactive assignees for issue #${issue.number}, skipping`);
         continue;
       }
 
@@ -321,7 +321,7 @@ module.exports = async ({ github, context, core }) => {
           issue_number: issue.number,
           assignees: activeAssignees,
         });
-        console.log(`Successfully unassigned users from issue #${issue.number}`);
+        //console.log(`Successfully unassigned users from issue #${issue.number}`);
 
         // Add comment
         const mentionList = inactiveAssignees.map(login => `@${login}`).join(', ');
@@ -329,9 +329,9 @@ module.exports = async ({ github, context, core }) => {
           owner,
           repo,
           issue_number: issue.number,
-          body: `Automatically unassigning ${mentionList} due to inactivity. ${mentionList}, If you're still interested in this issue or already have work in progress, please message us here, and we'll assign you again. Thank you!`,
+          body: `Automatically unassigning ${mentionList} due to no comments here, or updates on the associated pull request for 1 month. ${mentionList}, if you're still interested in this issue or already have work in progress, please message us here, and we'll assign you again. Thank you!`,
         });
-        console.log(`Added comment to issue #${issue.number}`);
+        //console.log(`Added comment to issue #${issue.number}`);
 
         // Record unassignments
         inactiveAssignees.forEach(login => {
@@ -356,7 +356,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
     const formattedUnassignments = formatUnassignments(unassignments);
-    console.log('Unassignments completed:', unassignments.length);
+    //console.log('Unassignments completed:', unassignments.length);
     
     try {
       core.setOutput('unassignments', formattedUnassignments);
