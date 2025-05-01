@@ -2,13 +2,7 @@ name: Manage issue header
 
 on:
     workflow_call:
-      secrets:
-        LE_BOT_APP_ID:
-            description: "GitHub App ID for authentication"
-            required: true
-        LE_BOT_PRIVATE_KEY:
-            description: "GitHub App Private Key for authentication"
-            required: true
+
 jobs:
   manage-issue-header:
     runs-on: ubuntu-latest
@@ -16,19 +10,12 @@ jobs:
       (github.event.action == 'labeled' && github.event.label.name == 'help wanted') ||
       (github.event.action == 'unlabeled' && github.event.label.name == 'help wanted')
     steps:
-      - name: Generate App Token
-        id: generate-token
-        uses: tibdex/github-app-token@v2
-        with:
-          app_id: ${{ secrets.LE_BOT_APP_ID }}
-          private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-
       - name: Checkout called repository
         uses: actions/checkout@v3
         with:
-          repository: learningequality/.github
-          ref: main
-          token: ${{ steps.generate-token.outputs.token }}
+          repository: MisRob/.github
+          ref: manage-issue-header
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -42,7 +29,7 @@ jobs:
         id: run-script
         uses: actions/github-script@v6
         with:
-          github-token: ${{ steps.generate-token.outputs.token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const script = require('./scripts/manage-issue-header.js');
             return await script({github, context, core});
