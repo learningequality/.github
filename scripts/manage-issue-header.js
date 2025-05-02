@@ -34,8 +34,8 @@ module.exports = async ({ github, context, core }) => {
     const currentBody = issue.data.body || "";
     console.log('Current body:', currentBody)
 
-    const helpWantedHeader = "## Help wanted\n\n";
-    
+    const helpWantedHeader = '<!---HEADER START-->\n\n<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">\n\n🙂 Looking for an issue? Welcome! This issue is open for contribution. If this is the first time you’re requesting an issue, please:\n\n- **Read [the contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base/)** carefully. **Pay extra attention to the [Using generative AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai)**. **Pull requests and comments that don’t follow the guidelines won’t be answered.**\n- **Confirm that you’ve read the guidelines** in your comment.\n\n<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">\n\n<!---HEADER END-->'
+
     if (isAddingHeader) {
       await updateIssueWithHeader(github, repoOwner, repoName, issueNumber, currentBody, helpWantedHeader);
     } else if (isRemovingHeader) {
