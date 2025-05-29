@@ -4,6 +4,17 @@ about: Report a bug to help us improve
 title: "[Brief description]"
 ---
 
+<!-- DO NOT REMOVE THE HEADER -->
+<!---HEADER START-->
+
+<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">
+
+❌ **This issue is not open for contribution. Visit <a href="https://learningequality.org/contributing-to-our-open-code-base/" target="_blank">Contributing guidelines</a>** to learn about the contributing process and how to find suitable issues.
+
+<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">
+
+<!---HEADER END-->
+
 <!--
 Instructions:
  * Fill out the sections below, replace …'s with information about your issue
@@ -57,7 +68,7 @@ Precise steps that someone else can follow in order to see this behavior
 ## Context
 <!--
 Tell us about your environment, including:
- * Software version
+ * Application version
  * Operating system
  * Browser
 -->
