@@ -1,6 +1,8 @@
 name: Manage issue header
 
 on:
+    issues:
+      types: [labeled, unlabeled]
     workflow_call:
       secrets:
         LE_BOT_APP_ID:
