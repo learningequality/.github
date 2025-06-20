@@ -28,16 +28,18 @@ module.exports = async ({ github, context, core }) => {
     const repoName = context.repo.repo;
     const issueNumber = context.payload.issue.number;
     const actionType = context.payload.action;
-    const labelName = context.payload.label.name;
+    const labelName = context.payload.label?.name;
+    let header;
 
-    const labelAdded = actionType === "labeled";
-    const labelRemoved = actionType === "unlabeled";
-
-    if (!labelAdded && !labelRemoved) {
-      return;
-    }
-
-    if (labelName !== HELP_WANTED_LABEL) {
+    if (
+      actionType === 'opened' || 
+      (actionType === 'unlabeled' && labelName === HELP_WANTED_LABEL)
+    ) {
+      header = NON_HELP_WANTED_HEADER;
+    } else if (actionType === 'labeled' && labelName === HELP_WANTED_LABEL) {
+      header = HELP_WANTED_HEADER;
+    } else {
+      core.info(`Unsupported action type "${actionType}" or label "${labelName}". Skipping.`);
       return;
     }
 
@@ -50,11 +52,7 @@ module.exports = async ({ github, context, core }) => {
     const currentBody = issue.data.body || "";
 
     let newBody = clearHeader(currentBody);
-    if (labelAdded) {
-      newBody = HELP_WANTED_HEADER + newBody;
-    } else if (labelRemoved) {
-      newBody = NON_HELP_WANTED_HEADER + newBody;
-    }
+    newBody = header + newBody;
 
     await github.rest.issues.update({
       owner: repoOwner,
