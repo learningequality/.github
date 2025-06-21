@@ -7,17 +7,6 @@ assignees: ''
 
 ---
 
-<!-- DO NOT REMOVE THE HEADER -->
-<!---HEADER START-->
-
-<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">
-
-❌ **This issue is not open for contribution. Visit <a href="https://learningequality.org/contributing-to-our-open-code-base/" target="_blank">Contributing guidelines</a>** to learn about the contributing process and how to find suitable issues.
-
-<img height="20px" src="https://i.imgur.com/c7hUeb5.jpeg">
-
-<!---HEADER END-->
-
 _[General guidance: When drafting a feature project, the goal is to create a reference for project scope and context. Write for our core product team. The issue should not be overly technical, and should be be comprehensible and a useful reference to devs, designers, and QA team, to build a shared source of understanding. Anyone at LE should be able to read this and more or less understand the project. If there is relevant information or context that is for the internal team only, please add that in a notion page and link it, rather than adding directly to these issues.]_
 
 ## Overview 
