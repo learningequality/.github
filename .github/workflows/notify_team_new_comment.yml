@@ -3,12 +3,12 @@ name: Send a slack notification when a contributor comments on issue
 on:
   workflow_call:
     secrets:
-      APP_ID:
-        required: true
-        description: The ID of the GitHub App.
-      APP_PRIVATE_KEY:
-        required: true
-        description: The private key of the GitHub App.
+      LE_BOT_APP_ID:
+          description: "GitHub App ID for authentication"
+          required: true
+      LE_BOT_PRIVATE_KEY:
+          description: "GitHub App Private Key for authentication"
+          required: true
       SLACK_WEBHOOK_URL:
         required: true
         description: Webhook URL for the Slack support-dev channel where notifications should be sent.
