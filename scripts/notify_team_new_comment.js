@@ -1,10 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-function hasLabel(labels, name) {
-  return labels.some(label => label.toLowerCase() === name.toLowerCase());
-}
-
 module.exports = async ({ github, context, core }) => {
   try {
     const issueNumber = context.payload.issue.number;
@@ -13,6 +9,7 @@ module.exports = async ({ github, context, core }) => {
     const escapedTitle = issueTitle.replace(/"/g, '\\"');
     const commentId = context.payload.comment.id;
     const commentTime = new Date(context.payload.comment.created_at);
+    const oneHourBefore = new Date(commentTime - 3600000);
     const commentAuthor = context.payload.comment.user.login;
     const commentBody = context.payload.comment.body;
     const repo = context.repo.repo;
@@ -20,11 +17,11 @@ module.exports = async ({ github, context, core }) => {
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
     const LE_bot_username = 'learningequality[bot]';
+    const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
     const botMessage = `👋
 Thanks so much for your interest! This issue is currently reserved for the core team and isn’t available for assignment right now.
 If you’d like to get started contributing, please take a look at our [Contributing Guidelines](https://github.com/your-org/your-repo/blob/main/CONTRIBUTING.md) for tips on finding “help-wanted” issues, setting up your environment, and submitting a PR.
 We really appreciate your willingness to help — feel free to pick another issue labeled **help-wanted** and let us know if you have any questions. 😊`
-
     const Close_Contributors = ['user1', 'user2'];
     const keywordsPath = path.join(__dirname, 'keywords.txt');
     const keywords = fs.readFileSync(keywordsPath, 'utf-8')
@@ -32,68 +29,75 @@ We really appreciate your willingness to help — feel free to pick another issu
         .map(k => k.trim().toLowerCase())
         .filter(Boolean);
 
-    let labels = [];
-    try {
-      const response = await github.rest.issues.listLabelsOnIssue({
-        owner,
-        repo,
-        issue_number: issueNumber
-      });
-      labels = response.data;
-    } catch (error) {
-      core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
-      labels = [];
+
+    async function hasLabel(name) {
+        let labels = [];
+        try {
+          const response = await github.rest.issues.listLabelsOnIssue({
+            owner,
+            repo,
+            issue_number: issueNumber
+          });
+          labels = response.data.map(label => label.name);
+        } catch (error) {
+          core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+           labels = [];
+        }
+        return labels.some(label => label.toLowerCase() === name.toLowerCase());
     }
 
-    const labelNames = labels.map(label => label.name);
-    let message;
+    async function findRecentCommentsByUser(username) {
+      try{
+          let response = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              since: oneHourBefore.toISOString()
+          });
+          return response.data.filter(comment => comment.user.login === username);
+      } catch (error) {
+          core.warning(`⚠️ Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
+          return [];
+      }
+    }
 
-    if (hasLabel(labelNames, 'help wanted') || Close_Contributors.includes(commentAuthor)) {
-      message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
+    async function botReply(){
+        let response = null;
+        try {
+            response = await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: `Hi @${commentAuthor} ${botMessage}`
+            });
+            if (response?.data?.html_url) {
+              core.setOutput('bot_replied', true);
+              const botReplyMessage = `*[${repo}] <${response.data.html_url}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
+              core.setOutput('bot_reply_message', botReplyMessage);
+            }
+        } catch (error) {
+            core.warning(`Failed to post bot comment: ${error.message}`);
+            core.setOutput('bot_replied', false);
+        }
+        return response;
+    }
+
+
+    if (hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
       core.setOutput('webhook_url', slackWebhookUrl);
     } else {
-        const matchedKeywords = keywords.find(keyword => commentBody.toLowerCase().includes(keyword));
+      const matchedKeywords = keywords.find(keyword => commentBody.toLowerCase().includes(keyword));
+      if(matchedKeywords){
         let lastBotComment;
-        if(matchedKeywords){
-            const oneHourBefore = new Date(commentTime - 3600000);
-            let PastBotComments;
-            try{
-                let response = await github.rest.issues.listComments({
-                    owner,
-                    repo,
-                    issue_number: issueNumber,
-                    since: oneHourBefore.toISOString()
-                });
-                PastBotComments = response.data.filter(comment => comment.user.login === LE_bot_username);
-            } catch (error) {
-                core.warning(`⚠️ Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
-                PastBotComments = [];
-            }
+        let PastBotComments = findRecentCommentsByUser(LE_bot_username);
 
-            if(PastBotComments.length > 0){
+        if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
             } else if(PastBotComments.length === 0){
-                try {
-                    lastBotComment = await github.rest.issues.createComment({
-                      owner,
-                      repo,
-                      issue_number: issueNumber,
-                      body: `Hi @${commentAuthor} ${botMessage}`
-                    });
-                    if (lastBotComment?.data?.html_url) {
-                      core.setOutput('bot_replied', true);
-                      const botReply = `*[${repo}] <${lastBotComment.data.html_url}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
-                      core.setOutput('bot_reply_message', botReply);
-                    }
-                } catch (error) {
-                    core.warning(`Failed to post bot comment: ${error.message}`);
-                    core.setOutput('bot_replied', false);
-                }
+                lastBotComment = botReply();
             }
         }
-        message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
-
       core.setOutput('webhook_url', communityWebhookUrl);
     }
 
