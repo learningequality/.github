@@ -32,11 +32,18 @@ We really appreciate your willingness to help — feel free to pick another issu
         .map(k => k.trim().toLowerCase())
         .filter(Boolean);
 
-    const { data: labels } = await github.rest.issues.listLabelsOnIssue({
-      owner,
-      repo,
-      issue_number: issueNumber
-    });
+    let labels = [];
+    try {
+      const response = await github.rest.issues.listLabelsOnIssue({
+        owner,
+        repo,
+        issue_number: issueNumber
+      });
+      labels = response.data;
+    } catch (error) {
+      core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+      labels = [];
+    }
 
     const labelNames = labels.map(label => label.name);
     let message;
