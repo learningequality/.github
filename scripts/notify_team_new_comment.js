@@ -19,7 +19,7 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
-      const LE_bot_username = 'learningequality[bot]';
+    const LE_bot_username = 'learningequality[bot]';
     const botMessage = `👋
 Thanks so much for your interest! This issue is currently reserved for the core team and isn’t available for assignment right now.
 If you’d like to get started contributing, please take a look at our [Contributing Guidelines](https://github.com/your-org/your-repo/blob/main/CONTRIBUTING.md) for tips on finding “help-wanted” issues, setting up your environment, and submitting a PR.
