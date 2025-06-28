@@ -62,15 +62,22 @@ We really appreciate your willingness to help — feel free to pick another issu
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
             } else if(PastBotComments.length === 0){
-                lastBotComment = await github.rest.issues.createComment({
-                    owner,
-                    repo,
-                    issue_number: issueNumber,
-                    body: `Hi @${commentAuthor} ${botMessage}`
-                });
-                core.setOutput('bot_replied', true);
-                const botReply = `*[${repo}] <${lastBotComment.data.html_url}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
-                core.setOutput('bot_reply_message', botReply);
+                try {
+                    lastBotComment = await github.rest.issues.createComment({
+                      owner,
+                      repo,
+                      issue_number: issueNumber,
+                      body: `Hi @${commentAuthor} ${botMessage}`
+                    });
+                    if (lastBotComment?.data?.html_url) {
+                      core.setOutput('bot_replied', true);
+                      const botReply = `*[${repo}] <${lastBotComment.data.html_url}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
+                      core.setOutput('bot_reply_message', botReply);
+                    }
+                } catch (error) {
+                    core.warning(`Failed to post bot comment: ${error.message}`);
+                    core.setOutput('bot_replied', false);
+                }
             }
         }
         message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
