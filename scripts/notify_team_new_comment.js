@@ -56,14 +56,19 @@ We really appreciate your willingness to help — feel free to pick another issu
         let lastBotComment;
         if(matchedKeywords){
             const oneHourBefore = new Date(commentTime - 3600000);
-            const PastComments = await github.rest.issues.listComments({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                since: oneHourBefore.toISOString()
-            });
-
-            const PastBotComments = PastComments.data.filter(comment => comment.user.login === LE_bot_username);
+            let PastBotComments;
+            try{
+                let response = await github.rest.issues.listComments({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    since: oneHourBefore.toISOString()
+                });
+                PastBotComments = response.data.filter(comment => comment.user.login === LE_bot_username);
+            } catch (error) {
+                core.warning(`⚠️ Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
+                PastBotComments = [];
+            }
 
             if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
