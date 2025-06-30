@@ -17,7 +17,6 @@ module.exports = async ({ github, context, core }) => {
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
     const LE_bot_username = 'learningequality[bot]';
-    const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
     const botMessage = `👋
 Thanks so much for your interest! This issue is currently reserved for the core team and isn’t available for assignment right now.
 If you’d like to get started contributing, please take a look at our [Contributing Guidelines](https://github.com/your-org/your-repo/blob/main/CONTRIBUTING.md) for tips on finding “help-wanted” issues, setting up your environment, and submitting a PR.
@@ -40,7 +39,7 @@ We really appreciate your willingness to help — feel free to pick another issu
           });
           labels = response.data.map(label => label.name);
         } catch (error) {
-          core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+           core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
            labels = [];
         }
         return labels.some(label => label.toLowerCase() === name.toLowerCase());
@@ -83,24 +82,27 @@ We really appreciate your willingness to help — feel free to pick another issu
     }
 
 
-    if (hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
+    if (await hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
       core.setOutput('webhook_url', slackWebhookUrl);
     } else {
       const matchedKeywords = keywords.find(keyword => commentBody.toLowerCase().includes(keyword));
       if(matchedKeywords){
+        core.setOutput('webhook_url', communityWebhookUrl);
         let lastBotComment;
-        let PastBotComments = findRecentCommentsByUser(LE_bot_username);
-
+        let PastBotComments = await findRecentCommentsByUser(LE_bot_username);
+        // post a bot reply if there is matched keyword and no previous bot comment in past hour
         if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
             } else if(PastBotComments.length === 0){
-                lastBotComment = botReply();
+                console.log("bot is replying");
+                lastBotComment = await botReply();
             }
         }
-      core.setOutput('webhook_url', communityWebhookUrl);
+
     }
 
+    const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
     core.setOutput('text', message);
 
   } catch (error) {
