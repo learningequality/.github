@@ -16,17 +16,19 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
-    const LE_bot_username = 'learningequality[bot]';
+    const LE_bot_username = 'testshobh[bot]';
     const botMessage = `👋
 Thanks so much for your interest! This issue is currently reserved for the core team and isn’t available for assignment right now.
 If you’d like to get started contributing, please take a look at our [Contributing Guidelines](https://github.com/your-org/your-repo/blob/main/CONTRIBUTING.md) for tips on finding “help-wanted” issues, setting up your environment, and submitting a PR.
 We really appreciate your willingness to help — feel free to pick another issue labeled **help-wanted** and let us know if you have any questions. 😊`
     const Close_Contributors = ['user1', 'user2'];
     const keywordsPath = path.join(__dirname, 'keywords.txt');
-    const keywords = fs.readFileSync(keywordsPath, 'utf-8')
-        .split('\n')
-        .map(k => k.trim().toLowerCase())
-        .filter(Boolean);
+    const keywordRegexes = fs.readFileSync(keywordsPath, 'utf-8')
+      .split('\n')
+      .map(k => k.trim().toLowerCase())
+      .filter(Boolean)
+      .map(keyword => new RegExp(`\\b${keyword}\\b`, 'i'));
+
 
 
     async function hasLabel(name) {
@@ -85,12 +87,12 @@ We really appreciate your willingness to help — feel free to pick another issu
     if (await hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
       core.setOutput('webhook_url', slackWebhookUrl);
     } else {
-      const matchedKeywords = keywords.find(keyword => commentBody.toLowerCase().includes(keyword));
-      if(matchedKeywords){
-        core.setOutput('webhook_url', communityWebhookUrl);
+      core.setOutput('webhook_url', communityWebhookUrl);
+      const matchedKeyword = keywordRegexes.find(regex => regex.test(commentBody));
+      // post a bot reply if there is matched keyword and no previous bot comment in past hour
+      if(matchedKeyword){
         let lastBotComment;
         let PastBotComments = await findRecentCommentsByUser(LE_bot_username);
-        // post a bot reply if there is matched keyword and no previous bot comment in past hour
         if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
@@ -98,8 +100,7 @@ We really appreciate your willingness to help — feel free to pick another issu
                 console.log("bot is replying");
                 lastBotComment = await botReply();
             }
-        }
-
+      }
     }
 
     const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
