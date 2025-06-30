@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { LE_BOT_USERNAME, BOT_MESSAGE, CLOSE_CONTRIBUTORS } = require('./constants');
 
 module.exports = async ({ github, context, core }) => {
   try {
@@ -16,12 +17,6 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
-    const LE_bot_username = 'testshobh[bot]';
-    const botMessage = `👋
-Thanks so much for your interest! This issue is currently reserved for the core team and isn’t available for assignment right now.
-If you’d like to get started contributing, please take a look at our [Contributing Guidelines](https://github.com/your-org/your-repo/blob/main/CONTRIBUTING.md) for tips on finding “help-wanted” issues, setting up your environment, and submitting a PR.
-We really appreciate your willingness to help — feel free to pick another issue labeled **help-wanted** and let us know if you have any questions. 😊`
-    const Close_Contributors = ['user1', 'user2'];
     const keywordsPath = path.join(__dirname, 'keywords.txt');
     const keywordRegexes = fs.readFileSync(keywordsPath, 'utf-8')
       .split('\n')
@@ -69,7 +64,7 @@ We really appreciate your willingness to help — feel free to pick another issu
               owner,
               repo,
               issue_number: issueNumber,
-              body: `Hi @${commentAuthor} ${botMessage}`
+              body: `Hi @${commentAuthor} ${BOT_MESSAGE}`
             });
             if (response?.data?.html_url) {
               core.setOutput('bot_replied', true);
@@ -84,8 +79,7 @@ We really appreciate your willingness to help — feel free to pick another issu
     }
 
 
-    // set webhook url based on label on issue
-    if (await hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
+    if (await hasLabel('help wanted') || CLOSE_CONTRIBUTORS.includes(commentAuthor)) {
       core.setOutput('webhook_url', slackWebhookUrl);
     } else {
       core.setOutput('webhook_url', communityWebhookUrl);
@@ -93,7 +87,7 @@ We really appreciate your willingness to help — feel free to pick another issu
       // post a bot reply if there is matched keyword and no previous bot comment in past hour
       if(matchedKeyword){
         let lastBotComment;
-        let PastBotComments = await findRecentCommentsByUser(LE_bot_username);
+        let PastBotComments = await findRecentCommentsByUser(LE_BOT_USERNAME);
         if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
