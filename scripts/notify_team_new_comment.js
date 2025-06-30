@@ -84,6 +84,7 @@ We really appreciate your willingness to help — feel free to pick another issu
     }
 
 
+    // set webhook url based on label on issue
     if (await hasLabel('help wanted') || Close_Contributors.includes(commentAuthor)) {
       core.setOutput('webhook_url', slackWebhookUrl);
     } else {
