@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { LE_BOT_USERNAME, BOT_MESSAGE, CLOSE_CONTRIBUTORS } = require('./constants');
+const { LE_BOT_USERNAME, BOT_MESSAGE } = require('./constants');
+const { CLOSE_CONTRIBUTORS } = require('./close_contributors');
 
 module.exports = async ({ github, context, core }) => {
   try {
