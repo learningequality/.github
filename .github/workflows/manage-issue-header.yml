@@ -29,8 +29,8 @@ jobs:
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
-          repository: MisRob/.github
-          ref: issue-header-action
+          repository: learningequality/.github
+          ref: main
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Node.js

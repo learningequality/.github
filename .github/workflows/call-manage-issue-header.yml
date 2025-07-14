@@ -7,7 +7,7 @@ on:
 jobs:
   call-workflow:
     name: Call shared workflow
-    uses: MisRob/.github/.github/workflows/manage-issue-header.yml@issue-header-action
+    uses: learningequality/.github/.github/workflows/manage-issue-header.yml@main
     secrets:
         LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
         LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
