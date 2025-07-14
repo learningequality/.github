@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.action == 'opened' ||
+      github.event.action == 'reopened' ||
       (github.event.action == 'labeled' && github.event.label.name == 'help wanted') ||
       (github.event.action == 'unlabeled' && github.event.label.name == 'help wanted')
     steps:
@@ -31,7 +32,7 @@ jobs:
           repository: MisRob/.github
           ref: issue-header-action
           token: ${{ steps.generate-token.outputs.token }}
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
