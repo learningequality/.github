@@ -73,7 +73,7 @@ jobs:
           webhook: ${{ steps.check.outputs.webhook_url }}
           payload: >
             {
-              "text": "${{ steps.check.outputs.text }}"
+              "text": "${{ steps.check.outputs.slack_notification_comment }}"
             }
 
       - name: Send Slack notification about GitHub bot reply

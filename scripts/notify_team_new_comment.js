@@ -100,7 +100,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
     const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
-    core.setOutput('text', message);
+    core.setOutput('slack_notification_comment', message);
 
   } catch (error) {
     core.setFailed(`Action failed with error: ${error.message}`);
