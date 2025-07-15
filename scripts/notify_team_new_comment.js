@@ -16,8 +16,8 @@ module.exports = async ({ github, context, core }) => {
     const commentBody = context.payload.comment.body;
     const repo = context.repo.repo;
     const owner = context.repo.owner;
-    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-    const communityWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
+    const supportDevSlackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const supportDevNotificationsSlackWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
     const keywordsPath = path.join(__dirname, 'keywords.txt');
     const keywordRegexes = fs.readFileSync(keywordsPath, 'utf-8')
       .split('\n')
@@ -81,9 +81,9 @@ module.exports = async ({ github, context, core }) => {
 
 
     if (await hasLabel('help wanted') || CLOSE_CONTRIBUTORS.includes(commentAuthor)) {
-      core.setOutput('webhook_url', slackWebhookUrl);
+      core.setOutput('webhook_url', supportDevSlackWebhookUrl);
     } else {
-      core.setOutput('webhook_url', communityWebhookUrl);
+      core.setOutput('webhook_url', supportDevNotificationsSlackWebhookUrl);
       const matchedKeyword = keywordRegexes.find(regex => regex.test(commentBody));
       // post a bot reply if there is matched keyword and no previous bot comment in past hour
       if(matchedKeyword){
