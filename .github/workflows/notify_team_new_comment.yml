@@ -76,7 +76,7 @@ jobs:
               "text": "${{ steps.check.outputs.text }}"
             }
 
-      - name: Send bot message to Slack channel
+      - name: Send Slack notification about GitHub bot reply
         if: ${{ steps.check.outputs.bot_replied }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
