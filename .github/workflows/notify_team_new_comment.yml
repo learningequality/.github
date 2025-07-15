@@ -84,6 +84,6 @@ jobs:
           webhook: ${{ steps.check.outputs.webhook_url }}
           payload: >
             {
-              "text": "${{ steps.check.outputs.bot_reply_message }}"
+              "text": "${{ steps.check.outputs.slack_notification_bot_comment }}"
             }
 

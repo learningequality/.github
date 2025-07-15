@@ -70,7 +70,7 @@ module.exports = async ({ github, context, core }) => {
             if (response?.data?.html_url) {
               core.setOutput('bot_replied', true);
               const botReplyMessage = `*[${repo}] <${response.data.html_url}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
-              core.setOutput('bot_reply_message', botReplyMessage);
+              core.setOutput('slack_notification_bot_comment', botReplyMessage);
             }
         } catch (error) {
             core.warning(`Failed to post bot comment: ${error.message}`);
