@@ -1,93 +1,41 @@
 assign
+assigned
+work
+working
+contribute
+contributing
+request
+requested
+pick
+picked
+picking
+address
+addressing
+help
 claim
-i claim this
-i’ll take this
-take this
-taking this
-taken
-i want this
-mine
-dibs
-this is mine
-i’ll do this
-i’ll take care
-let me take this
-can i take this
-can i work on this
-can i help
-can help
-let me help
-i want to help
-want to help
-working on this
-i’m on it
-i’ll work on it
-i want to work
-want this
-i can do this
-can do this
-i can solve this
-can solve this
-let me try
-i’ll try
-i’ll try this
-trying this
-i’ll pick this
-pick this
-picking this
-want to pick
-grab this
-grabbing this
-i’m interested
+claimed
+take
+want
+would like
+handle
+handling
+solve
+solving
+resolve
+resolving
+address
+addressing
+try
+trying
+grab
+grabbing
+own
+do
+doing
+on it
+interest
 interested
-i want in
-count me in
-i’m doing this
-doing now
-will do
-i’ll handle this
-let me handle
-let me solve
-solve this
-want to solve
-taking charge
-let me take care
-taking it
-bagging this
-need this
-can i own this
-i’ll own this
-i want to own
-let me own this
-i own this
-assign it
-this one please
-working on it
-i’ll do it
-let me do it
-doing it
-i’ve got this
+available
+take care
+help
 got this
-i got this
-my task
-my issue
-my pick
-take charge
-assign pls
-assign me pls
-let me pick
-can i take
-can i pick
-can i try
-need assign
-i’m available
-available to help
-want issue
-need issue
-pick for me
-pick me
-assign me this
-ready to help
-mark mine
-flag mine
-dibs on this
