@@ -60,7 +60,7 @@ jobs:
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-              const script = require('./scripts/notify_team_new_comment.js');
+              const script = require('./scripts/contributor-issue-comment.js');
               return await script({github, context, core});
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
