@@ -65,7 +65,7 @@ module.exports = async ({ github, context, core }) => {
               owner,
               repo,
               issue_number: issueNumber,
-              body: `Hi @${commentAuthor} ${BOT_MESSAGE}`
+              body: BOT_MESSAGE
             });
             if (response?.data?.html_url) {
               core.setOutput('bot_replied', true);
