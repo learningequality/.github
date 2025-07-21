@@ -11,10 +11,10 @@ on:
           required: true
       SLACK_WEBHOOK_URL:
         required: true
-        description: Webhook URL for the Slack support-dev channel where notifications should be sent.
+        description: "Webhook URL for Slack #support-dev channel"
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         required: true
-        description: Webhook URL for the Slack support-dev-notifications channel where notifications should be sent.
+        description: "Webhook URL for Slack #support-dev-notifications channel"
 
 
 jobs:
@@ -39,7 +39,7 @@ jobs:
           app_id: ${{ secrets.LE_BOT_APP_ID }}
           private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
 
-      - name: Checkout called repository
+      - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
           repository: testiamshobh/.github
@@ -54,8 +54,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run check script
-        id: check
+      - name: Run script
+        id: script
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
@@ -70,20 +70,20 @@ jobs:
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
-          webhook: ${{ steps.check.outputs.webhook_url }}
+          webhook: ${{ steps.script.outputs.webhook_url }}
           payload: >
             {
-              "text": "${{ steps.check.outputs.slack_notification_comment }}"
+              "text": "${{ steps.script.outputs.slack_notification_comment }}"
             }
 
       - name: Send Slack notification about GitHub bot reply
-        if: ${{ steps.check.outputs.bot_replied }}
+        if: ${{ steps.script.outputs.bot_replied }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
-          webhook: ${{ steps.check.outputs.webhook_url }}
+          webhook: ${{ steps.script.outputs.webhook_url }}
           payload: >
             {
-              "text": "${{ steps.check.outputs.slack_notification_bot_comment }}"
+              "text": "${{ steps.script.outputs.slack_notification_bot_comment }}"
             }
 
