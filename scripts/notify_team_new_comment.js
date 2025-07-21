@@ -1,7 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const { LE_BOT_USERNAME, BOT_MESSAGE } = require('./constants');
-const { CLOSE_CONTRIBUTORS } = require('./close_contributors');
+const {
+  LE_BOT_USERNAME,
+  CLOSE_CONTRIBUTORS,
+  KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
+  ISSUE_LABEL_HELP_WANTED,
+  BOT_MESSAGE_ISSUE_NOT_OPEN
+} = require('./constants');
 
 module.exports = async ({ github, context, core }) => {
   try {
@@ -18,9 +21,7 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const supportDevSlackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const supportDevNotificationsSlackWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
-    const keywordsPath = path.join(__dirname, 'keywords.txt');
-    const keywordRegexes = fs.readFileSync(keywordsPath, 'utf-8')
-      .split('\n')
+    const keywordRegexes = KEYWORDS_DETECT_ASSIGNMENT_REQUEST
       .map(k => k.trim().toLowerCase())
       .filter(Boolean)
       .map(keyword => new RegExp(`\\b${keyword}\\b`, 'i'));
@@ -65,7 +66,7 @@ module.exports = async ({ github, context, core }) => {
               owner,
               repo,
               issue_number: issueNumber,
-              body: BOT_MESSAGE
+              body: BOT_MESSAGE_ISSUE_NOT_OPEN
             });
             if (response?.data?.html_url) {
               core.setOutput('bot_replied', true);
@@ -80,7 +81,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
 
-    if (await hasLabel('help wanted') || CLOSE_CONTRIBUTORS.includes(commentAuthor)) {
+    if (await hasLabel(ISSUE_LABEL_HELP_WANTED) || CLOSE_CONTRIBUTORS.includes(commentAuthor)) {
       core.setOutput('webhook_url', supportDevSlackWebhookUrl);
     } else {
       core.setOutput('webhook_url', supportDevNotificationsSlackWebhookUrl);
