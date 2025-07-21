@@ -1,4 +1,4 @@
-name: Send a slack notification when a contributor comments on issue
+name: Handle contributor comment on GitHub issue
 
 on:
   workflow_call:
@@ -18,8 +18,8 @@ on:
 
 
 jobs:
-  contributor_issue_comment:
-    name: Contributor issue comment
+  process-issue-comment:
+    name: Process issue comment
 
     if: >-
       ${{
