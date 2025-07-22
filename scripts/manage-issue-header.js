@@ -22,26 +22,48 @@ function clearHeader(issueBody) {
   return issueBody.substring(0, startIndex) + issueBody.substring(endIndex + HEADER_END_MARKER.length).trimStart();
 }
 
+function isIssueHelpWanted(issue) {
+  if (!issue.labels || !issue.labels.length) {
+    return false;
+  }
+  return issue.labels.some(label => label.name === HELP_WANTED_LABEL);
+}
+
 module.exports = async ({ github, context, core }) => {
   try {
     const repoOwner = context.repo.owner;
     const repoName = context.repo.repo;
     const issueNumber = context.payload.issue.number;
     const actionType = context.payload.action;
-    const labelName = context.payload.label.name;
-
-    const labelAdded = actionType === "labeled";
-    const labelRemoved = actionType === "unlabeled";
-
-    if (!labelAdded && !labelRemoved) {
-      return;
+    const labelName = context.payload.label?.name;
+    let issue = context.payload.issue;
+    let header = '';
+    
+    switch (actionType) {
+      case 'opened':
+        // also handle pre-existing 'help wanted' label on transferred issues (processed via 'opened' event in a receiving repository)
+        header = isIssueHelpWanted(issue) ? HELP_WANTED_HEADER : NON_HELP_WANTED_HEADER;
+        break; 
+      case 'reopened':
+        // check for pre-existing 'help wanted' label
+        header = isIssueHelpWanted(issue) ? HELP_WANTED_HEADER : NON_HELP_WANTED_HEADER;
+        break;    
+      case 'labeled':
+        if (labelName === HELP_WANTED_LABEL) {
+          header = HELP_WANTED_HEADER;
+        }
+        break;
+      case 'unlabeled':
+        if (labelName === HELP_WANTED_LABEL) {
+          header = NON_HELP_WANTED_HEADER;
+        }
+        break;
+      default:
+        core.info(`Unsupported action type '${actionType}' or label '${labelName}'. Skipping.`);
+        return;
     }
 
-    if (labelName !== HELP_WANTED_LABEL) {
-      return;
-    }
-
-    const issue = await github.rest.issues.get({
+    issue = await github.rest.issues.get({
       owner: repoOwner,
       repo: repoName,
       issue_number: issueNumber
@@ -50,11 +72,7 @@ module.exports = async ({ github, context, core }) => {
     const currentBody = issue.data.body || "";
 
     let newBody = clearHeader(currentBody);
-    if (labelAdded) {
-      newBody = HELP_WANTED_HEADER + newBody;
-    } else if (labelRemoved) {
-      newBody = NON_HELP_WANTED_HEADER + newBody;
-    }
+    newBody = header + newBody;
 
     await github.rest.issues.update({
       owner: repoOwner,

@@ -1,50 +1,51 @@
 name: Manage issue header
 
 on:
-    issues:
-      types: [labeled, unlabeled]
-    workflow_call:
-      secrets:
-        LE_BOT_APP_ID:
-            description: "GitHub App ID for authentication"
-            required: true
-        LE_BOT_PRIVATE_KEY:
-            description: "GitHub App Private Key for authentication"
-            required: true
+  workflow_call:
+    secrets:
+      LE_BOT_APP_ID:
+          description: "GitHub App ID for authentication"
+          required: true
+      LE_BOT_PRIVATE_KEY:
+          description: "GitHub App Private Key for authentication"
+          required: true
+
 jobs:
   manage-issue-header:
     runs-on: ubuntu-latest
     if: |
+      github.event.action == 'opened' ||
+      github.event.action == 'reopened' ||
       (github.event.action == 'labeled' && github.event.label.name == 'help wanted') ||
       (github.event.action == 'unlabeled' && github.event.label.name == 'help wanted')
     steps:
-      - name: Generate App Token
+      - name: Generate GitHub token
         id: generate-token
         uses: tibdex/github-app-token@v2
         with:
           app_id: ${{ secrets.LE_BOT_APP_ID }}
           private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
 
-      - name: Checkout called repository
-        uses: actions/checkout@v3
+      - name: Checkout .github repository
+        uses: actions/checkout@v4
         with:
           repository: learningequality/.github
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
-      
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: 20
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: npm install 
-      
+        run: yarn install --frozen-lockfile
+
       - name: Run script
-        id: run-script
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const script = require('./scripts/manage-issue-header.js');
-            return await script({github, context, core});
+            await script({github, context, core});
