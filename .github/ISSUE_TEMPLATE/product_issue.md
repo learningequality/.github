@@ -17,7 +17,7 @@ _[Then, more detail. Provide a short summary and/or list key outcomes that the u
 
 
 #### Resources
-- [ ]  _[Link Gherkin Scenarios]_
-- [ ]  _[Link Figma Scenarios]_
+- _[Link Gherkin Scenarios]_
+- _[Link Figma Scenarios]_
 
 #### Accessibility Requirements

@@ -14,9 +14,9 @@ _[General guidance: When drafting a feature project, the goal is to create a ref
 _[First, the project and purpose in one sentence, i.e.: Allow coaches and admins to customize quiz questions in Koilbri]_
 
 _[Then, more detail]_
-- [ ]  What is this feature? What problem is it solving?
-- [ ]  Why are we doing this now?
-- [ ]  What feedback, requests, insights and/or concerns are shaping this feature? Include specific comments from partners, clearinghouse, or teammates as relevant.
+- What is this feature? What problem is it solving?
+- Why are we doing this now?
+- What feedback, requests, insights and/or concerns are shaping this feature? Include specific comments from partners, clearinghouse, or teammates as relevant.
 
 ### Contributors 
 _[Fill this out as people are assigned]_ 
@@ -26,14 +26,14 @@ _[Fill this out as people are assigned]_
 - Other relevant LE team members: [optional, i.e. imps point person]
 
 ### Goals
-- [ ]  Who is this feature for?  Outline user stories below, but also mention if there is a specific partner and/or deployment
-- [ ]  How do we know this feature is successful?
+- Who is this feature for?  Outline user stories below, but also mention if there is a specific partner and/or deployment
+- How do we know this feature is successful?
 
 #### User Stories or Requirements
 _[Break down the main workflows thematically, but still at a high level. How are the goals of the project realized in the UI? If there isn't a UI portion of this project, what are the key outcomes or improvements? There should probably only be a few of these per project]_ 
 
 ### Target Quarter and Due date
-- [ ]  What is the timeline of this project?
+- What is the timeline of this project?
     - If there is a specific due date, especially for a contractual deliverable, include it. Otherwise, include an estimated delivery date, and what quarter(s) this will be worked on
 
 ### Product Issues 
