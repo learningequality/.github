@@ -20,7 +20,7 @@ on:
 jobs:
   check-if-close-contributor:
     name: Check if user is a close contributor
-    uses: learningequality/.github/.github/workflows/is-close-contributor.yml@main
+    uses: MisRob/.github/.github/workflows/is-close-contributor.yml@fix-notification-system
     secrets:
           LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
           LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
@@ -52,8 +52,8 @@ jobs:
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
-          repository: learningequality/.github
-          ref: main
+          repository: MisRob/.github
+          ref: fix-notification-system
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Node.js

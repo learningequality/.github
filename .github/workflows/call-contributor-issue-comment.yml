@@ -6,7 +6,7 @@ on:
 
 jobs:
   call-workflow:
-    uses: learningequality/.github/.github/workflows/contributor-issue-comment.yml@main
+    uses: MisRob/.github/.github/workflows/contributor-issue-comment.yml@fix-notification-system
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
