@@ -3,7 +3,9 @@ const LE_BOT_USERNAME = 'learning-equality-bot[bot]';
 // close contributors are treated a bit special in some workflows,
 // for example, we receive a high priority notification about their
 // comments on all issues rather than just on 'help wanted' issues
-const CLOSE_CONTRIBUTORS = ['BabyElias', 'Dimi20cen', 'EshaanAgg', 'GarvitSinghal47', 'habibayman', 'iamshobhraj', 'indirectlylit', 'Jakoma02', 'KshitijThareja', 'muditchoudhary', 'nathanaelg16', 'nikkuAg', 'Sahil-Sinha-11', 'shivam-daksh', 'shruti862', 'thesujai', 'WinnyChang'];
+const CLOSE_CONTRIBUTORS = ['AadarshM07', 'Abhishek-Punhani', 'BabyElias', 'Dimi20cen', 'EshaanAgg', 'GarvitSinghal47', 'habibayman', 'iamshobhraj', 'indirectlylit', 'Jakoma02', 'KshitijThareja', 'muditchoudhary', 'nathanaelg16', 'nikkuAg', 'Sahil-Sinha-11', 'shivam-daksh', 'shruti862', 'thesujai', 'WinnyChang', 'yeshwanth235'];
+
+const TEAMS_WITH_CLOSE_CONTRIBUTORS = ['gsoc-contributors', 'learning-equality-community-guide'];
 
 const KEYWORDS_DETECT_ASSIGNMENT_REQUEST = [
   'assign', 'assigned',
@@ -39,4 +41,5 @@ module.exports = {
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
   ISSUE_LABEL_HELP_WANTED,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
+  TEAMS_WITH_CLOSE_CONTRIBUTORS,
 };
