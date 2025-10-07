@@ -1,0 +1,57 @@
+name: Check if user is a close contributor
+
+on:
+  workflow_call:
+    inputs:
+      username:
+        description: 'Github username'
+        required: true
+        type: string
+    secrets:
+      LE_BOT_APP_ID:
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        required: true
+    outputs:
+      is_close_contributor:
+        description: "True if the user is a close contributor, otherwise false"
+        value: ${{ jobs.check-contributor.outputs.is_close_contributor }}
+
+jobs:
+  check-contributor:
+    name: Run check
+    runs-on: ubuntu-latest
+    outputs:
+      is_close_contributor: ${{ steps.check-script.outputs.is_close_contributor }}
+    steps:
+      - name: Generate App Token
+        id: generate-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.LE_BOT_APP_ID }}
+          private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+
+      - name: Checkout .github repository
+        uses: actions/checkout@v4
+        with:
+          repository: learningequality/.github
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run script
+        id: check-script
+        uses: actions/github-script@v7
+        env:
+          USERNAME: ${{ inputs.username }}
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            const script = require('./scripts/is-close-contributor.js');
+            return await script({core, github, context });
