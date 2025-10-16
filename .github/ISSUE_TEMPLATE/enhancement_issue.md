@@ -14,13 +14,11 @@ Instructions:
 
 -->
 
-## Desired behavior
-<!-- Briefly describe the behavior you would like to see -->
-
-
 ## Current behavior
 <!-- Briefly describe the current behavior; you may include screenshots, code, and notes -->
 
+## Desired behavior
+<!-- Briefly describe the behavior you would like to see -->
 
 ## Value add
 <!-- (Optional) Explain why this should be added or changed in KDS and where it could be used -->
