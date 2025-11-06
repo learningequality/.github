@@ -1,6 +1,5 @@
 const {
   LE_BOT_USERNAME,
-  CLOSE_CONTRIBUTORS,
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
   ISSUE_LABEL_HELP_WANTED,
   BOT_MESSAGE_ISSUE_NOT_OPEN
@@ -21,6 +20,7 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const supportDevSlackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const supportDevNotificationsSlackWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
+    const isCloseContributor = process.env.IS_CLOSE_CONTRIBUTOR === 'true';
     const keywordRegexes = KEYWORDS_DETECT_ASSIGNMENT_REQUEST
       .map(k => k.trim().toLowerCase())
       .filter(Boolean)
@@ -81,7 +81,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
 
-    if (await hasLabel(ISSUE_LABEL_HELP_WANTED) || CLOSE_CONTRIBUTORS.includes(commentAuthor)) {
+    if ( isCloseContributor || await hasLabel(ISSUE_LABEL_HELP_WANTED) ) {
       core.setOutput('webhook_url', supportDevSlackWebhookUrl);
     } else {
       core.setOutput('webhook_url', supportDevNotificationsSlackWebhookUrl);
@@ -93,6 +93,9 @@ module.exports = async ({ github, context, core }) => {
         if(PastBotComments.length > 0){
                 lastBotComment = PastBotComments.at(-1);
                 core.setOutput('bot_replied', false);
+                core.setOutput('bot_reply_skipped', true);
+                const slackMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${escapedTitle}> (less than 1 hour since last bot reply)*`;
+                core.setOutput('slack_notification_bot_skipped', slackMessage);
             } else if(PastBotComments.length === 0){
                 console.log("bot is replying");
                 lastBotComment = await botReply();
