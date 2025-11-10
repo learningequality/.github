@@ -7,6 +7,7 @@ const {
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED
 } = require('./constants');
+const { isCloseContributor } = require('./utils');
 
 module.exports = async ({ github, context, core }) => {
   try {
@@ -25,7 +26,6 @@ module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const supportDevSlackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     const supportDevNotificationsSlackWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
-    const isCloseContributor = process.env.IS_CLOSE_CONTRIBUTOR === 'true';
     const keywordRegexes = KEYWORDS_DETECT_ASSIGNMENT_REQUEST
       .map(k => k.trim().toLowerCase())
       .filter(Boolean)
@@ -33,6 +33,7 @@ module.exports = async ({ github, context, core }) => {
     const isAssignmentRequest = keywordRegexes.find(regex => regex.test(commentBody));
     const isIssueAssignedToSomeoneElse = issueAssignees && issueAssignees.length > 0 && !issueAssignees.includes(commentAuthor);
     const isHelpWanted = await hasLabel(ISSUE_LABEL_HELP_WANTED);
+    const commentAuthorIsCloseContributor = await isCloseContributor(commentAuthor, { github, context, core });
 
     async function hasLabel(name) {
       let labels = [];
@@ -159,7 +160,7 @@ module.exports = async ({ github, context, core }) => {
     function shouldContactSupport() {
       // for close contributors, send notification
       // to #support-dev under all circumstances
-      if (isCloseContributor) {
+      if (commentAuthorIsCloseContributor) {
         return true;
       }
 

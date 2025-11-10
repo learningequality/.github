@@ -1,4 +1,4 @@
-name: Check if user is a close contributor
+name: Check if user is contributor
 
 on:
   workflow_call:
@@ -7,22 +7,26 @@ on:
         description: 'Github username'
         required: true
         type: string
+      author_association:
+        description: 'Author association from GitHub event'
+        required: true
+        type: string
     secrets:
       LE_BOT_APP_ID:
         required: true
       LE_BOT_PRIVATE_KEY:
         required: true
     outputs:
-      is_close_contributor:
-        description: "True if the user is a close contributor, otherwise false"
-        value: ${{ jobs.check-contributor.outputs.is_close_contributor }}
+      is_contributor:
+        description: "True if the user is a contributor (= not a core team member)"
+        value: ${{ jobs.check-contributor.outputs.is_contributor }}
 
 jobs:
   check-contributor:
-    name: Run check
+    name: Check if user is contributor
     runs-on: ubuntu-latest
     outputs:
-      is_close_contributor: ${{ steps.check-script.outputs.is_close_contributor }}
+      is_contributor: ${{ steps.run-script.outputs.is_contributor }}
     steps:
       - name: Generate App Token
         id: generate-token
@@ -46,12 +50,13 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Run script
-        id: check-script
+        id: run-script
         uses: actions/github-script@v7
         env:
           USERNAME: ${{ inputs.username }}
+          AUTHOR_ASSOCIATION: ${{ inputs.author_association }}
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const script = require('./scripts/is-close-contributor.js');
-            return await script({core, github, context });
+            const script = require('./scripts/is-contributor.js');
+            return await script({ core, github, context });

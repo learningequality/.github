@@ -1,4 +1,5 @@
 const LE_BOT_USERNAME = 'learning-equality-bot[bot]';
+const SENTRY_BOT_USERNAME = 'sentry-io[bot]';
 
 // close contributors are treated a bit special in some workflows,
 // for example, we receive a high priority notification about their
@@ -39,6 +40,7 @@ const BOT_MESSAGE_ALREADY_ASSIGNED = `Hi! 👋 \n\n Thanks so much for your inte
 
 module.exports = {
   LE_BOT_USERNAME,
+  SENTRY_BOT_USERNAME,
   CLOSE_CONTRIBUTORS,
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
   ISSUE_LABEL_HELP_WANTED,
