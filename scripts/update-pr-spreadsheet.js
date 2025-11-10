@@ -19,28 +19,10 @@ const extractPRData = (payload) => {
   };
 };
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
-const SHEET_NAME = process.env.SHEET_NAME;
-const GOOGLE_CREDENTIALS = process.env.GOOGLE_CREDENTIALS;
-
-// Validate environment variables
-function validateEnvVariables() {
-  const missingVars = [];
-  if (!SPREADSHEET_ID) missingVars.push("SPREADSHEET_ID");
-  if (!SHEET_NAME) missingVars.push("SHEET_NAME");
-  if (!GOOGLE_CREDENTIALS) missingVars.push("GOOGLE_CREDENTIALS");
-
-  if (missingVars.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missingVars.join(", ")}`
-    );
-  }
-}
-
 // Set up GoogleAuth for Google Sheets API
-async function authorize() {
+async function authorize(googleCredentials) {
   try {
-    const credentials = JSON.parse(GOOGLE_CREDENTIALS);
+    const credentials = JSON.parse(googleCredentials);
     const auth = new google.auth.GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -49,14 +31,14 @@ async function authorize() {
     return google.sheets({ version: "v4", auth: authClient });
   } catch (error) {
     throw new Error(
-      `Failed to authorize: ${error.message}. Please check your GOOGLE_CREDENTIALS.`
+      `Failed to authorize: ${error.message}.`
     );
   }
 }
 
 // Update Google Sheets with pull request data
-async function updateSpreadsheet(pullRequest) {
-  const sheets = await authorize();
+async function updateSpreadsheet(pullRequest, sheetId, sheetName, googleCredentials) {
+  const sheets = await authorize(googleCredentials);
   const prData = [
     pullRequest.merged_at ? pullRequest.merged_at.split("T")[0].replace("'", "") : pullRequest.state === "closed" ? "closed" : pullRequest.state,
     pullRequest.html_url || "",
@@ -73,8 +55,8 @@ async function updateSpreadsheet(pullRequest) {
   try {
     // Fetch existing rows from the sheet
     const { data } = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: SHEET_NAME,
+      spreadsheetId: sheetId,
+      range: sheetName,
     });
 
     const existingRows = data.values || [];
@@ -102,7 +84,7 @@ async function updateSpreadsheet(pullRequest) {
         for (let col = 0; col < prData.length; col++) {
           if (existingData[col] !== prData[col]) {
             updates.push({
-              range: `${SHEET_NAME}!${columns[col]}${rowToUpdate}`,
+              range: `${sheetName}!${columns[col]}${rowToUpdate}`,
               values: [[prData[col]]],
             });
           }
@@ -111,7 +93,7 @@ async function updateSpreadsheet(pullRequest) {
         if (updates.length > 0) {
           // Batch update changed columns
           await sheets.spreadsheets.values.batchUpdate({
-            spreadsheetId: SPREADSHEET_ID,
+            spreadsheetId: sheetId,
             resource: {
               data: updates,
               valueInputOption: "RAW",
@@ -127,8 +109,8 @@ async function updateSpreadsheet(pullRequest) {
     } else {
       // Append new row starting from column B
       await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A:H`,
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A:H`,
         valueInputOption: "RAW",
         resource: { values: [prData] },
       });
@@ -139,20 +121,16 @@ async function updateSpreadsheet(pullRequest) {
   }
 }
 
-// Validate environment variables
-try {
-  validateEnvVariables();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
+module.exports = async ({ github, context, core }) => {
+  const sheetId = process.env.CONTRIBUTIONS_SPREADSHEET_ID;
+  const sheetName = process.env.CONTRIBUTIONS_SHEET_NAME;
+  const googleCredentials = process.env.GH_UPLOADER_GCP_SA_CREDENTIALS;
 
-// Get the GitHub event data
-const githubEvent = JSON.parse(process.env.GITHUB_EVENT);
-
-// Extract PR data and run the script
-const prData = extractPRData(githubEvent);
-updateSpreadsheet(prData).catch((error) => {
-  console.error("An error occurred:", error.message);
-  process.exit(1);
-});
+  try {
+    const prData = extractPRData(context.payload);
+    await updateSpreadsheet(prData, sheetId, sheetName, googleCredentials);
+  } catch (error) {
+    core.setFailed(`An error occurred: ${error.message}`);
+    throw error;
+  }
+};
