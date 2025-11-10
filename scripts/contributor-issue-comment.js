@@ -1,3 +1,5 @@
+// See docs/contributor-issue-comment.md
+
 const {
   LE_BOT_USERNAME,
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
