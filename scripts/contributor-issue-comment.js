@@ -15,7 +15,7 @@ module.exports = async ({ github, context, core }) => {
     const issueTitle = context.payload.issue.title;
     const issueCreator = context.payload.issue.user.login;
     const issueAssignees = context.payload.issue.assignees?.map(assignee => assignee.login) || [];
-    const escapedTitle = issueTitle.replace(/"/g, '\\"');
+    const escapedTitle = issueTitle.replace(/"/g, '\\"').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const commentId = context.payload.comment.id;
     const commentTime = new Date(context.payload.comment.created_at);
     const oneHourBefore = new Date(commentTime - 3600000);
