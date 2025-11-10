@@ -11,6 +11,7 @@ module.exports = async ({ github, context, core }) => {
     const issueNumber = context.payload.issue.number;
     const issueUrl = context.payload.issue.html_url;
     const issueTitle = context.payload.issue.title;
+    const issueCreator = context.payload.issue.user.login;
     const issueAssignee = context.payload.issue.assignee?.login;
     const escapedTitle = issueTitle.replace(/"/g, '\\"');
     const commentId = context.payload.comment.id;
@@ -111,25 +112,37 @@ module.exports = async ({ github, context, core }) => {
     // as '(Issues #1 #2 | PRs #3)' and PRs for Slack message
     function formatAuthorActivity(issues, pullRequests) {
       const parts = [];
-      
+
       if (issues.length > 0) {
         const issueLinks = issues.map(issue => `<${issue.html_url}|#${issue.number}>`).join(' ');
         parts.push(`Issues ${issueLinks}`);
       } else {
         parts.push(`Issues none`);
       }
-      
+
       if (pullRequests.length > 0) {
         const prLinks = pullRequests.map(pr => `<${pr.html_url}|#${pr.number}>`).join(' ');
         parts.push(`PRs ${prLinks}`);
       } else {
         parts.push(`PRs none`);
       }
-      
+
       return `(${parts.join(' | ')})`;
     }
 
     function shouldSendBotReply() {
+      if (issueCreator === commentAuthor) {
+        // Strictly prevents all bot replies on issues reported
+        // by people using our apps - sometimes there's conversation
+        // in comments and in this context, it's strange to have the bot
+        // chime in if someone uses a keyword triggering the bot.
+        // (This means that a bot reply won't be sent if a contributor
+        // reports an issue and then requests its assignment. But that's
+        // acceptable trade-off, and we'd likely want to see the report anyway
+        // and then decide whether they can work on it).
+        return [false, null];
+      }
+
       if (isHelpWanted && isAssignmentRequest && isIssueAssignedToSomeoneElse) {
         return [true, BOT_MESSAGE_ALREADY_ASSIGNED];
       }
