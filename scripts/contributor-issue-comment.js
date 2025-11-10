@@ -26,8 +26,6 @@ module.exports = async ({ github, context, core }) => {
     const commentBody = context.payload.comment.body;
     const repo = context.repo.repo;
     const owner = context.repo.owner;
-    const supportDevSlackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-    const supportDevNotificationsSlackWebhookUrl = process.env.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL;
     const keywordRegexes = KEYWORDS_DETECT_ASSIGNMENT_REQUEST
       .map(k => k.trim().toLowerCase())
       .filter(Boolean)
@@ -105,15 +103,11 @@ module.exports = async ({ github, context, core }) => {
     }
 
     function shouldSendBotReply() {
+      if (commentAuthorIsCloseContributor) {
+        return [false, null];
+      }
+
       if (issueCreator === commentAuthor) {
-        // Strictly prevents all bot replies on issues reported
-        // by people using our apps - sometimes there's conversation
-        // in comments and in this context, it's strange to have the bot
-        // chime in if someone uses a keyword triggering the bot.
-        // (This means that a bot reply won't be sent if a contributor
-        // reports an issue and then requests its assignment. But that's
-        // acceptable trade-off, and we'd likely want to see the report anyway
-        // and then decide whether they can work on it).
         return [false, null];
       }
 
@@ -129,19 +123,14 @@ module.exports = async ({ github, context, core }) => {
     }
 
     function shouldContactSupport() {
-      // for close contributors, send notification
-      // to #support-dev under all circumstances
       if (commentAuthorIsCloseContributor) {
         return true;
       }
 
-      // for other contributors, do not send on non-help-wanted issues
       if (!isHelpWanted) {
         return false;
       }
 
-      // on help-wanted issues, do not send if it's an assignment
-      // request and issue is already assigned to someone else
       if (isAssignmentRequest && isIssueAssignedToSomeoneElse) {
         return false;
       }
@@ -161,16 +150,13 @@ module.exports = async ({ github, context, core }) => {
         { github, context, core }
       );
       if (skipBot) {
-        const slackBotSkippedMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${issueTitle}> (less than 1 hour since last bot message)*`;
-
-        core.setOutput('bot_reply_skipped', true);
-        core.setOutput('slack_notification_bot_skipped', slackBotSkippedMessage);
+        const slackMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${issueTitle}> (less than 1 hour since last bot message)*`;
+        core.setOutput('support_dev_notifications_message', slackMessage);
       } else {
         const botMessageUrl = await sendBotMessage(issueNumber, botMessage, { github, context, core });
         if (botMessageUrl) {
           const slackMessage = `*[${repo}] <${botMessageUrl}|Bot response sent> on issue: <${issueUrl}|${issueTitle}>*`;
-          core.setOutput('bot_replied', true);
-          core.setOutput('slack_notification_bot_comment', slackMessage);
+          core.setOutput('support_dev_notifications_message', slackMessage);
         }
       }
     }
@@ -179,23 +165,15 @@ module.exports = async ({ github, context, core }) => {
     let slackMessage = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${issueTitle}> by _${commentAuthor}_*`;
 
     if (contactSupport) {
-      // Append activity info when sending to #support-dev
-      // to guide the decision on whether to assign an issue
       const [assignedOpenIssues, openPRs] = await Promise.all([
         getIssues(commentAuthor, 'open'),
         getPullRequests(commentAuthor, 'open')
       ]);
       const authorActivity = formatAuthorActivity(assignedOpenIssues, openPRs);
       slackMessage += ` _${authorActivity}_`;
-
-      core.setOutput('webhook_url', supportDevSlackWebhookUrl);
-      core.setOutput('slack_notification_comment', slackMessage);
+      core.setOutput('support_dev_message', slackMessage);
     } else {
-      // if we're not sending notification to #support-dev,
-      // send it to #support-dev-notifications and if the comment
-      // appears to be an assignment request, post GitHub bot reply
-      core.setOutput('webhook_url', supportDevNotificationsSlackWebhookUrl);
-      core.setOutput('slack_notification_comment', slackMessage);
+      core.setOutput('support_dev_notifications_message', slackMessage);
     }
   } catch (error) {
     core.setFailed(`Action failed with error: ${error.message}`);

@@ -70,38 +70,25 @@ jobs:
           script: |
             const script = require('./scripts/contributor-issue-comment.js');
             return await script({ github, context, core });
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
 
-      - name: Send Slack notification about GitHub comment
+      - name: Send Slack notification to support-dev channel
+        if : ${{ steps.script.outputs.support_dev_message }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
-          webhook: ${{ steps.script.outputs.webhook_url }}
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           payload: >
             {
-              "text": "${{ steps.script.outputs.slack_notification_comment }}"
+              "text": "${{ steps.script.outputs.support_dev_message }}"
             }
 
-      - name: Send Slack notification about GitHub bot reply
-        if: ${{ steps.script.outputs.bot_replied }}
+      - name: Send Slack notification to support-dev-notifications channel
+        if : ${{ steps.script.outputs.support_dev_notifications_message }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
-          webhook: ${{ steps.script.outputs.webhook_url }}
+          webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
           payload: >
             {
-              "text": "${{ steps.script.outputs.slack_notification_bot_comment }}"
-            }
-
-      - name: Send Slack notification about skipped GitHub bot reply
-        if: ${{ steps.script.outputs.bot_reply_skipped }}
-        uses: slackapi/slack-github-action@v2.1.0
-        with:
-          webhook-type: incoming-webhook
-          webhook: ${{ steps.script.outputs.webhook_url }}
-          payload: >
-            {
-              "text": "${{ steps.script.outputs.slack_notification_bot_skipped }}"
+              "text": "${{ steps.script.outputs.support_dev_notifications_message }}"
             }
