@@ -57,9 +57,18 @@ async function isCloseContributor(username, { github, context, core }) {
 
   if (CLOSE_CONTRIBUTORS.map(c => c.toLowerCase().trim()).includes(username.toLowerCase().trim())) {
     return true;
+  } else {
+    return false;
   }
 
-  const org = context.repo.owner;
+  // Detection on GitHub teams below is disabled until we re-think
+  // how close contributors are managed (see Notion tracker):
+  // - it was only fallback as explained lower
+  // - it causes the problem when we receive undesired notification
+  // to #support-dev when Richard posts issue comment since he is a member
+  // of GSoC and other GitHub teams with close contributors (they require moderator).
+
+  /* const org = context.repo.owner;
 
   // Even though we check on team members here, it's best
   // to add everyone to CLOSE_CONTRIBUTORS constant anyway
@@ -93,7 +102,7 @@ async function isCloseContributor(username, { github, context, core }) {
   } catch (error) {
     core.setFailed(error.message);
     return false;
-  }
+  } */
 }
 
 function isHolidayMessageActive(currentDate = new Date()) {
@@ -111,18 +120,18 @@ async function sendBotMessage(issueNumber, message, { github, context, core }) {
     if (!message) {
       throw new Error('Message content is required');
     }
-    
+
     const response = await github.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
       body: message,
     });
-    
+
     if (!response?.data?.html_url) {
       throw new Error('Comment created but no URL returned');
     }
-    
+
     return response.data.html_url;
   } catch (error) {
     throw new Error(error.message);
