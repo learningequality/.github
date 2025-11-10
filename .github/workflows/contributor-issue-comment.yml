@@ -82,7 +82,7 @@ jobs:
               "text": "${{ steps.script.outputs.support_dev_message }}"
             }
 
-      - name: Send Slack notification to support-dev-notifications channel
+      - name: Send Slack notification to support-dev-notifications channel about comment
         if: ${{ steps.script.outputs.support_dev_notifications_message }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
@@ -91,4 +91,15 @@ jobs:
           payload: >
             {
               "text": "${{ steps.script.outputs.support_dev_notifications_message }}"
+            }
+
+      - name: Send Slack notification to support-dev-notifications channel about bot action
+        if: ${{ steps.script.outputs.support_dev_notifications_bot }}
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          webhook-type: incoming-webhook
+          webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
+          payload: >
+            {
+              "text": "${{ steps.script.outputs.support_dev_notifications_bot }}"
             }

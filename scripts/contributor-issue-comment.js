@@ -151,12 +151,12 @@ module.exports = async ({ github, context, core }) => {
       );
       if (skipBot) {
         const slackMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${issueTitle}> (less than 1 hour since last bot message)*`;
-        core.setOutput('support_dev_notifications_message', slackMessage);
+        core.setOutput('support_dev_notifications_bot', slackMessage);
       } else {
         const botMessageUrl = await sendBotMessage(issueNumber, botMessage, { github, context, core });
         if (botMessageUrl) {
           const slackMessage = `*[${repo}] <${botMessageUrl}|Bot response sent> on issue: <${issueUrl}|${issueTitle}>*`;
-          core.setOutput('support_dev_notifications_message', slackMessage);
+          core.setOutput('support_dev_notifications_bot', slackMessage);
         }
       }
     }
