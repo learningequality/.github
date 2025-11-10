@@ -34,6 +34,7 @@ jobs:
     if: >-
       ${{
         !github.event.issue.pull_request &&
+        github.event.issue.state == 'open' &&
         github.event.comment.author_association != 'OWNER' &&
         github.event.comment.user.login != 'sentry-io[bot]' &&
         github.event.comment.user.login != 'learning-equality-bot[bot]' &&
