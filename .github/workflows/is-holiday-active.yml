@@ -1,28 +1,25 @@
-name: Check if user is a close contributor
+name: Check if holiday message is active
 
 on:
   workflow_call:
-    inputs:
-      username:
-        description: 'Github username'
-        required: true
-        type: string
     secrets:
       LE_BOT_APP_ID:
+        description: "GitHub App ID for authentication"
         required: true
       LE_BOT_PRIVATE_KEY:
+        description: "GitHub App Private Key for authentication"
         required: true
     outputs:
-      is_close_contributor:
-        description: "True if the user is a close contributor, otherwise false"
-        value: ${{ jobs.check-contributor.outputs.is_close_contributor }}
+      is_holiday_active:
+        description: "True if we're within the holiday message period"
+        value: ${{ jobs.check-holiday-active.outputs.is_holiday_active }}
 
 jobs:
-  check-contributor:
-    name: Run check
+  check-holiday-active:
+    name: Check if holiday message is active
     runs-on: ubuntu-latest
     outputs:
-      is_close_contributor: ${{ steps.check-script.outputs.is_close_contributor }}
+      is_holiday_active: ${{ steps.script.outputs.is_holiday_active }}
     steps:
       - name: Generate App Token
         id: generate-token
@@ -36,6 +33,7 @@ jobs:
         with:
           repository: learningequality/.github
           ref: main
+          token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,12 +44,9 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Run script
-        id: check-script
+        id: script
         uses: actions/github-script@v7
-        env:
-          USERNAME: ${{ inputs.username }}
         with:
-          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const script = require('./scripts/is-close-contributor.js');
-            return await script({core, github, context });
+            const { isHolidayMessageActive } = require('./scripts/utils');
+            core.setOutput('is_holiday_active', isHolidayMessageActive());

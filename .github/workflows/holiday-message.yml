@@ -1,4 +1,4 @@
-name: Handle contributor comment on GitHub issue
+name: Post holiday message on pull request or issue comment
 
 on:
   workflow_call:
@@ -9,35 +9,34 @@ on:
       LE_BOT_PRIVATE_KEY:
         description: "GitHub App Private Key for authentication"
         required: true
-      SLACK_WEBHOOK_URL:
-        required: true
-        description: "Webhook URL for Slack #support-dev channel"
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         required: true
         description: "Webhook URL for Slack #support-dev-notifications channel"
 
-
 jobs:
+  check-holiday-active:
+    name: Check if holiday message is active
+    uses: learningequality/.github/.github/workflows/is-holiday-active.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+
   check-if-contributor:
     name: Check if author is contributor
+    needs: [check-holiday-active]
+    if: ${{ needs.check-holiday-active.outputs.is_holiday_active == 'true' }}
     uses: learningequality/.github/.github/workflows/is-contributor.yml@main
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
     with:
-      username: ${{ github.event.comment.user.login }}
-      author_association: ${{ github.event.comment.author_association }}
+      username: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login || github.event_name == 'issue_comment' && github.event.comment.user.login }}
+      author_association: ${{ github.event_name == 'pull_request' && github.event.pull_request.author_association || github.event_name == 'issue_comment' && github.event.comment.author_association }}
 
-  process-issue-comment:
-    name: Process issue comment
-    needs: [check-if-contributor]
-    if: >-
-      ${{
-        !github.event.issue.pull_request &&
-        github.event.issue.state == 'open' &&
-        needs.check-if-contributor.outputs.is_contributor == 'true'
-      }}
-
+  post-holiday-message:
+    name: Post holiday message
+    needs: [check-holiday-active, check-if-contributor]
+    if: ${{ needs.check-holiday-active.outputs.is_holiday_active == 'true' && needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate App Token
@@ -68,38 +67,16 @@ jobs:
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const script = require('./scripts/contributor-issue-comment.js');
+            const script = require('./scripts/holiday-message.js');
             return await script({ github, context, core });
 
-      - name: Send Slack notification to support-dev channel
-        if: ${{ steps.script.outputs.support_dev_message }}
-        uses: slackapi/slack-github-action@v2.1.0
-        with:
-          webhook-type: incoming-webhook
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          payload: >
-            {
-              "text": "${{ steps.script.outputs.support_dev_message }}"
-            }
-
-      - name: Send Slack notification to support-dev-notifications channel about comment
-        if: ${{ steps.script.outputs.support_dev_notifications_message }}
+      - name: Send Slack notification
+        if: ${{ steps.script.outputs.slack_notification }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
           payload: >
             {
-              "text": "${{ steps.script.outputs.support_dev_notifications_message }}"
-            }
-
-      - name: Send Slack notification to support-dev-notifications channel about bot action
-        if: ${{ steps.script.outputs.support_dev_notifications_bot }}
-        uses: slackapi/slack-github-action@v2.1.0
-        with:
-          webhook-type: incoming-webhook
-          webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
-          payload: >
-            {
-              "text": "${{ steps.script.outputs.support_dev_notifications_bot }}"
+              "text": "${{ steps.script.outputs.slack_notification }}"
             }
