@@ -1,4 +1,4 @@
-const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME } = require('./constants');
+const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME, HOLIDAY_MESSAGE_START_DATE, HOLIDAY_MESSAGE_END_DATE } = require('./constants');
 const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
 
 /**
@@ -96,8 +96,71 @@ async function isCloseContributor(username, { github, context, core }) {
   }
 }
 
+function isHolidayMessageActive(currentDate = new Date()) {
+  return currentDate >= HOLIDAY_MESSAGE_START_DATE && currentDate <= HOLIDAY_MESSAGE_END_DATE;
+}
+
+/**
+ * Sends a bot message as a comment on an issue. Returns message URL if successful.
+ */
+async function sendBotMessage(issueNumber, message, { github, context, core }) {
+  try {
+    if (!issueNumber) {
+      throw new Error('Issue number is required');
+    }
+    if (!message) {
+      throw new Error('Message content is required');
+    }
+    
+    const response = await github.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: issueNumber,
+      body: message,
+    });
+    
+    if (!response?.data?.html_url) {
+      throw new Error('Comment created but no URL returned');
+    }
+    
+    return response.data.html_url;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
+function escapeIssueTitleForSlackMessage(issueTitle) {
+  return issueTitle.replace(/"/g, '\\"').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Checks if a bot sent a message with a given text on an issue
+ * in the past specified milliseconds.
+ */
+async function hasRecentBotComment(issueNumber, botUsername, commentText, msAgo, { github, context, core }) {
+  const oneHourAgo = new Date(Date.now() - msAgo);
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
+
+  try {
+    const response = await github.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      since: oneHourAgo.toISOString()
+    });
+    return (response.data || []).some(comment => comment.user && comment.user.login === botUsername && comment.body.includes(commentText));
+  } catch (error) {
+    core.warning(`Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
+  }
+}
+
 module.exports = {
   isContributor,
   isCloseContributor,
-  isBot
+  isBot,
+  isHolidayMessageActive,
+  sendBotMessage,
+  escapeIssueTitleForSlackMessage,
+  hasRecentBotComment,
 };

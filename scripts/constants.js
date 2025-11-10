@@ -1,3 +1,5 @@
+// See docs/community-automations.md
+
 const LE_BOT_USERNAME = 'learning-equality-bot[bot]';
 const SENTRY_BOT_USERNAME = 'sentry-io[bot]';
 
@@ -38,6 +40,16 @@ const BOT_MESSAGE_ISSUE_NOT_OPEN = `Hi! 👋 \n\n Thanks so much for your intere
 
 const BOT_MESSAGE_ALREADY_ASSIGNED = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is already assigned. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues.** \n\n We really appreciate your willingness to help—you're welcome to find a more suitable issue, and let us know if you have any questions. 😊`;
 
+const BOT_MESSAGE_PULL_REQUEST = `Welcome! 👋 \n\n We will assign a reviewer—typically within next two weeks. In the meantime, to ensure a smooth review process, please **check that linting and tests pass, all issue requirements are satisfied, and that your contribution is aligned with our [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base). Pay extra attention to [Using generative AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai).** We'll be in touch! 😊`;
+
+// Holiday message will be sent between the following datetimes
+// Additionally before/after holidays, enable/disable all related workflows
+// in all repositories that use it (search for `call-holiday-message`).
+const HOLIDAY_MESSAGE_START_DATE = new Date('2025-12-15T00:00:00Z');
+const HOLIDAY_MESSAGE_END_DATE = new Date('2026-01-05T23:59:59Z');
+
+const HOLIDAY_MESSAGE = `Season’s greetings! 👋 \n\n We’d like to thank everyone for another year of fruitful collaborations, engaging discussions, and for the continued support of our work. **Learning Equality will be on holidays from December 22 to January 5.** We look forward to much more in the new year and wish you a very happy holiday season!`;
+
 module.exports = {
   LE_BOT_USERNAME,
   SENTRY_BOT_USERNAME,
@@ -46,5 +58,9 @@ module.exports = {
   ISSUE_LABEL_HELP_WANTED,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
+  BOT_MESSAGE_PULL_REQUEST,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
+  HOLIDAY_MESSAGE_START_DATE,
+  HOLIDAY_MESSAGE_END_DATE,
+  HOLIDAY_MESSAGE
 };

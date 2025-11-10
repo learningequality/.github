@@ -1,4 +1,4 @@
-// See docs/contributor-issue-comment.md
+// See docs/community-automations.md
 
 const {
   LE_BOT_USERNAME,
@@ -7,19 +7,21 @@ const {
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED
 } = require('./constants');
-const { isCloseContributor } = require('./utils');
+const {
+  isCloseContributor,
+  sendBotMessage,
+  escapeIssueTitleForSlackMessage,
+  hasRecentBotComment
+} = require('./utils');
 
 module.exports = async ({ github, context, core }) => {
   try {
     const issueNumber = context.payload.issue.number;
     const issueUrl = context.payload.issue.html_url;
-    const issueTitle = context.payload.issue.title;
+    const issueTitle = escapeIssueTitleForSlackMessage(context.payload.issue.title);
     const issueCreator = context.payload.issue.user.login;
     const issueAssignees = context.payload.issue.assignees?.map(assignee => assignee.login) || [];
-    const escapedTitle = issueTitle.replace(/"/g, '\\"').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const commentId = context.payload.comment.id;
-    const commentTime = new Date(context.payload.comment.created_at);
-    const oneHourBefore = new Date(commentTime - 3600000);
     const commentAuthor = context.payload.comment.user.login;
     const commentBody = context.payload.comment.body;
     const repo = context.repo.repo;
@@ -49,37 +51,6 @@ module.exports = async ({ github, context, core }) => {
         labels = [];
       }
       return labels.some(label => label.toLowerCase() === name.toLowerCase());
-    }
-
-    async function findRecentCommentsByUser(username) {
-      try {
-        let response = await github.rest.issues.listComments({
-          owner,
-          repo,
-          issue_number: issueNumber,
-          since: oneHourBefore.toISOString()
-        });
-        return response.data.filter(comment => comment.user.login === username);
-      } catch (error) {
-        core.warning(`Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
-        return [];
-      }
-    }
-
-    async function sendBotReply(message) {
-      let response = null;
-      try {
-        response = await github.rest.issues.createComment({
-          owner,
-          repo,
-          issue_number: issueNumber,
-          body: message
-        });
-        return response?.data?.html_url;
-      } catch (error) {
-        core.warning(`Failed to post bot comment: ${error.message}`);
-        return null;
-      }
     }
 
     async function getIssues(assignee, state) {
@@ -180,19 +151,24 @@ module.exports = async ({ github, context, core }) => {
 
     const [shouldPostBot, botMessage] = shouldSendBotReply();
     if (shouldPostBot) {
-      // post bot reply only when there are no previous
-      // bot comments in past hour to prevent overwhelming
-      // issue comment section
-      let recentBotComments = await findRecentCommentsByUser(LE_BOT_USERNAME);
-      if (recentBotComments.length > 0) {
-        const slackBotSkippedMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${escapedTitle}> (less than 1 hour since last bot reply)*`;
+      // post bot reply only when there are no same bot comments
+      // in the past hour to prevent overwhelming issue comment section
+      const skipBot = await hasRecentBotComment(
+        issueNumber,
+        LE_BOT_USERNAME,
+        botMessage,
+        3600000,
+        { github, context, core }
+      );
+      if (skipBot) {
+        const slackBotSkippedMessage = `*[${repo}] Bot response skipped on issue: <${issueUrl}|${issueTitle}> (less than 1 hour since last bot message)*`;
 
         core.setOutput('bot_reply_skipped', true);
         core.setOutput('slack_notification_bot_skipped', slackBotSkippedMessage);
       } else {
-        const botReplyUrl = await sendBotReply(botMessage);
-        if (botReplyUrl) {
-          const slackMessage = `*[${repo}] <${botReplyUrl}|Bot response sent> on issue: <${issueUrl}|${escapedTitle}>*`;
+        const botMessageUrl = await sendBotMessage(issueNumber, botMessage, { github, context, core });
+        if (botMessageUrl) {
+          const slackMessage = `*[${repo}] <${botMessageUrl}|Bot response sent> on issue: <${issueUrl}|${issueTitle}>*`;
           core.setOutput('bot_replied', true);
           core.setOutput('slack_notification_bot_comment', slackMessage);
         }
@@ -200,7 +176,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
     const contactSupport = shouldContactSupport();
-    let slackMessage = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by _${commentAuthor}_*`;
+    let slackMessage = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${issueTitle}> by _${commentAuthor}_*`;
 
     if (contactSupport) {
       // Append activity info when sending to #support-dev
