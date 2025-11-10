@@ -38,7 +38,7 @@ module.exports = async ({ github, context, core }) => {
           });
           labels = response.data.map(label => label.name);
         } catch (error) {
-           core.warning(`⚠️ Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+           core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
            labels = [];
         }
         return labels.some(label => label.toLowerCase() === name.toLowerCase());
@@ -54,7 +54,7 @@ module.exports = async ({ github, context, core }) => {
           });
           return response.data.filter(comment => comment.user.login === username);
       } catch (error) {
-          core.warning(`⚠️ Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
+          core.warning(`Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
           return [];
       }
     }
@@ -80,13 +80,66 @@ module.exports = async ({ github, context, core }) => {
         return response;
     }
 
+    async function getIssues(assignee, state) {
+      try {
+        const response = await github.rest.issues.listForRepo({
+          owner,
+          repo,
+          assignee,
+          state
+        });
+        return response.data.filter(issue => !issue.pull_request);
+      } catch (error) {
+        core.warning(`Failed to fetch issues: ${error.message}`);
+        return [];
+      }
+    }
 
-    if ( isCloseContributor || await hasLabel(ISSUE_LABEL_HELP_WANTED) ) {
+    async function getPullRequests(assignee, state) {
+      try {
+        const response = await github.rest.pulls.list({
+          owner,
+          repo,
+          state
+        });
+        return response.data.filter(pr => pr.user.login === assignee);
+      } catch (error) {
+        core.warning(`Failed to fetch pull requests: ${error.message}`);
+        return [];
+      }
+    }
+
+    // Format information about author's assigned open issues as '(Issues #1 #2 | PRs #3)' and PRs for Slack message 
+    function formatAuthorActivity(issues, pullRequests) {
+      const parts = [];
+      
+      if (issues.length > 0) {
+        const issueLinks = issues.map(issue => `<${issue.html_url}|#${issue.number}>`).join(' ');
+        parts.push(`Issues ${issueLinks}`);
+      } else {
+        parts.push(`Issues none`);
+      }
+      
+      if (pullRequests.length > 0) {
+        const prLinks = pullRequests.map(pr => `<${pr.html_url}|#${pr.number}>`).join(' ');
+        parts.push(`PRs ${prLinks}`);
+      } else {
+        parts.push(`PRs none`);
+      }
+      
+      return `(${parts.join(' | ')})`;
+    }
+
+    const sendNotificationToSupportDevChannel = isCloseContributor || await hasLabel(ISSUE_LABEL_HELP_WANTED);
+
+    if (sendNotificationToSupportDevChannel) {
       core.setOutput('webhook_url', supportDevSlackWebhookUrl);
     } else {
+      // if we're not sending notification to #support-dev channel,
+      // send it to #support-dev-notifications and post GitHub bot reply if conditions are met
       core.setOutput('webhook_url', supportDevNotificationsSlackWebhookUrl);
       const matchedKeyword = keywordRegexes.find(regex => regex.test(commentBody));
-      // post a bot reply if there is matched keyword and no previous bot comment in past hour
+      // post a bot reply only if there is matched keyword and no previous bot comment in past hour
       if(matchedKeyword){
         let lastBotComment;
         let PastBotComments = await findRecentCommentsByUser(LE_BOT_USERNAME);
@@ -103,9 +156,17 @@ module.exports = async ({ github, context, core }) => {
       }
     }
 
-    const message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by ${commentAuthor}*`;
-    core.setOutput('slack_notification_comment', message);
+    let message = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${escapedTitle}> by _${commentAuthor}_*`;
 
+    if (sendNotificationToSupportDevChannel) {
+      const [assignedOpenIssues, openPRs] = await Promise.all([
+        getIssues(commentAuthor, 'open'),
+        getPullRequests(commentAuthor, 'open')
+      ]);
+      const authorActivity = formatAuthorActivity(assignedOpenIssues, openPRs);
+      message += ` _${authorActivity}_`;
+    }
+    core.setOutput('slack_notification_comment', message);
   } catch (error) {
     core.setFailed(`Action failed with error: ${error.message}`);
   }
