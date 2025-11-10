@@ -14,7 +14,7 @@ module.exports = async ({ github, context, core }) => {
     const issueUrl = context.payload.issue.html_url;
     const issueTitle = context.payload.issue.title;
     const issueCreator = context.payload.issue.user.login;
-    const issueAssignee = context.payload.issue.assignee?.login;
+    const issueAssignees = context.payload.issue.assignees?.map(assignee => assignee.login) || [];
     const escapedTitle = issueTitle.replace(/"/g, '\\"');
     const commentId = context.payload.comment.id;
     const commentTime = new Date(context.payload.comment.created_at);
@@ -31,7 +31,7 @@ module.exports = async ({ github, context, core }) => {
       .filter(Boolean)
       .map(keyword => new RegExp(`\\b${keyword}\\b`, 'i'));
     const isAssignmentRequest = keywordRegexes.find(regex => regex.test(commentBody));
-    const isIssueAssignedToSomeoneElse = issueAssignee && (issueAssignee !== commentAuthor);
+    const isIssueAssignedToSomeoneElse = issueAssignees && issueAssignees.length > 0 && !issueAssignees.includes(commentAuthor);
     const isHelpWanted = await hasLabel(ISSUE_LABEL_HELP_WANTED);
 
     async function hasLabel(name) {
