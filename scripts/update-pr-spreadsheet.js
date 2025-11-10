@@ -139,22 +139,6 @@ async function updateSpreadsheet(pullRequest) {
   }
 }
 
-// Main function to handle pull request changes
-async function handlePullRequestChange(pullRequest) {
-  // Filter out PRs from members of the organization
-  if (
-    !pullRequest.user_site_admin &&
-    pullRequest.user_type === "User" &&
-    !pullRequest.author_association.includes("MEMBER")
-  ) {
-    await updateSpreadsheet(pullRequest);
-  } else {
-    console.log(
-      "PR skipped: Author is a member of the organization or a site admin."
-    );
-  }
-}
-
 // Validate environment variables
 try {
   validateEnvVariables();
@@ -168,7 +152,7 @@ const githubEvent = JSON.parse(process.env.GITHUB_EVENT);
 
 // Extract PR data and run the script
 const prData = extractPRData(githubEvent);
-handlePullRequestChange(prData).catch((error) => {
+updateSpreadsheet(prData).catch((error) => {
   console.error("An error occurred:", error.message);
   process.exit(1);
 });

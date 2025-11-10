@@ -4,16 +4,34 @@ on:
     types: [assigned,unassigned,opened,closed,reopened]
   workflow_call:
     secrets:
+      LE_BOT_APP_ID:
+        description: "GitHub App ID for authentication"
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: "GitHub App Private Key for authentication"
+        required: true
       CONTRIBUTIONS_SPREADSHEET_ID:
         required: true
       CONTRIBUTIONS_SHEET_NAME:
         required: true
       GH_UPLOADER_GCP_SA_CREDENTIALS:
         required: true
+
 jobs:
+  check-if-contributor:
+    name: Check if author is contributor
+    uses: learningequality/.github/.github/workflows/is-contributor.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+    with:
+      username: ${{ github.event.pull_request.user.login }}
+      author_association: ${{ github.event.pull_request.author_association }}
+
   update-spreadsheet:
+    needs: [check-if-contributor]
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request }}
+    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     steps:
       # Checkout the code for the test-actions repository
     - name: Checkout code
