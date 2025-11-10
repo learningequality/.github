@@ -50,11 +50,8 @@ module.exports = async ({ github, context, core }) => {
       const itemType = isPullRequest ? 'pull request' : 'issue';
       const slackMessage = `*[${repo}] <${botMessageUrl}|Holiday message sent> on ${itemType}: <${url}|${title}>*`;
       core.setOutput('slack_notification', slackMessage);
-    } else {
-      core.setOutput('slack_notification', '');
     }
   } catch (error) {
-    core.setOutput('slack_notification', '');
     core.setFailed(`Action failed with error: ${error.message}`);
   }
 };

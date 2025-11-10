@@ -71,7 +71,7 @@ jobs:
             return await script({ github, context, core });
 
       - name: Send Slack notification
-        if: ${{ steps.script.outputs.slack_notification != ''}}
+        if: ${{ steps.script.outputs.slack_notification }}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
