@@ -111,7 +111,7 @@ module.exports = async ({ github, context, core }) => {
         return [false, null];
       }
 
-      if (isHelpWanted && isAssignmentRequest && isIssueAssignedToSomeoneElse) {
+      if (isHelpWanted && isIssueAssignedToSomeoneElse && isAssignmentRequest) {
         return [true, BOT_MESSAGE_ALREADY_ASSIGNED];
       }
 
@@ -131,7 +131,7 @@ module.exports = async ({ github, context, core }) => {
         return false;
       }
 
-      if (isAssignmentRequest && isIssueAssignedToSomeoneElse) {
+      if (isHelpWanted && isIssueAssignedToSomeoneElse) {
         return false;
       }
 

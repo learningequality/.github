@@ -10,8 +10,9 @@ Manages GitHub issue comments. Sends Slack notifications and GitHub bot replies.
 | **Issue creator** | Private | Any | No | Yes | No | - |
 | **Other** | Private | Regular | No | Yes | No | - |
 | **Other** | Private | Assignment request | No | Yes | Yes`*` | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
-| **Other** | `help-wanted` | Regular | **Yes** | No | No | - |
-| **Other** | Unassigned `help-wanted` | Assignment request | **Yes** | No | No | - |
+| **Other** | Unassigned `help-wanted` | Any | **Yes** | No | No | - |
+| **Other** | `help-wanted` assigned to the comment author | Any | **Yes** | No | No | - |
+| **Other** | `help-wanted` assigned to someone else | Regular | No | Yes | No | - |
 | **Other** | `help-wanted` assigned to someone else | Assignment request | No | Yes | Yes`*` | `BOT_MESSAGE_ALREADY_ASSIGNED` |
 
 `*` There is an additional optimization that prevents more than one bot message per hour to not overwhelm issue comment section
