@@ -1,19 +1,17 @@
 name: Check if holiday message is active
-
 on:
   workflow_call:
     secrets:
       LE_BOT_APP_ID:
-        description: "GitHub App ID for authentication"
+        description: 'GitHub App ID for authentication'
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "GitHub App Private Key for authentication"
+        description: 'GitHub App Private Key for authentication'
         required: true
     outputs:
       is_holiday_active:
         description: "True if we're within the holiday message period"
         value: ${{ jobs.check-holiday-active.outputs.is_holiday_active }}
-
 jobs:
   check-holiday-active:
     name: Check if holiday message is active
@@ -27,22 +25,18 @@ jobs:
         with:
           app_id: ${{ secrets.LE_BOT_APP_ID }}
           private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
           repository: learningequality/.github
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-
       - name: Run script
         id: script
         uses: actions/github-script@v7

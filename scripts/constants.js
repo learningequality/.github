@@ -6,24 +6,61 @@ const SENTRY_BOT_USERNAME = 'sentry-io[bot]';
 // close contributors are treated a bit special in some workflows,
 // for example, we receive a high priority notification about their
 // comments on all issues rather than just on 'help wanted' issues
-const CLOSE_CONTRIBUTORS = ['AadarshM07', 'Abhishek-Punhani', 'BabyElias', 'Dimi20cen', 'EshaanAgg', 'GarvitSinghal47', 'habibayman', 'iamshobhraj', 'indirectlylit', 'Jakoma02', 'KshitijThareja', 'muditchoudhary', 'nathanaelg16', 'nikkuAg', 'Sahil-Sinha-11', 'shivam-daksh', 'shruti862', 'thesujai', 'WinnyChang', 'yeshwanth235'];
+const CLOSE_CONTRIBUTORS = [
+  'AadarshM07',
+  'Abhishek-Punhani',
+  'BabyElias',
+  'Dimi20cen',
+  'EshaanAgg',
+  'GarvitSinghal47',
+  'habibayman',
+  'iamshobhraj',
+  'indirectlylit',
+  'Jakoma02',
+  'KshitijThareja',
+  'muditchoudhary',
+  'nathanaelg16',
+  'nikkuAg',
+  'Sahil-Sinha-11',
+  'shivam-daksh',
+  'shruti862',
+  'thesujai',
+  'WinnyChang',
+  'yeshwanth235',
+];
 
 const TEAMS_WITH_CLOSE_CONTRIBUTORS = ['gsoc-contributors', 'learning-equality-community-guide'];
 
 const KEYWORDS_DETECT_ASSIGNMENT_REQUEST = [
-  'assign', 'assigned',
-  'work', 'working',
-  'contribute', 'contributing',
-  'request', 'requested',
-  'pick', 'picked', 'picking',
-  'address', 'addressing',
-  'handle', 'handling',
-  'solve', 'solving', 'resolve', 'resolving',
-  'try', 'trying',
-  'grab', 'grabbing',
-  'claim', 'claimed',
-  'interest', 'interested',
-  'do', 'doing',
+  'assign',
+  'assigned',
+  'work',
+  'working',
+  'contribute',
+  'contributing',
+  'request',
+  'requested',
+  'pick',
+  'picked',
+  'picking',
+  'address',
+  'addressing',
+  'handle',
+  'handling',
+  'solve',
+  'solving',
+  'resolve',
+  'resolving',
+  'try',
+  'trying',
+  'grab',
+  'grabbing',
+  'claim',
+  'claimed',
+  'interest',
+  'interested',
+  'do',
+  'doing',
   'help',
   'take',
   'want',
@@ -31,7 +68,7 @@ const KEYWORDS_DETECT_ASSIGNMENT_REQUEST = [
   'own',
   'on it',
   'available',
-  'got this'
+  'got this',
 ];
 
 const ISSUE_LABEL_HELP_WANTED = 'help wanted';
@@ -62,5 +99,5 @@ module.exports = {
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE_START_DATE,
   HOLIDAY_MESSAGE_END_DATE,
-  HOLIDAY_MESSAGE
+  HOLIDAY_MESSAGE,
 };

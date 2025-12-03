@@ -1,7 +1,7 @@
 const { google } = require('googleapis');
 
 // Extract relevant data from the event payload
-const extractPRData = (payload) => {
+const extractPRData = payload => {
   const pr = payload.pull_request;
   return {
     merged_at: pr.merged_at,
@@ -15,7 +15,7 @@ const extractPRData = (payload) => {
     user_site_admin: pr.user.site_admin,
     user_type: pr.user.type,
     author_association: pr.author_association,
-    state: pr.state
+    state: pr.state,
   };
 };
 
@@ -25,14 +25,12 @@ async function authorize(googleCredentials) {
     const credentials = JSON.parse(googleCredentials);
     const auth = new google.auth.GoogleAuth({
       credentials,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
     const authClient = await auth.getClient();
-    return google.sheets({ version: "v4", auth: authClient });
+    return google.sheets({ version: 'v4', auth: authClient });
   } catch (error) {
-    throw new Error(
-      `Failed to authorize: ${error.message}.`
-    );
+    throw new Error(`Failed to authorize: ${error.message}.`);
   }
 }
 
@@ -40,16 +38,18 @@ async function authorize(googleCredentials) {
 async function updateSpreadsheet(pullRequest, sheetId, sheetName, googleCredentials) {
   const sheets = await authorize(googleCredentials);
   const prData = [
-    pullRequest.merged_at ? pullRequest.merged_at.split("T")[0].replace("'", "") : pullRequest.state === "closed" ? "closed" : pullRequest.state,
-    pullRequest.html_url || "",
-    pullRequest.user_login || "",
-    pullRequest.title || "",
-    pullRequest.repo_name || "",
-    pullRequest.created_at
-      ? pullRequest.created_at.split("T")[0].replace("'", "")
-      : "",
-    pullRequest.requested_reviewers || "",
-    pullRequest.assignees || "",
+    pullRequest.merged_at
+      ? pullRequest.merged_at.split('T')[0].replace("'", '')
+      : pullRequest.state === 'closed'
+        ? 'closed'
+        : pullRequest.state,
+    pullRequest.html_url || '',
+    pullRequest.user_login || '',
+    pullRequest.title || '',
+    pullRequest.repo_name || '',
+    pullRequest.created_at ? pullRequest.created_at.split('T')[0].replace("'", '') : '',
+    pullRequest.requested_reviewers || '',
+    pullRequest.assignees || '',
   ];
 
   try {
@@ -77,10 +77,10 @@ async function updateSpreadsheet(pullRequest, sheetId, sheetName, googleCredenti
       const existingDataString = JSON.stringify(existingData);
 
       if (prDataString !== existingDataString) {
-        console.log(`Detected changes for row ${rowToUpdate}.`);
+        // console.log(`Detected changes for row ${rowToUpdate}.`);
 
         const updates = [];
-        const columns = ["A", "B", "C", "D", "E", "F", "G", "H"];
+        const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         for (let col = 0; col < prData.length; col++) {
           if (existingData[col] !== prData[col]) {
             updates.push({
@@ -96,32 +96,32 @@ async function updateSpreadsheet(pullRequest, sheetId, sheetName, googleCredenti
             spreadsheetId: sheetId,
             resource: {
               data: updates,
-              valueInputOption: "RAW",
+              valueInputOption: 'RAW',
             },
           });
-          console.log(`Updated row ${rowToUpdate} in Google Sheets.`);
+          // console.log(`Updated row ${rowToUpdate} in Google Sheets.`);
         } else {
-          console.log(`No changes detected for row ${rowToUpdate}.`);
+          // console.log(`No changes detected for row ${rowToUpdate}.`);
         }
       } else {
-        console.log(`No changes detected for row ${rowToUpdate}.`);
+        // console.log(`No changes detected for row ${rowToUpdate}.`);
       }
     } else {
       // Append new row starting from column B
       await sheets.spreadsheets.values.append({
         spreadsheetId: sheetId,
         range: `${sheetName}!A:H`,
-        valueInputOption: "RAW",
+        valueInputOption: 'RAW',
         resource: { values: [prData] },
       });
-      console.log(`Added new row to Google Sheets.`);
+      // console.log(`Added new row to Google Sheets.`);
     }
   } catch (error) {
     throw new Error(`Failed to update spreadsheet: ${error.message}`);
   }
 }
 
-module.exports = async ({ github, context, core }) => {
+module.exports = async ({ context, core }) => {
   const sheetId = process.env.CONTRIBUTIONS_SPREADSHEET_ID;
   const sheetName = process.env.CONTRIBUTIONS_SHEET_NAME;
   const googleCredentials = process.env.GH_UPLOADER_GCP_SA_CREDENTIALS;

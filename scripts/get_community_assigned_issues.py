@@ -2,7 +2,7 @@
 # to external contributors.
 # This is not used by any workflows, and meant to be used locally
 # whenever need arises. The script requires `GITHUB_TOKEN`
-# environment variable with 'repo' and 'read:org' permissions. 
+# environment variable with 'repo' and 'read:org' permissions.
 
 import os
 import requests
@@ -20,14 +20,14 @@ HEADERS = {
     "Accept": "application/vnd.github+json"
 }
 
-def fetch_paginated_results(url):  
-    results = []  
-    while url:  
-        response = requests.get(url, headers=HEADERS)  
-        response.raise_for_status()  
-        results.extend(response.json())  
-        url = response.links.get("next", {}).get("url") 
-    return results  
+def fetch_paginated_results(url):
+    results = []
+    while url:
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()
+        results.extend(response.json())
+        url = response.links.get("next", {}).get("url")
+    return results
 
 def get_team_members(org):
     """Fetch all team members for the organization."""
@@ -61,7 +61,7 @@ def main():
             issue["html_url"]
             for issue in filtered_issues
         )
-    
+
     for url in all_filtered_issues:
         print(url)
 

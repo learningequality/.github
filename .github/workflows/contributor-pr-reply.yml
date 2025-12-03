@@ -1,18 +1,16 @@
 name: Send reply on a new contributor pull request
-
 on:
   workflow_call:
     secrets:
       LE_BOT_APP_ID:
-        description: "GitHub App ID for authentication"
+        description: 'GitHub App ID for authentication'
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "GitHub App Private Key for authentication"
+        description: 'GitHub App Private Key for authentication'
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         required: true
-        description: "Webhook URL for Slack #support-dev-notifications channel"
-
+        description: 'Webhook URL for Slack #support-dev-notifications channel'
 jobs:
   check-if-contributor:
     name: Check if author is contributor
@@ -23,7 +21,6 @@ jobs:
     with:
       username: ${{ github.event.pull_request.user.login }}
       author_association: ${{ github.event.pull_request.author_association }}
-
   send-reply:
     name: Send reply
     needs: [check-if-contributor]
@@ -36,22 +33,18 @@ jobs:
         with:
           app_id: ${{ secrets.LE_BOT_APP_ID }}
           private_key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
           repository: learningequality/.github
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-
       - name: Run script
         id: script
         uses: actions/github-script@v7
@@ -60,14 +53,13 @@ jobs:
           script: |
             const script = require('./scripts/contributor-pr-reply.js');
             return await script({ github, context, core });
-
       - name: Send Slack notification
         if: ${{ steps.script.outputs.slack_notification != ''}}
         uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
-          payload: >
+          payload: |
             {
               "text": "${{ steps.script.outputs.slack_notification }}"
             }

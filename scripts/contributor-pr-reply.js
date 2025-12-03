@@ -8,7 +8,11 @@ module.exports = async ({ github, context, core }) => {
     const url = context.payload.pull_request.html_url;
     const title = context.payload.pull_request.title;
 
-    const botMessageUrl = await sendBotMessage(number, BOT_MESSAGE_PULL_REQUEST, { github, context, core });
+    const botMessageUrl = await sendBotMessage(number, BOT_MESSAGE_PULL_REQUEST, {
+      github,
+      context,
+      core,
+    });
 
     if (botMessageUrl) {
       const slackMessage = `*[${repo}] <${botMessageUrl}|Reply sent> on pull request: <${url}|${title}>*`;

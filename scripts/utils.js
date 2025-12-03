@@ -1,5 +1,11 @@
-const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME, HOLIDAY_MESSAGE_START_DATE, HOLIDAY_MESSAGE_END_DATE } = require('./constants');
-const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
+const {
+  LE_BOT_USERNAME,
+  SENTRY_BOT_USERNAME,
+  HOLIDAY_MESSAGE_START_DATE,
+  HOLIDAY_MESSAGE_END_DATE,
+} = require('./constants');
+// const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
+const { CLOSE_CONTRIBUTORS } = require('./constants');
 
 /**
  * Checks if username belongs to one of our bots.
@@ -49,7 +55,7 @@ async function isContributor(username, authorAssociation, { github, context, cor
  * Checks if a user is a close contributor by checking
  * both the constants list and team membership in monitored teams.
  */
-async function isCloseContributor(username, { github, context, core }) {
+async function isCloseContributor(username, { core }) {
   if (!username) {
     core.setFailed('Missing username');
     return false;
@@ -112,7 +118,7 @@ function isHolidayMessageActive(currentDate = new Date()) {
 /**
  * Sends a bot message as a comment on an issue. Returns message URL if successful.
  */
-async function sendBotMessage(issueNumber, message, { github, context, core }) {
+async function sendBotMessage(issueNumber, message, { github, context }) {
   try {
     if (!issueNumber) {
       throw new Error('Issue number is required');
@@ -146,7 +152,13 @@ function escapeIssueTitleForSlackMessage(issueTitle) {
  * Checks if a bot sent a message with a given text on an issue
  * in the past specified milliseconds.
  */
-async function hasRecentBotComment(issueNumber, botUsername, commentText, msAgo, { github, context, core }) {
+async function hasRecentBotComment(
+  issueNumber,
+  botUsername,
+  commentText,
+  msAgo,
+  { github, context, core },
+) {
   const oneHourAgo = new Date(Date.now() - msAgo);
   const owner = context.repo.owner;
   const repo = context.repo.repo;
@@ -156,9 +168,12 @@ async function hasRecentBotComment(issueNumber, botUsername, commentText, msAgo,
       owner,
       repo,
       issue_number: issueNumber,
-      since: oneHourAgo.toISOString()
+      since: oneHourAgo.toISOString(),
     });
-    return (response.data || []).some(comment => comment.user && comment.user.login === botUsername && comment.body.includes(commentText));
+    return (response.data || []).some(
+      comment =>
+        comment.user && comment.user.login === botUsername && comment.body.includes(commentText),
+    );
   } catch (error) {
     core.warning(`Failed to fetch comments on issue #${issueNumber}: ${error.message}`);
   }

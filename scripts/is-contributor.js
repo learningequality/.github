@@ -8,7 +8,11 @@ module.exports = async ({ core, github, context }) => {
   const username = process.env.USERNAME;
   const authorAssociation = process.env.AUTHOR_ASSOCIATION;
 
-  const isUserContributor = await isContributor(username, authorAssociation, { github, context, core });
+  const isUserContributor = await isContributor(username, authorAssociation, {
+    github,
+    context,
+    core,
+  });
 
   core.setOutput('is_contributor', isUserContributor);
 };

@@ -13,9 +13,7 @@ module.exports = {
       impliedStrict: true,
     },
   },
-  extends: [
-    'eslint:recommended',
-  ],
+  extends: ['eslint:recommended'],
   rules: {
     'comma-style': ERROR,
     'no-console': ERROR,
