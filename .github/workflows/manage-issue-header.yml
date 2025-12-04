@@ -26,8 +26,8 @@ jobs:
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
-          repository: learningequality/.github
-          ref: main
+          repository: MisRob/.github
+          ref: community-automations-updates
           token: ${{ steps.generate-token.outputs.token }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
