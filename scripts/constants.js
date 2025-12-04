@@ -75,11 +75,11 @@ const ISSUE_LABEL_HELP_WANTED = 'help wanted';
 
 // Will be attached to bot messages when not empty
 // const GSOC_NOTE = '';
-const GSOC_NOTE = `\n\n**Are you preparing for Google Summer of Code? See our [GSoC guidelines.](https://learningequality.org/contributing-to-our-open-code-base/#google-summer-of-code).**`;
+const GSOC_NOTE = `\n\n**Are you preparing for Google Summer of Code? See our [GSoC guidelines.](https://learningequality.org/contributing-to-our-open-code-base/#google-summer-of-code)**`;
 
 const BOT_MESSAGE_ISSUE_NOT_OPEN = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is not open for contribution. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues.** \n\n We really appreciate your willingness to help—you're welcome to find a more suitable issue, and let us know if you have any questions. 😊${GSOC_NOTE}`;
 
-const BOT_MESSAGE_ALREADY_ASSIGNED = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is already assigned. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues.** \n\n We really appreciate your willingness to help—you're welcome to find a more suitable issue, and let us know if you have any questions. 😊`;
+const BOT_MESSAGE_ALREADY_ASSIGNED = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is already assigned. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues.** \n\n We really appreciate your willingness to help—you're welcome to find a more suitable issue, and let us know if you have any questions. 😊${GSOC_NOTE}`;
 
 const BOT_MESSAGE_PULL_REQUEST = `👋 Thanks for contributing! \n\n We will assign a reviewer within the next two weeks. In the meantime, please ensure that:\n\n- [ ] **You ran \`pre-commit\` locally**\n- [ ] **All issue requirements are satisfied**\n- [ ] **The contribution is aligned with our [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base). Pay extra attention to [Using generative AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai). Pull requests that don't follow the guidelines will be closed.**\n\nWe'll be in touch! 😊`;
 
