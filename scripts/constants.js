@@ -75,7 +75,7 @@ const ISSUE_LABEL_HELP_WANTED = 'help wanted';
 
 // Will be attached to bot messages when not empty
 // const GSOC_NOTE = '';
-const GSOC_NOTE = `\n\n_Are you preparing for Google Summer of Code? See our [GSoC guidelines.](https://learningequality.org/contributing-to-our-open-code-base/#google-summer-of-code)._`;
+const GSOC_NOTE = `\n\n**Are you preparing for Google Summer of Code? See our [GSoC guidelines.](https://learningequality.org/contributing-to-our-open-code-base/#google-summer-of-code).**`;
 
 const BOT_MESSAGE_ISSUE_NOT_OPEN = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is not open for contribution. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues.** \n\n We really appreciate your willingness to help—you're welcome to find a more suitable issue, and let us know if you have any questions. 😊${GSOC_NOTE}`;
 
