@@ -19,8 +19,8 @@ jobs:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
     with:
-      username: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login || github.event_name == 'issue_comment' && github.event.comment.user.login }}
-      author_association: ${{ github.event_name == 'pull_request' && github.event.pull_request.author_association || github.event_name == 'issue_comment' && github.event.comment.author_association }}
+      username: ${{ github.event.pull_request.user.login || github.event.comment.user.login }}
+      author_association: ${{ github.event.pull_request.author_association || github.event.comment.author_association }}
   post-holiday-message:
     name: Post holiday message
     needs: [check-if-contributor]
