@@ -124,7 +124,7 @@ async function updateSpreadsheet(pullRequest, sheetId, sheetName, googleCredenti
 module.exports = async ({ context, core }) => {
   const sheetId = process.env.CONTRIBUTIONS_SPREADSHEET_ID;
   const sheetName = process.env.CONTRIBUTIONS_SHEET_NAME;
-  const googleCredentials = process.env.GH_UPLOADER_GCP_SA_CREDENTIALS;
+  const googleCredentials = process.env.GOOGLE_CREDENTIALS;
 
   try {
     const prData = extractPRData(context.payload);
