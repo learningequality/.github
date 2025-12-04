@@ -1,9 +1,4 @@
-const {
-  LE_BOT_USERNAME,
-  SENTRY_BOT_USERNAME,
-  HOLIDAY_MESSAGE_START_DATE,
-  HOLIDAY_MESSAGE_END_DATE,
-} = require('./constants');
+const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME } = require('./constants');
 // const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
 const { CLOSE_CONTRIBUTORS } = require('./constants');
 
@@ -111,10 +106,6 @@ async function isCloseContributor(username, { core }) {
   } */
 }
 
-function isHolidayMessageActive(currentDate = new Date()) {
-  return currentDate >= HOLIDAY_MESSAGE_START_DATE && currentDate <= HOLIDAY_MESSAGE_END_DATE;
-}
-
 /**
  * Sends a bot message as a comment on an issue. Returns message URL if successful.
  */
@@ -183,7 +174,6 @@ module.exports = {
   isContributor,
   isCloseContributor,
   isBot,
-  isHolidayMessageActive,
   sendBotMessage,
   escapeIssueTitleForSlackMessage,
   hasRecentBotComment,

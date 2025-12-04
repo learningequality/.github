@@ -12,16 +12,8 @@ on:
         required: true
         description: 'Webhook URL for Slack #support-dev-notifications channel'
 jobs:
-  check-holiday-active:
-    name: Check if holiday message is active
-    uses: learningequality/.github/.github/workflows/is-holiday-active.yml@main
-    secrets:
-      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
-      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
   check-if-contributor:
     name: Check if author is contributor
-    needs: [check-holiday-active]
-    if: ${{ needs.check-holiday-active.outputs.is_holiday_active == 'true' }}
     uses: learningequality/.github/.github/workflows/is-contributor.yml@main
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
@@ -31,8 +23,8 @@ jobs:
       author_association: ${{ github.event_name == 'pull_request' && github.event.pull_request.author_association || github.event_name == 'issue_comment' && github.event.comment.author_association }}
   post-holiday-message:
     name: Post holiday message
-    needs: [check-holiday-active, check-if-contributor]
-    if: ${{ needs.check-holiday-active.outputs.is_holiday_active == 'true' && needs.check-if-contributor.outputs.is_contributor == 'true' }}
+    needs: [check-if-contributor]
+    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate App Token

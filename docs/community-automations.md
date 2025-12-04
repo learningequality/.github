@@ -33,8 +33,6 @@ In `scripts/contants.js` set:
 Sends a holiday message to community pull requests and issue comments.
 
 In `scripts/contants.js` set:
-
 - `HOLIDAY_MESSAGE`: Message text
-- `HOLIDAY_MESSAGE_START_DATE` and `HOLIDAY_MESSAGE_END_DATE`: From and till when the message should be sent
 
-Additionally before/after holidays, enable/disable all related workflows in all repositories that use it (search for `call-holiday-message`).
+Before/after holidays, enable/disable all related workflows in all repositories that use it (search for `call-holiday-message`).
