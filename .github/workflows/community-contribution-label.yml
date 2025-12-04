@@ -21,7 +21,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: learningequality/.github
+          repository: MisRob/.github
+          ref: community-automations-updates
           path: .github-repo
       - name: Generate App Token
         id: generate-token

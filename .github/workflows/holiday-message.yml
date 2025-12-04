@@ -14,7 +14,7 @@ on:
 jobs:
   check-if-contributor:
     name: Check if author is contributor
-    uses: learningequality/.github/.github/workflows/is-contributor.yml@main
+    uses: MisRob/.github/.github/workflows/is-contributor.yml@community-automations-updates
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
@@ -36,8 +36,8 @@ jobs:
       - name: Checkout .github repository
         uses: actions/checkout@v4
         with:
-          repository: learningequality/.github
-          ref: main
+          repository: MisRob/.github
+          ref: community-automations-updates
           token: ${{ steps.generate-token.outputs.token }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
