@@ -192,7 +192,11 @@ module.exports = async ({ github, context, core }) => {
       }
     }
 
-    const contactSupport = shouldContactSupport();
+    const contactSupport = shouldContactSupport(
+      commentAuthorIsCloseContributor,
+      isHelpWanted,
+      isIssueAssignedToSomeoneElse,
+    );
     let slackMessage = `*[${repo}] <${issueUrl}#issuecomment-${commentId}|New comment> on issue: <${issueUrl}|${issueTitle}> by _${commentAuthor}_*`;
 
     if (contactSupport) {
