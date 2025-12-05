@@ -24,7 +24,7 @@ jobs:
   post-holiday-message:
     name: Post holiday message
     needs: [check-if-contributor]
-    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
+    if: ${{ (github.event.pull_request || !github.event.issue.pull_request) && needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate App Token
