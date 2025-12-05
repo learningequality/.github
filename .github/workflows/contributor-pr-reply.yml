@@ -1,5 +1,4 @@
-name: Unassign Inactive Issues
-run-name: Unassigns users from issues if they are inactive based on comments or PR activity.
+name: Send reply on a new contributor pull request
 on:
   workflow_call:
     secrets:
@@ -10,10 +9,22 @@ on:
         description: 'GitHub App Private Key for authentication'
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
-        description: 'Slack webhook URL for notifications'
         required: true
+        description: 'Webhook URL for Slack #support-dev-notifications channel'
 jobs:
-  unassign_inactive_issue:
+  check-if-contributor:
+    name: Check if author is contributor
+    uses: learningequality/.github/.github/workflows/is-contributor.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+    with:
+      username: ${{ github.event.pull_request.user.login }}
+      author_association: ${{ github.event.pull_request.author_association }}
+  send-reply:
+    name: Send reply
+    needs: [check-if-contributor]
+    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate App Token
@@ -32,31 +43,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Debug directory
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Directory contents:"
-          ls -la
-          echo "Scripts directory contents:"
-          ls -la scripts
       - name: Install dependencies
-        run: npm install
-      - name: Run unassign script
-        id: unassign
+        run: yarn install --frozen-lockfile
+      - name: Run script
+        id: script
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const script = require('./scripts/unassign-inactive-issues.js');
-            return await script({github, context, core});
-      - name: Send Slack notifications
-        if: ${{ steps.unassign.outputs.unassignments != '' }}
-        uses: slackapi/slack-github-action@v2.0.0
+            const script = require('./scripts/contributor-pr-reply.js');
+            return await script({ github, context, core });
+      - name: Send Slack notification
+        if: ${{ steps.script.outputs.slack_notification != ''}}
+        uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
           payload: |
             {
-              "text": "\nThe following users have been unassigned due to inactivity:\n${{ steps.unassign.outputs.unassignments }}"
+              "text": "${{ steps.script.outputs.slack_notification }}"
             }
