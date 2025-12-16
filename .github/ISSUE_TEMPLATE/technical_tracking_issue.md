@@ -39,7 +39,8 @@ that apply across all sub-tasks. Especially useful for community-facing projects
 <!--
 OPTIONAL - Delete if not needed.
 Describe the high-level approach if it's non-obvious or requires coordination
-across sub-tasks. Remove if the approach is straightforward.
+across sub-tasks, including overall architectural considerations, and requirements.
+Remove if the approach is straightforward.
 -->
 
 ### Testing Requirements

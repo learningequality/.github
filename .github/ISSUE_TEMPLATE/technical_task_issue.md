@@ -39,7 +39,7 @@ Describe what needs to change and the general direction.
 - For frontend new features: include screenshots/mockups of desired end state
 - For backend work: describe the expected behavior, not the implementation
 
-Focus on WHAT and WHY, not HOW. The developer determines the implementation.
+Focus on WHAT and WHY, less on HOW. The developer determines the implementation, but if this needs to fit into a specific broader architecture, constraints, or codebase standard patterns, this should be included.
 -->
 
 ### How to Get There
