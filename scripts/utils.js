@@ -1,4 +1,4 @@
-const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME } = require('./constants');
+const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME, DEPENDABOT_USERNAME } = require('./constants');
 // const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
 const { CLOSE_CONTRIBUTORS } = require('./constants');
 
@@ -10,11 +10,11 @@ async function isBot(username, { core }) {
     core.setFailed('Missing username');
     return false;
   }
-  return [LE_BOT_USERNAME, SENTRY_BOT_USERNAME].includes(username);
+  return [LE_BOT_USERNAME, SENTRY_BOT_USERNAME, DEPENDABOT_USERNAME].includes(username);
 }
 
 /**
- * Checks if a user is a contributor (= not a core team member).
+ * Checks if a user is a contributor (= not a core team member or bot).
  */
 async function isContributor(username, authorAssociation, { github, context, core }) {
   if (!username) {
