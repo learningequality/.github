@@ -1,6 +1,7 @@
 ---
 name: Technical Task Issue
 about: A single technical task, typically part of a tracking issue or product issue
+type: Task
 ---
 
 <!--

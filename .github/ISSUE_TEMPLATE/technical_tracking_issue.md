@@ -2,6 +2,7 @@
 name: Technical Tracking Issue
 about: A parent issue that encompasses multiple related technical tasks
 title: ''
+type: Tracking Issue
 ---
 
 <!--

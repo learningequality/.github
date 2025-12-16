@@ -2,6 +2,7 @@
 name: Report a bug
 about: Report a bug to help us improve
 title: "[Brief description]"
+labels: ["bug"]
 ---
 
 <!--

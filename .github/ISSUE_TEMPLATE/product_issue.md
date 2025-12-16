@@ -1,7 +1,7 @@
 ---
 name: Product issue
 about: Create a product issue
-
+type: Tracking Issue
 ---
 
 _[General guidance: Product issues should describe the feature, but are not actually technically specced for dev work.]_

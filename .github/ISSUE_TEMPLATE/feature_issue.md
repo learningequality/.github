@@ -2,6 +2,8 @@
 name: Feature issue
 about: Create an issue for a whole project
 title: "[Release name or version]: [Project Name]"
+labels: ["Feature"]
+type: Tracking Issue
 
 ---
 
