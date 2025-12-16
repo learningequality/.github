@@ -20,3 +20,9 @@ _[Then, more detail. Provide a short summary and/or list key outcomes that the u
 - _[Link Figma Scenarios]_
 
 ### Accessibility Requirements
+
+
+<!--
+AI DISCLOSURE: If this issue was written with AI assistance, add:
+🤖 This issue was written with AI assistance, under supervision, review and final edits by [@username] 🤖
+-->

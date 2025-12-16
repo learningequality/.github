@@ -35,4 +35,10 @@ _[Break down the main workflows thematically, but still at a high level. How are
     - If there is a specific due date, especially for a contractual deliverable, include it. Otherwise, include an estimated delivery date, and what quarter(s) this will be worked on
 
 ### Product Issues
-_[Issues should be linked here as they are created. There will probably be 1-2 per User Story]_
+_[Issues should be attached as sub issues as they are created. There will probably be 1-2 per User Story]_
+
+
+<!--
+AI DISCLOSURE: If this issue was written with AI assistance, add:
+🤖 This issue was written with AI assistance, under supervision, review and final edits by [@username] 🤖
+-->
