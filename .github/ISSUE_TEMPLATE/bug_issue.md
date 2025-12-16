@@ -2,6 +2,7 @@
 name: Report a bug
 about: Report a bug to help us improve
 title: "[Brief description]"
+labels: ["bug"]
 ---
 
 <!--
@@ -63,3 +64,8 @@ Tell us about your environment, including:
 -->
 
 …
+
+<!--
+AI DISCLOSURE: If this issue was written with AI assistance, add:
+🤖 This issue was written with AI assistance, under supervision, review and final edits by [@username] 🤖
+-->

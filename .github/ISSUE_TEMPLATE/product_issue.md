@@ -1,8 +1,7 @@
 ---
 name: Product issue
 about: Create a product issue
-assignees: ''
-
+type: Tracking Issue
 ---
 
 _[General guidance: Product issues should describe the feature, but are not actually technically specced for dev work.]_
@@ -11,13 +10,19 @@ _[General guidance: Product issues should describe the feature, but are not actu
 
 _[First, the workflow in one sentence]_
 
-#### Description and outcomes
+### Description and outcomes
 _[Then, more detail. Provide a short summary and/or list key outcomes that the user should be able to accomplish with this feature.]_
 
 
 
-#### Resources
+### Resources
 - _[Link Gherkin Scenarios]_
 - _[Link Figma Scenarios]_
 
-#### Accessibility Requirements
+### Accessibility Requirements
+
+
+<!--
+AI DISCLOSURE: If this issue was written with AI assistance, add:
+🤖 This issue was written with AI assistance, under supervision, review and final edits by [@username] 🤖
+-->

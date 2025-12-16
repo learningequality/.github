@@ -1,9 +1,9 @@
 ---
-name: Epic
-about: Create a project epic
+name: Feature issue
+about: Create an issue for a whole project
 title: "[Release name or version]: [Project Name]"
-labels: epic
-assignees: ''
+labels: ["Feature"]
+type: Tracking Issue
 
 ---
 
@@ -29,7 +29,7 @@ _[Fill this out as people are assigned]_
 - Who is this feature for?  Outline user stories below, but also mention if there is a specific partner and/or deployment
 - How do we know this feature is successful?
 
-#### User Stories or Requirements
+### User Stories or Requirements
 _[Break down the main workflows thematically, but still at a high level. How are the goals of the project realized in the UI? If there isn't a UI portion of this project, what are the key outcomes or improvements? There should probably only be a few of these per project]_
 
 ### Target Quarter and Due date
@@ -37,4 +37,10 @@ _[Break down the main workflows thematically, but still at a high level. How are
     - If there is a specific due date, especially for a contractual deliverable, include it. Otherwise, include an estimated delivery date, and what quarter(s) this will be worked on
 
 ### Product Issues
-_[Issues should be linked here as they are created. There will probably be 1-2 per User Story]_
+_[Issues should be attached as sub issues as they are created. There will probably be 1-2 per User Story]_
+
+
+<!--
+AI DISCLOSURE: If this issue was written with AI assistance, add:
+🤖 This issue was written with AI assistance, under supervision, review and final edits by [@username] 🤖
+-->
