@@ -4,6 +4,77 @@ const ORG = 'learningequality';
 const ROLLING_WINDOW_DAYS = 30;
 
 /**
+ * Unicode block characters for sparklines, from lowest to highest.
+ */
+const SPARKLINE_CHARS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+/**
+ * Generate a sparkline string from an array of numeric values.
+ * Maps each value to a Unicode block character based on its relative position
+ * between the min and max values.
+ */
+function sparkline(values) {
+  if (!values || values.length === 0) return '';
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  // If all values are the same, return middle-height bars
+  if (max === min) {
+    return SPARKLINE_CHARS[3].repeat(values.length);
+  }
+
+  return values
+    .map(value => {
+      // Normalize to 0-1 range
+      const normalized = (value - min) / (max - min);
+      // Map to character index (0-7)
+      const index = Math.min(Math.floor(normalized * SPARKLINE_CHARS.length), SPARKLINE_CHARS.length - 1);
+      return SPARKLINE_CHARS[index];
+    })
+    .join('');
+}
+
+/**
+ * Create a histogram from an array of values.
+ * Returns an array of bin counts.
+ */
+function histogram(values, numBins = 10) {
+  if (!values || values.length === 0) return [];
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  // If all values are the same, put them all in one bin
+  if (max === min) {
+    const bins = new Array(numBins).fill(0);
+    bins[Math.floor(numBins / 2)] = values.length;
+    return bins;
+  }
+
+  const binWidth = (max - min) / numBins;
+  const bins = new Array(numBins).fill(0);
+
+  values.forEach(value => {
+    let binIndex = Math.floor((value - min) / binWidth);
+    // Handle edge case where value equals max
+    if (binIndex >= numBins) binIndex = numBins - 1;
+    bins[binIndex]++;
+  });
+
+  return bins;
+}
+
+/**
+ * Generate a distribution sparkline from raw data values.
+ * Creates a histogram and converts bin counts to a sparkline.
+ */
+function distributionSparkline(values, numBins = 10) {
+  const bins = histogram(values, numBins);
+  return sparkline(bins);
+}
+
+/**
  * Calculate percentile value from a sorted array of numbers.
  * Uses linear interpolation between closest ranks.
  */
@@ -253,6 +324,7 @@ module.exports = async ({ github, core }) => {
   slackMessage += `*Time to First Review*\n`;
   if (timeToFirstReviewValues.length > 0) {
     slackMessage += `Median: ${formatDuration(timeToReviewMedian)} | 95th percentile: ${formatDuration(timeToReviewP95)}\n`;
+    slackMessage += `Distribution: ${distributionSparkline(timeToFirstReviewValues)}\n`;
     slackMessage += `_Based on ${totalReviewedPRs} reviewed PRs_\n\n`;
   } else {
     slackMessage += `_No reviewed PRs in this period_\n\n`;
@@ -261,6 +333,7 @@ module.exports = async ({ github, core }) => {
   slackMessage += `*PR Lifespan (Open to Close/Merge)*\n`;
   if (lifespanValues.length > 0) {
     slackMessage += `Median: ${formatDuration(lifespanMedian)} | 95th percentile: ${formatDuration(lifespanP95)}\n`;
+    slackMessage += `Distribution: ${distributionSparkline(lifespanValues)}\n`;
     slackMessage += `_Based on ${totalClosedPRs} closed/merged PRs_\n\n`;
   } else {
     slackMessage += `_No closed PRs in this period_\n\n`;
