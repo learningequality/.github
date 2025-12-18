@@ -36,7 +36,9 @@ function sparkline(values) {
 }
 
 /**
- * Create a histogram from an array of values.
+ * Create a histogram from an array of values using logarithmic binning.
+ * This handles skewed distributions (common in time-based metrics) much better
+ * than linear binning by spreading out long-tailed data.
  * Returns an array of bin counts.
  */
 function histogram(values, numBins = 10) {
@@ -52,11 +54,17 @@ function histogram(values, numBins = 10) {
     return bins;
   }
 
-  const binWidth = (max - min) / numBins;
+  // Use logarithmic binning for better visualization of skewed distributions
+  // Add 1 to avoid log(0) issues and ensure all values are positive
+  const logMin = Math.log(min + 1);
+  const logMax = Math.log(max + 1);
+  const logBinWidth = (logMax - logMin) / numBins;
+
   const bins = new Array(numBins).fill(0);
 
   values.forEach(value => {
-    let binIndex = Math.floor((value - min) / binWidth);
+    const logValue = Math.log(value + 1);
+    let binIndex = Math.floor((logValue - logMin) / logBinWidth);
     // Handle edge case where value equals max
     if (binIndex >= numBins) binIndex = numBins - 1;
     bins[binIndex]++;
