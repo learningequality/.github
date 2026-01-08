@@ -9,7 +9,8 @@
 <!--
  * description of the change
  * manual verification steps performed
- * screenshots if the PR affects the UI
+ * screenshots if the PR affects the layout of the UI
+ * screen recording(s) if the PR implements or updates a UI workflow
 -->
 
 …
@@ -17,8 +18,6 @@
 ## References
 <!--
  * references to related issues and PRs
- * links to mockups or specs for new features
- * links to the diffs for any dependency updates, e.g. in iceqube or the perseus plugin
 -->
 
 …
