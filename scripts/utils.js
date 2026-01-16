@@ -190,38 +190,50 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
 }
 
 /**
- * Fetches issues assigned to a user.
+ * Fetches issues assigned to an assignee in given repositories.
  */
-async function getIssues(assignee, state, owner, repo, github, core) {
-  try {
-    const response = await github.rest.issues.listForRepo({
-      owner,
-      repo,
-      assignee,
-      state,
-    });
-    return response.data.filter(issue => !issue.pull_request);
-  } catch (error) {
-    core.warning(`Failed to fetch issues: ${error.message}`);
-    return [];
+async function getIssues(assignee, state, owner, repos, github, core) {
+  const allIssues = [];
+
+  for (const repo of repos) {
+    try {
+      const response = await github.rest.issues.listForRepo({
+        owner,
+        repo,
+        assignee,
+        state,
+      });
+      const issues = response.data.filter(issue => !issue.pull_request);
+      allIssues.push(...issues);
+    } catch (error) {
+      core.warning(`Failed to fetch issues from ${repo}: ${error.message}`);
+    }
   }
+
+  return allIssues;
 }
 
 /**
- * Fetches pull requests for an author.
+ * Fetches pull requests by an author in given repositories.
  */
-async function getPullRequests(author, state, owner, repo, github, core) {
-  try {
-    const response = await github.rest.pulls.list({
-      owner,
-      repo,
-      state,
-    });
-    return response.data.filter(pr => pr.user.login === author);
-  } catch (error) {
-    core.warning(`Failed to fetch pull requests: ${error.message}`);
-    return [];
+async function getPullRequests(author, state, owner, repos, github, core) {
+  const allPRs = [];
+
+  for (const repo of repos) {
+    try {
+      const response = await github.rest.pulls.list({
+        owner,
+        repo,
+        state,
+      });
+      const prs = response.data.filter(pr => pr.user.login === author);
+      allPRs.push(...prs);
+    } catch (error) {
+      core.warning(`Failed to fetch pull requests from ${repo}: ${error.message}`);
+    }
   }
+
+  return allPRs;
 }
 
 module.exports = {

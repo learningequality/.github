@@ -6,6 +6,7 @@ const {
   ISSUE_LABEL_HELP_WANTED,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
+  COMMUNITY_REPOS,
 } = require('./constants');
 const {
   isCloseContributor,
@@ -159,8 +160,8 @@ module.exports = async ({ github, context, core }) => {
 
     if (contactSupport) {
       const [assignedOpenIssues, openPRs] = await Promise.all([
-        getIssues(commentAuthor, 'open', owner, repo, github, core),
-        getPullRequests(commentAuthor, 'open', owner, repo, github, core),
+        getIssues(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
+        getPullRequests(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
       ]);
       const authorActivity = formatAuthorActivity(assignedOpenIssues, openPRs);
       slackMessage += ` _${authorActivity}_`;
