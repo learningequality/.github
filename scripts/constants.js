@@ -22,10 +22,12 @@ const CLOSE_CONTRIBUTORS = [
   'muditchoudhary',
   'nathanaelg16',
   'nikkuAg',
+  'Prashant-thakur77',
   'Sahil-Sinha-11',
   'shivam-daksh',
   'shruti862',
   'thesujai',
+  'vtushar06',
   'WinnyChang',
   'yeshwanth235',
 ];
