@@ -193,47 +193,45 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
  * Fetches issues assigned to an assignee in given repositories.
  */
 async function getIssues(assignee, state, owner, repos, github, core) {
-  const allIssues = [];
-
-  for (const repo of repos) {
-    try {
-      const response = await github.rest.issues.listForRepo({
+  const promises = repos.map(repo =>
+    github.rest.issues
+      .listForRepo({
         owner,
         repo,
         assignee,
         state,
-      });
-      const issues = response.data.filter(issue => !issue.pull_request);
-      allIssues.push(...issues);
-    } catch (error) {
-      core.warning(`Failed to fetch issues from ${repo}: ${error.message}`);
-    }
-  }
+      })
+      .then(response => response.data.filter(issue => !issue.pull_request))
+      .catch(error => {
+        core.warning(`Failed to fetch issues from ${repo}: ${error.message}`);
+        return [];
+      }),
+  );
 
-  return allIssues;
+  const results = await Promise.all(promises);
+  return results.flat();
 }
 
 /**
  * Fetches pull requests by an author in given repositories.
  */
 async function getPullRequests(author, state, owner, repos, github, core) {
-  const allPRs = [];
-
-  for (const repo of repos) {
-    try {
-      const response = await github.rest.pulls.list({
+  const promises = repos.map(repo =>
+    github.rest.pulls
+      .list({
         owner,
         repo,
         state,
-      });
-      const prs = response.data.filter(pr => pr.user.login === author);
-      allPRs.push(...prs);
-    } catch (error) {
-      core.warning(`Failed to fetch pull requests from ${repo}: ${error.message}`);
-    }
-  }
+      })
+      .then(response => response.data.filter(pr => pr.user.login === author))
+      .catch(error => {
+        core.warning(`Failed to fetch pull requests from ${repo}: ${error.message}`);
+        return [];
+      }),
+  );
 
-  return allPRs;
+  const results = await Promise.all(promises);
+  return results.flat();
 }
 
 module.exports = {
