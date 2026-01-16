@@ -170,6 +170,60 @@ async function hasRecentBotComment(
   }
 }
 
+/**
+ * Checks if an issue has a label with the given name (case-insensitive).
+ */
+async function hasLabel(name, owner, repo, issueNumber, github, core) {
+  let labels = [];
+  try {
+    const response = await github.rest.issues.listLabelsOnIssue({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    labels = response.data.map(label => label.name);
+  } catch (error) {
+    core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+    labels = [];
+  }
+  return labels.some(label => label.toLowerCase() === name.toLowerCase());
+}
+
+/**
+ * Fetches issues assigned to a user.
+ */
+async function getIssues(assignee, state, owner, repo, github, core) {
+  try {
+    const response = await github.rest.issues.listForRepo({
+      owner,
+      repo,
+      assignee,
+      state,
+    });
+    return response.data.filter(issue => !issue.pull_request);
+  } catch (error) {
+    core.warning(`Failed to fetch issues: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Fetches pull requests for an author.
+ */
+async function getPullRequests(author, state, owner, repo, github, core) {
+  try {
+    const response = await github.rest.pulls.list({
+      owner,
+      repo,
+      state,
+    });
+    return response.data.filter(pr => pr.user.login === author);
+  } catch (error) {
+    core.warning(`Failed to fetch pull requests: ${error.message}`);
+    return [];
+  }
+}
+
 module.exports = {
   isContributor,
   isCloseContributor,
@@ -177,4 +231,7 @@ module.exports = {
   sendBotMessage,
   escapeIssueTitleForSlackMessage,
   hasRecentBotComment,
+  hasLabel,
+  getIssues,
+  getPullRequests,
 };
