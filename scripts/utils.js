@@ -170,6 +170,70 @@ async function hasRecentBotComment(
   }
 }
 
+/**
+ * Checks if an issue has a label with the given name (case-insensitive).
+ */
+async function hasLabel(name, owner, repo, issueNumber, github, core) {
+  let labels = [];
+  try {
+    const allLabels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    labels = allLabels.map(label => label.name);
+  } catch (error) {
+    core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
+    labels = [];
+  }
+  return labels.some(label => label.toLowerCase() === name.toLowerCase());
+}
+
+/**
+ * Fetches issues assigned to an assignee in given repositories.
+ */
+async function getIssues(assignee, state, owner, repos, github, core) {
+  const promises = repos.map(repo =>
+    github
+      .paginate(github.rest.issues.listForRepo, {
+        owner,
+        repo,
+        assignee,
+        state,
+      })
+      .then(issues => issues.filter(issue => !issue.pull_request))
+      .catch(error => {
+        core.warning(`Failed to fetch issues from ${repo}: ${error.message}`);
+        return [];
+      }),
+  );
+
+  const results = await Promise.all(promises);
+  return results.flat();
+}
+
+/**
+ * Fetches pull requests by an author in given repositories.
+ */
+async function getPullRequests(author, state, owner, repos, github, core) {
+  const promises = repos.map(repo =>
+    github
+      .paginate(github.rest.pulls.list, {
+        owner,
+        repo,
+        state,
+      })
+      .then(prs => prs.filter(pr => pr.user.login === author))
+      .catch(error => {
+        core.warning(`Failed to fetch pull requests from ${repo}: ${error.message}`);
+        return [];
+      }),
+  );
+
+  const results = await Promise.all(promises);
+  return results.flat();
+}
+
 module.exports = {
   isContributor,
   isCloseContributor,
@@ -177,4 +241,7 @@ module.exports = {
   sendBotMessage,
   escapeIssueTitleForSlackMessage,
   hasRecentBotComment,
+  hasLabel,
+  getIssues,
+  getPullRequests,
 };

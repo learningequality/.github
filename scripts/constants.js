@@ -22,10 +22,12 @@ const CLOSE_CONTRIBUTORS = [
   'muditchoudhary',
   'nathanaelg16',
   'nikkuAg',
+  'Prashant-thakur77',
   'Sahil-Sinha-11',
   'shivam-daksh',
   'shruti862',
   'thesujai',
+  'vtushar06',
   'WinnyChang',
   'yeshwanth235',
 ];
@@ -96,6 +98,9 @@ const PR_STATS_REPOS = [
   'ricecooker',
 ];
 
+// Repositories in which we accept open-source contributions
+const COMMUNITY_REPOS = [...PR_STATS_REPOS];
+
 module.exports = {
   LE_BOT_USERNAME,
   SENTRY_BOT_USERNAME,
@@ -109,4 +114,5 @@ module.exports = {
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,
+  COMMUNITY_REPOS,
 };

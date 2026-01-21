@@ -6,58 +6,17 @@ const {
   ISSUE_LABEL_HELP_WANTED,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
+  COMMUNITY_REPOS,
 } = require('./constants');
 const {
   isCloseContributor,
   sendBotMessage,
   escapeIssueTitleForSlackMessage,
   hasRecentBotComment,
+  hasLabel,
+  getIssues,
+  getPullRequests,
 } = require('./utils');
-
-async function hasLabel(name, owner, repo, issueNumber, github, core) {
-  let labels = [];
-  try {
-    const response = await github.rest.issues.listLabelsOnIssue({
-      owner,
-      repo,
-      issue_number: issueNumber,
-    });
-    labels = response.data.map(label => label.name);
-  } catch (error) {
-    core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
-    labels = [];
-  }
-  return labels.some(label => label.toLowerCase() === name.toLowerCase());
-}
-
-async function getIssues(assignee, state, owner, repo, github, core) {
-  try {
-    const response = await github.rest.issues.listForRepo({
-      owner,
-      repo,
-      assignee,
-      state,
-    });
-    return response.data.filter(issue => !issue.pull_request);
-  } catch (error) {
-    core.warning(`Failed to fetch issues: ${error.message}`);
-    return [];
-  }
-}
-
-async function getPullRequests(assignee, state, owner, repo, github, core) {
-  try {
-    const response = await github.rest.pulls.list({
-      owner,
-      repo,
-      state,
-    });
-    return response.data.filter(pr => pr.user.login === assignee);
-  } catch (error) {
-    core.warning(`Failed to fetch pull requests: ${error.message}`);
-    return [];
-  }
-}
 
 // Format information about author's assigned open issues
 // as '(Issues #1 #2 | PRs #3)' and PRs for Slack message
@@ -201,8 +160,8 @@ module.exports = async ({ github, context, core }) => {
 
     if (contactSupport) {
       const [assignedOpenIssues, openPRs] = await Promise.all([
-        getIssues(commentAuthor, 'open', owner, repo, github, core),
-        getPullRequests(commentAuthor, 'open', owner, repo, github, core),
+        getIssues(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
+        getPullRequests(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
       ]);
       const authorActivity = formatAuthorActivity(assignedOpenIssues, openPRs);
       slackMessage += ` _${authorActivity}_`;
