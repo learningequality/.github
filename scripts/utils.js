@@ -176,12 +176,12 @@ async function hasRecentBotComment(
 async function hasLabel(name, owner, repo, issueNumber, github, core) {
   let labels = [];
   try {
-    const response = await github.rest.issues.listLabelsOnIssue({
+    const allLabels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
       owner,
       repo,
       issue_number: issueNumber,
     });
-    labels = response.data.map(label => label.name);
+    labels = allLabels.map(label => label.name);
   } catch (error) {
     core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
     labels = [];
@@ -194,14 +194,14 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
  */
 async function getIssues(assignee, state, owner, repos, github, core) {
   const promises = repos.map(repo =>
-    github.rest.issues
-      .listForRepo({
+    github
+      .paginate(github.rest.issues.listForRepo, {
         owner,
         repo,
         assignee,
         state,
       })
-      .then(response => response.data.filter(issue => !issue.pull_request))
+      .then(issues => issues.filter(issue => !issue.pull_request))
       .catch(error => {
         core.warning(`Failed to fetch issues from ${repo}: ${error.message}`);
         return [];
@@ -217,13 +217,13 @@ async function getIssues(assignee, state, owner, repos, github, core) {
  */
 async function getPullRequests(author, state, owner, repos, github, core) {
   const promises = repos.map(repo =>
-    github.rest.pulls
-      .list({
+    github
+      .paginate(github.rest.pulls.list, {
         owner,
         repo,
         state,
       })
-      .then(response => response.data.filter(pr => pr.user.login === author))
+      .then(prs => prs.filter(pr => pr.user.login === author))
       .catch(error => {
         core.warning(`Failed to fetch pull requests from ${repo}: ${error.message}`);
         return [];
