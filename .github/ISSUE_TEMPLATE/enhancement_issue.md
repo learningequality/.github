@@ -14,6 +14,8 @@ Instructions:
 
 -->
 
+**Target branch:** <!-- e.g. develop, release-0.17.x -->
+
 ## Current behavior
 <!-- Briefly describe the current behavior; you may include screenshots, code, and notes -->
 
