@@ -12,6 +12,8 @@ Instructions:
  * Use the 'preview' function above this text box to verify formatting before submitting
 -->
 
+**Target branch:** <!-- e.g. develop, release-0.17.x -->
+
 ## Observed behavior
 <!--
 Description of the behavior that was observed, including screenshots or other references when applicable
