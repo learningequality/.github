@@ -13,7 +13,7 @@ Instructions:
 
 ## Overview
 
-<!-- 
+<!--
 Describe what needs to be done and why.
 Keep it brief - a few sentences.
 -->
@@ -73,7 +73,7 @@ All items should be verifiable.
 
 For frontend tasks, consider adding subsections:
 #### General
-#### Accessibility and i18n  
+#### Accessibility and i18n
 #### Testing
 
 For backend tasks, consider:
@@ -81,7 +81,7 @@ For backend tasks, consider:
 #### Testing
 -->
 
-- [ ] 
+- [ ]
 
 ### Testing
 
