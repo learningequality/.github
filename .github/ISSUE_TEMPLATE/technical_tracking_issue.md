@@ -14,7 +14,7 @@ Instructions:
 
 ## Overview
 
-<!-- 
+<!--
 Describe what this tracking issue encompasses and why the work matters.
 Keep it concise: 3-5 sentences covering the "what" and "why".
 -->
@@ -31,7 +31,7 @@ Define boundaries clearly.
 
 <!--
 OPTIONAL - Delete if not needed.
-Include setup instructions, documentation links, or reference materials 
+Include setup instructions, documentation links, or reference materials
 that apply across all sub-tasks. Especially useful for community-facing projects.
 -->
 
