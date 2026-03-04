@@ -18,4 +18,4 @@
 - Before posting your first review, **see the following resources**:
   - [What makes a code review good or bad?](https://github.blog/developer-skills/github/how-to-review-code-effectively-a-github-staff-engineers-philosophy/#what-makes-a-code-review-good-or-bad)
   - [How to give a good code review](https://github.blog/developer-skills/github/how-to-review-code-effectively-a-github-staff-engineers-philosophy/#how-to-give-a-good-code-review)
-* If you notice any inappropriate behavior, contact us at [contributors@learningequality.org](mailto:contributors@learningequality.org).
+- If you notice any inappropriate behavior, contact us at [contributors@learningequality.org](mailto:contributors@learningequality.org).
