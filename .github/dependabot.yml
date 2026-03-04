@@ -2,6 +2,14 @@
 
 version: 2
 updates:
+  # Maintain dependencies for Node
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      time: '00:00'
+    cooldown:
+      default-days: 7
   # Maintain dependencies for Python
   - package-ecosystem: 'pip'
     directory: '/'
