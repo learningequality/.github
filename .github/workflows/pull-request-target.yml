@@ -1,0 +1,25 @@
+name: Handle pull request events
+on:
+  workflow_call:
+    secrets:
+      LE_BOT_APP_ID:
+        description: 'GitHub App ID for authentication'
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: 'GitHub App Private Key for authentication'
+        required: true
+jobs:
+  review-requested:
+    name: Handle review requested
+    if: ${{ github.event.action == 'review_requested' }}
+    uses: learningequality/.github/.github/workflows/review-requested.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+  pull-request-label:
+    name: Handle pull request label
+    if: ${{ github.event.action == 'labeled' }}
+    uses: learningequality/.github/.github/workflows/pull-request-label.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}

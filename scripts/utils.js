@@ -1,4 +1,4 @@
-const { LE_BOT_USERNAME, SENTRY_BOT_USERNAME, DEPENDABOT_USERNAME } = require('./constants');
+const { BOT_USERNAMES } = require('./constants');
 // const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
 const { CLOSE_CONTRIBUTORS } = require('./constants');
 
@@ -10,7 +10,7 @@ async function isBot(username, { core }) {
     core.setFailed('Missing username');
     return false;
   }
-  return [LE_BOT_USERNAME, SENTRY_BOT_USERNAME, DEPENDABOT_USERNAME].includes(username);
+  return BOT_USERNAMES.includes(username);
 }
 
 /**

@@ -29,7 +29,10 @@ function sparkline(values) {
       // Normalize to 0-1 range
       const normalized = (value - min) / (max - min);
       // Map to character index (0-7)
-      const index = Math.min(Math.floor(normalized * SPARKLINE_CHARS.length), SPARKLINE_CHARS.length - 1);
+      const index = Math.min(
+        Math.floor(normalized * SPARKLINE_CHARS.length),
+        SPARKLINE_CHARS.length - 1,
+      );
       return SPARKLINE_CHARS[index];
     })
     .join('');
@@ -313,9 +316,13 @@ module.exports = async ({ github, core }) => {
   // eslint-disable-next-line no-console
   console.log(`Open unreviewed PRs: ${openUnreviewedPRs.length}`);
   // eslint-disable-next-line no-console
-  console.log(`Time to first review - Median: ${formatDuration(timeToReviewMedian)}, P95: ${formatDuration(timeToReviewP95)}`);
+  console.log(
+    `Time to first review - Median: ${formatDuration(timeToReviewMedian)}, P95: ${formatDuration(timeToReviewP95)}`,
+  );
   // eslint-disable-next-line no-console
-  console.log(`PR lifespan - Median: ${formatDuration(lifespanMedian)}, P95: ${formatDuration(lifespanP95)}`);
+  console.log(
+    `PR lifespan - Median: ${formatDuration(lifespanMedian)}, P95: ${formatDuration(lifespanP95)}`,
+  );
 
   // Format date for report
   const reportDate = now.toLocaleDateString('en-US', {
