@@ -1,8 +1,9 @@
 <!--
- 1. Following guidance below, replace …'s with your own words
- 2. After saving the PR, tick of completed checklist items
- 3. Skip checklist items that are not applicable or not necessary
- 4. Delete instruction/comment blocks
+ 1. REQUIRED: Always fill in the AI usage section at the bottom
+ 2. Following guidance below, replace …'s with your own words
+ 3. After saving the PR, tick of completed checklist items
+ 4. Skip checklist items that are not applicable or not necessary
+ 5. Delete instruction/comment blocks
 -->
 
 ## Summary
@@ -31,10 +32,11 @@
 …
 
 <!--
-AI USAGE - DEEP guidelines
+AI USAGE - REQUIRED
 
-If AI was used in preparing this PR, please fill in the section below.
-Our DEEP guidelines ask that when using AI you:
+State explicitly whether you didn't use or used AI & how.
+
+If you used it, ensure that the PR is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai as well) as well as our DEEP framework. DEEP asks you:
 
   Disclose - Be open about when you've used AI for support.
   Engage critically - Question what is generated. Review code for correctness and unnecessary complexity.

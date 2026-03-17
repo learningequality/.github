@@ -3,15 +3,22 @@ name: Other issue
 about: For issues that don't fit any other category
 ---
 
+<!--
+
+- REQUIRED: Always fill in the AI usage section at the bottom
+
+-->
+
 ## Description
 
 
 
 <!--
-AI USAGE - DEEP guidelines
+AI USAGE - REQUIRED
 
-If AI was used in preparing this issue, please fill in the section below.
-Our DEEP guidelines ask that when using AI you:
+State explicitly whether you didn't use or used AI & how.
+
+If you used it, ensure that the issue is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai as well) as well as our DEEP framework. DEEP asks you:
 
   Disclose - Be open about when you've used AI for support.
   Engage critically - Question what is generated. Verify claims and sources.
@@ -28,7 +35,6 @@ Examples of good disclosures:
   cross-checked the key points against the original feedback and rewrote
   the requirements in my own words."
 
-If AI was not used, delete the section below.
 -->
 
 ## AI usage
