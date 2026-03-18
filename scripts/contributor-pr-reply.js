@@ -7,8 +7,9 @@ module.exports = async ({ github, context, core }) => {
     const number = context.payload.pull_request.number;
     const url = context.payload.pull_request.html_url;
     const title = context.payload.pull_request.title;
+    const author = context.payload.pull_request.user.login;
 
-    const botMessageUrl = await sendBotMessage(number, BOT_MESSAGE_PULL_REQUEST, {
+    const botMessageUrl = await sendBotMessage(number, BOT_MESSAGE_PULL_REQUEST(author), {
       github,
       context,
       core,
