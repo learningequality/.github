@@ -54,7 +54,6 @@ Examples of good disclosures:
   to generate the implementation. I refactored the output to reduce
   verbosity and ran the full test suite."
 
-If AI was not used, delete the section below.
 -->
 
 ## AI usage
