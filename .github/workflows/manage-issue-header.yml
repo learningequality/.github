@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Generate GitHub token
         id: generate-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
@@ -30,7 +30,7 @@ jobs:
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'yarn'
