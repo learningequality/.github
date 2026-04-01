@@ -38,7 +38,7 @@ jobs:
             return await script({github, context, core});
       - name: Send Slack notification
         if: ${{ steps.stats.outputs.slack_message }}
-        uses: slackapi/slack-github-action@v2.1.1
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_PR_STATS_WEBHOOK_URL }}
