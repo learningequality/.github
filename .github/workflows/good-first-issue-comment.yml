@@ -1,0 +1,40 @@
+name: Post good first issue guidance comment
+on:
+  workflow_call:
+    secrets:
+      LE_BOT_APP_ID:
+        description: 'GitHub App ID for authentication'
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: 'GitHub App Private Key for authentication'
+        required: true
+jobs:
+  good-first-issue-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.LE_BOT_APP_ID }}
+          private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+      - name: Checkout .github repository
+        uses: actions/checkout@v6
+        with:
+          repository: learningequality/.github
+          ref: main
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'yarn'
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run script
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            const script = require('./scripts/good-first-issue-comment.js');
+            await script({github, context, core});
