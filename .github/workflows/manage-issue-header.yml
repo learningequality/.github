@@ -11,11 +11,6 @@ on:
 jobs:
   manage-issue-header:
     runs-on: ubuntu-latest
-    if: |
-      github.event.action == 'opened' ||
-      github.event.action == 'reopened' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'help wanted') ||
-      (github.event.action == 'unlabeled' && github.event.label.name == 'help wanted')
     steps:
       - name: Generate GitHub token
         id: generate-token
