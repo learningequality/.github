@@ -156,7 +156,14 @@ async function handleAssignCommand({
   // Check cross-repo limits and cooldown
   const [assignedIssues, recentUnassignments] = await Promise.all([
     getIssues(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
-    getRecentUnassignments(commentAuthor, ASSIGN_COOLDOWN_DAYS, owner, COMMUNITY_REPOS, github, core),
+    getRecentUnassignments(
+      commentAuthor,
+      ASSIGN_COOLDOWN_DAYS,
+      owner,
+      COMMUNITY_REPOS,
+      github,
+      core,
+    ),
   ]);
 
   // Filter unassignments to exclude currently assigned issues
