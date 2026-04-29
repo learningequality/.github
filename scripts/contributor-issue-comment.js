@@ -6,7 +6,7 @@ const {
   ISSUE_LABEL_HELP_WANTED,
   ISSUE_LABEL_GOOD_FIRST_ISSUE,
   MAX_ASSIGNED_ISSUES,
-  COOLDOWN_DAYS,
+  ASSIGN_COOLDOWN_DAYS,
   GSOC_NOTE,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
@@ -60,7 +60,7 @@ function formatAssignAtLimitMessage(assignedIssues, recentUnassignments) {
   }
 
   if (recentUnassignments.length > 0) {
-    const cooldownMs = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+    const cooldownMs = ASSIGN_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
     message += '\n\n**Recently dropped issues (cooldown):**\n';
     message += recentUnassignments
       .map(u => {
@@ -156,7 +156,7 @@ async function handleAssignCommand({
   // Check cross-repo limits and cooldown
   const [assignedIssues, recentUnassignments] = await Promise.all([
     getIssues(commentAuthor, 'open', owner, COMMUNITY_REPOS, github, core),
-    getRecentUnassignments(commentAuthor, COOLDOWN_DAYS, owner, COMMUNITY_REPOS, github, core),
+    getRecentUnassignments(commentAuthor, ASSIGN_COOLDOWN_DAYS, owner, COMMUNITY_REPOS, github, core),
   ]);
 
   // Filter unassignments to exclude currently assigned issues

@@ -84,7 +84,7 @@ const KEYWORDS_DETECT_ASSIGNMENT_REQUEST = [
 const ISSUE_LABEL_HELP_WANTED = 'help wanted';
 const ISSUE_LABEL_GOOD_FIRST_ISSUE = 'good first issue';
 const MAX_ASSIGNED_ISSUES = 2;
-const COOLDOWN_DAYS = 7;
+const ASSIGN_COOLDOWN_DAYS = 7;
 const ASSIGN_GUIDANCE_MARKER = '<!-- ASSIGN_GUIDANCE -->';
 const LABEL_COMMUNITY_REVIEW = 'community-review';
 
@@ -104,7 +104,7 @@ const BOT_MESSAGE_GOOD_FIRST_ISSUE_GUIDANCE =
   `- **Comment \`/assign\` to assign yourself** to this issue\n` +
   `- You can have up to **${MAX_ASSIGNED_ISSUES} issues** assigned ` +
   `at a time across all community repos\n` +
-  `- Dropping an issue has a **${COOLDOWN_DAYS}-day cooldown** ` +
+  `- Dropping an issue has a **${ASSIGN_COOLDOWN_DAYS}-day cooldown** ` +
   `before the slot opens up\n` +
   `- **Link your pull request** to this issue when you submit it` +
   `\n\n📖 **Read the [Contributing guidelines]` +
@@ -171,7 +171,7 @@ module.exports = {
   GSOC_NOTE,
   ISSUE_LABEL_GOOD_FIRST_ISSUE,
   MAX_ASSIGNED_ISSUES,
-  COOLDOWN_DAYS,
+  ASSIGN_COOLDOWN_DAYS,
   ASSIGN_GUIDANCE_MARKER,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
