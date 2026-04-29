@@ -5,23 +5,35 @@ Manages GitHub issue comments. Sends Slack notifications and GitHub bot replies.
 | Contributor type | Issue type | Comment type | #support-dev | #support-dev-notifications | GitHub bot | GitHub bot message |
 |------------------|------------|--------------|--------------|---------------------------|------------|-------------------|
 | **Core team** | Any | Any | No | No | No | - |
-| **Close contributor** | Any | regular, assign keyword | **Yes** | No | No | - |
-| **Issue creator** | `help-wanted` | regular, assign keyword | **Yes** | No | No | - |
-| **Issue creator** | Private | regular, assign keyword | No | Yes | No | - |
+| **Close contributor** | Any | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
+| **Issue creator** | `help-wanted` | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
+| **Issue creator** | Private | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | No | - |
 | **Other** | Private | regular | No | Yes | No | - |
-| **Other** | Private | assign keyword | No | Yes | Yes`*` | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
-| **Other** | Unassigned `help-wanted` (not good first issue) | regular, assign keyword | **Yes** | No | No | - |
+| **Other** | Private | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | Yes`*` | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
+| **Other** | Unassigned `help-wanted` (not good first issue) | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
 | **Other** | Unassigned `help-wanted` + good first issue | regular | **Yes** | No | No | - |
-| **Other** | Unassigned `help-wanted` + good first issue | assign keyword | **Yes** | No | Yes`*` | `BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE` |
-| **Other** | `help-wanted` assigned to commenter | regular, assign keyword | **Yes** | No | No | - |
+| **Other** | Unassigned `help-wanted` + good first issue | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | Yes`*` | `BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE` |
+| **Other** | `help-wanted` assigned to commenter | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
 | **Other** | `help-wanted` assigned to someone else | regular | No | Yes | No | - |
-| **Other** | `help-wanted` assigned to someone else | assign keyword | No | Yes | Yes`*` | `BOT_MESSAGE_ALREADY_ASSIGNED` |
-| **Close contributor, Issue creator, Other** | Private | /assign command | No | Yes | Yes | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
-| **Close contributor, Issue creator, Other** | `help-wanted` assigned to commenter | /assign command | No | No | No | - (silent no-op) |
-| **Close contributor, Issue creator, Other** | `help-wanted` assigned to someone else | /assign command | No | Yes | Yes | `BOT_MESSAGE_ALREADY_ASSIGNED` |
-| **Close contributor, Issue creator, Other** | Unassigned `help-wanted` (not good first issue) | /assign command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE` |
-| **Close contributor, Issue creator, Other** | Unassigned `help-wanted` + good first issue, under limit | /assign command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_SUCCESS` |
-| **Close contributor, Issue creator, Other** | Unassigned `help-wanted` + good first issue, at limit | /assign command | No | Yes | Yes | Dynamic at-limit message |
+| **Other** | `help-wanted` assigned to someone else | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | Yes`*` | `BOT_MESSAGE_ALREADY_ASSIGNED` |
+| **Close contributor** | Private | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
+| **Close contributor** | `help-wanted` assigned to commenter | `/assign` command | No | No | No | - (silent no-op) |
+| **Close contributor** | `help-wanted` assigned to someone else | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ALREADY_ASSIGNED` |
+| **Close contributor** | Unassigned `help-wanted` (not good first issue) | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE` |
+| **Close contributor** | Unassigned `help-wanted` + good first issue, under limit | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_SUCCESS` |
+| **Close contributor** | Unassigned `help-wanted` + good first issue, at limit | `/assign` command | No | Yes | Yes | Dynamic at-limit message |
+| **Issue creator** | Private | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
+| **Issue creator** | `help-wanted` assigned to commenter | `/assign` command | No | No | No | - (silent no-op) |
+| **Issue creator** | `help-wanted` assigned to someone else | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ALREADY_ASSIGNED` |
+| **Issue creator** | Unassigned `help-wanted` (not good first issue) | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE` |
+| **Issue creator** | Unassigned `help-wanted` + good first issue, under limit | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_SUCCESS` |
+| **Issue creator** | Unassigned `help-wanted` + good first issue, at limit | `/assign` command | No | Yes | Yes | Dynamic at-limit message |
+| **Other** | Private | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
+| **Other** | `help-wanted` assigned to commenter | `/assign` command | No | No | No | - (silent no-op) |
+| **Other** | `help-wanted` assigned to someone else | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ALREADY_ASSIGNED` |
+| **Other** | Unassigned `help-wanted` (not good first issue) | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE` |
+| **Other** | Unassigned `help-wanted` + good first issue, under limit | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ASSIGN_SUCCESS` |
+| **Other** | Unassigned `help-wanted` + good first issue, at limit | `/assign` command | No | Yes | Yes | Dynamic at-limit message |
 
 `*` There is an additional optimization that prevents more than one bot message per hour to not overwhelm issue comment section
 
