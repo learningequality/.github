@@ -82,6 +82,10 @@ const KEYWORDS_DETECT_ASSIGNMENT_REQUEST = [
 ];
 
 const ISSUE_LABEL_HELP_WANTED = 'help wanted';
+const ISSUE_LABEL_GOOD_FIRST_ISSUE = 'good first issue';
+const MAX_ASSIGNED_ISSUES = 2;
+const ASSIGN_COOLDOWN_DAYS = 7;
+const ASSIGN_GUIDANCE_MARKER = '<!-- ASSIGN_GUIDANCE -->';
 const LABEL_COMMUNITY_REVIEW = 'community-review';
 
 // Will be attached to bot messages when not empty
@@ -92,7 +96,52 @@ const BOT_MESSAGE_ISSUE_NOT_OPEN = `Hi! 👋 \n\n Thanks so much for your intere
 
 const BOT_MESSAGE_ALREADY_ASSIGNED = `Hi! 👋 \n\n Thanks so much for your interest! **This issue is already assigned. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues. If there are no unassigned 'help wanted' issues available, please wait until new ones are added.** \n\n We really appreciate your willingness to help. 😊${GSOC_NOTE}`;
 
-const BOT_MESSAGE_PULL_REQUEST = (author) => `👋 Hi @${author}, thanks for contributing! \n\n **For the review process to begin, please verify that the following is satisfied:**\n\n- [ ] **Contribution is aligned with our [contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base)**\n- [ ] **Pull request description has correctly filled _AI usage_ section & follows our AI guidance:**\n\n    <details>\n    <summary><b><i>AI guidance</i></b></summary>\n\n    <br>\n\n    **State explicitly whether you didn't use or used AI & how.**\n\n    If you used it, ensure that the PR is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai) as well as our DEEP framework. DEEP asks you:\n\n    - **Disclose** — Be open about when you've used AI for support.\n    - **Engage critically** — Question what is generated. Review code for correctness and unnecessary complexity.\n    - **Edit** — Review and refine AI output. Remove unnecessary code and verify it still works after your edits.\n    - **Process sharing** — Explain how you used the AI so others can learn.\n\n    <br>\n\n    Examples of good disclosures:\n\n    > "I used Claude Code to implement the component, prompting it to follow the pattern in ComponentX. I reviewed the generated code, removed unnecessary error handling, and verified the tests pass."\n\n    > "I brainstormed the approach with Gemini, then had it write failing tests for the feature. After reviewing the tests, I used Claude Code to generate the implementation. I refactored the output to reduce verbosity and ran the full test suite."\n\n    </details>\n\nAlso check that issue requirements are satisfied & you ran \`pre-commit\` locally. \n\n**Pull requests that don't follow the guidelines will be closed.**\n\n**Reviewer assignment can take up to 2 weeks.**`;
+const BOT_MESSAGE_GOOD_FIRST_ISSUE_GUIDANCE =
+  `${ASSIGN_GUIDANCE_MARKER}\n\n` +
+  `Hi! 👋\n\n` +
+  `This issue is available for contribution and supports ` +
+  `**self-assignment**. Here's how to get started:\n\n` +
+  `- **Comment \`/assign\` to assign yourself** to this issue\n` +
+  `- You can have up to **${MAX_ASSIGNED_ISSUES} issues** assigned ` +
+  `at a time across all community repos\n` +
+  `- Dropping an issue has a **${ASSIGN_COOLDOWN_DAYS}-day cooldown** ` +
+  `before the slot opens up\n` +
+  `- **Link your pull request** to this issue when you submit it` +
+  `\n\n📖 **Read the [Contributing guidelines]` +
+  `(https://learningequality.org/contributing-to-our-open-code-base/)` +
+  ` before starting.**${GSOC_NOTE}`;
+
+const BOT_MESSAGE_ASSIGN_SUCCESS =
+  `Hi! 👋\n\n` +
+  `You've been assigned to this issue. Here's what to do next:\n\n` +
+  `- **Read the issue description** carefully and make sure ` +
+  `you understand the requirements\n` +
+  `- **Link your pull request** to this issue when you submit it\n` +
+  `- If you can no longer work on this, **unassign yourself** ` +
+  `so others can pick it up\n\n` +
+  `Good luck! 😊${GSOC_NOTE}`;
+
+const BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE =
+  `Hi! 👋\n\n` +
+  `Self-assignment via \`/assign\` is only available for issues ` +
+  `labeled **\`good first issue\`**. This issue does not have ` +
+  `that label.\n\n` +
+  `Visit [Contributing guidelines]` +
+  `(https://learningequality.org/contributing-to-our-open-code-base/)` +
+  ` to learn about the contributing process and how to find ` +
+  `suitable issues. 😊${GSOC_NOTE}`;
+
+const BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE =
+  `Hi! 👋\n\n` +
+  `Thanks for your interest! This issue supports ` +
+  `**self-assignment**. **Comment \`/assign\` to assign ` +
+  `yourself.**\n\n` +
+  `Visit [Contributing guidelines]` +
+  `(https://learningequality.org/contributing-to-our-open-code-base/)` +
+  ` to learn about the contributing process. 😊${GSOC_NOTE}`;
+
+const BOT_MESSAGE_PULL_REQUEST = author =>
+  `👋 Hi @${author}, thanks for contributing! \n\n **For the review process to begin, please verify that the following is satisfied:**\n\n- [ ] **Contribution is aligned with our [contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base)**\n- [ ] **Pull request description has correctly filled _AI usage_ section & follows our AI guidance:**\n\n    <details>\n    <summary><b><i>AI guidance</i></b></summary>\n\n    <br>\n\n    **State explicitly whether you didn't use or used AI & how.**\n\n    If you used it, ensure that the PR is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai) as well as our DEEP framework. DEEP asks you:\n\n    - **Disclose** — Be open about when you've used AI for support.\n    - **Engage critically** — Question what is generated. Review code for correctness and unnecessary complexity.\n    - **Edit** — Review and refine AI output. Remove unnecessary code and verify it still works after your edits.\n    - **Process sharing** — Explain how you used the AI so others can learn.\n\n    <br>\n\n    Examples of good disclosures:\n\n    > "I used Claude Code to implement the component, prompting it to follow the pattern in ComponentX. I reviewed the generated code, removed unnecessary error handling, and verified the tests pass."\n\n    > "I brainstormed the approach with Gemini, then had it write failing tests for the feature. After reviewing the tests, I used Claude Code to generate the implementation. I refactored the output to reduce verbosity and ran the full test suite."\n\n    </details>\n\nAlso check that issue requirements are satisfied & you ran \`pre-commit\` locally. \n\n**Pull requests that don't follow the guidelines will be closed.**\n\n**Reviewer assignment can take up to 2 weeks.**`;
 
 const HOLIDAY_MESSAGE = `Season's greetings! 👋 \n\n We'd like to thank everyone for another year of fruitful collaborations, engaging discussions, and for the continued support of our work. **Learning Equality will be on holidays from December 22 to January 5.** We look forward to much more in the new year and wish you a very happy holiday season!${GSOC_NOTE}`;
 
@@ -119,8 +168,17 @@ module.exports = {
   CLOSE_CONTRIBUTORS,
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
   ISSUE_LABEL_HELP_WANTED,
+  GSOC_NOTE,
+  ISSUE_LABEL_GOOD_FIRST_ISSUE,
+  MAX_ASSIGNED_ISSUES,
+  ASSIGN_COOLDOWN_DAYS,
+  ASSIGN_GUIDANCE_MARKER,
   BOT_MESSAGE_ISSUE_NOT_OPEN,
   BOT_MESSAGE_ALREADY_ASSIGNED,
+  BOT_MESSAGE_GOOD_FIRST_ISSUE_GUIDANCE,
+  BOT_MESSAGE_ASSIGN_SUCCESS,
+  BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE,
+  BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE,
   BOT_MESSAGE_PULL_REQUEST,
   BOT_MESSAGE_RTIBBLESBOT_REVIEW,
   RTIBBLESBOT_USERNAME,
