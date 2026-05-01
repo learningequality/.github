@@ -58,7 +58,7 @@ jobs:
             return await script({ github, context, core });
       - name: Send Slack notification to support-dev channel
         if: ${{ steps.script.outputs.support_dev_message }}
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@v3.0.2
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -68,7 +68,7 @@ jobs:
             }
       - name: Send Slack notification to support-dev-notifications channel about comment
         if: ${{ steps.script.outputs.support_dev_notifications_message }}
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@v3.0.2
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
@@ -78,7 +78,7 @@ jobs:
             }
       - name: Send Slack notification to support-dev-notifications channel about bot action
         if: ${{ steps.script.outputs.support_dev_notifications_bot }}
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@v3.0.2
         with:
           webhook-type: incoming-webhook
           webhook: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
