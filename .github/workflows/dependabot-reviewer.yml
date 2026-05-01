@@ -1,0 +1,31 @@
+name: Request review on dependabot PR
+on:
+  workflow_call:
+    inputs:
+      reviewer:
+        description: 'GitHub username to request review from'
+        type: string
+        default: rtibblesbot
+    secrets:
+      LE_BOT_APP_ID:
+        description: 'GitHub App ID for authentication'
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: 'GitHub App Private Key for authentication'
+        required: true
+jobs:
+  request-review:
+    name: Request review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.LE_BOT_APP_ID }}
+          private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+      - name: Request review
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-reviewer ${{ inputs.reviewer }}
