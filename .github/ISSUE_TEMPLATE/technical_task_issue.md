@@ -20,7 +20,7 @@ Keep it brief - a few sentences.
 -->
 
 **Complexity:** Low | Medium | High
-**Target branch:** <!-- e.g. develop, release-0.17.x -->
+**Target branch:** <!-- e.g. develop, release-v0.17.x -->
 
 ### Context
 

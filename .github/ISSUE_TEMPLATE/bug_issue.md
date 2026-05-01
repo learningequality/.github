@@ -13,7 +13,7 @@ Instructions:
  * Use the 'preview' function above this text box to verify formatting before submitting
 -->
 
-**Target branch:** <!-- e.g. develop, release-0.17.x -->
+**Target branch:** <!-- e.g. develop, release-v0.17.x -->
 
 ## Observed behavior
 <!--
