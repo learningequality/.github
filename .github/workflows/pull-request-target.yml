@@ -23,3 +23,10 @@ jobs:
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+  dependabot-reviewer:
+    name: Request review on dependabot PR
+    if: ${{ github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]' }}
+    uses: learningequality/.github/.github/workflows/dependabot-reviewer.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
