@@ -45,7 +45,7 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Run script
         id: run-script
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           USERNAME: ${{ inputs.username }}
           AUTHOR_ASSOCIATION: ${{ inputs.author_association }}
