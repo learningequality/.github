@@ -171,22 +171,28 @@ async function hasRecentBotComment(
 }
 
 /**
- * Checks if an issue has a label with the given name (case-insensitive).
+ * Fetches all label names for an issue. Returns an array of lowercase label strings.
  */
-async function hasLabel(name, owner, repo, issueNumber, github, core) {
-  let labels = [];
+async function getLabels(owner, repo, issueNumber, github, core) {
   try {
     const allLabels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
       owner,
       repo,
       issue_number: issueNumber,
     });
-    labels = allLabels.map(label => label.name);
+    return allLabels.map(label => label.name.toLowerCase());
   } catch (error) {
     core.warning(`Failed to fetch labels on issue #${issueNumber}: ${error.message}`);
-    labels = [];
+    return [];
   }
-  return labels.some(label => label.toLowerCase() === name.toLowerCase());
+}
+
+/**
+ * Checks if an issue has a label with the given name (case-insensitive).
+ */
+async function hasLabel(name, owner, repo, issueNumber, github, core) {
+  const labels = await getLabels(owner, repo, issueNumber, github, core);
+  return labels.includes(name.toLowerCase());
 }
 
 /**
@@ -234,6 +240,99 @@ async function getPullRequests(author, state, owner, repos, github, core) {
   return results.flat();
 }
 
+/**
+ * Deletes bot comments on an issue that contain a specific marker string.
+ */
+async function deleteBotComments(issueNumber, botUsername, marker, { github, context, core }) {
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
+
+  try {
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+
+    const toDelete = comments.filter(
+      c => c.user?.login === botUsername && c.body?.includes(marker),
+    );
+    await Promise.all(
+      toDelete.map(async comment => {
+        await github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id });
+        core.info(`Deleted bot comment ${comment.id} on issue #${issueNumber}`);
+      }),
+    );
+  } catch (error) {
+    core.warning(`Failed to delete bot comments on #${issueNumber}: ` + error.message);
+  }
+}
+
+/**
+ * Finds recent unassignment events for a user across repos.
+ * Uses the search API to find candidate issues, then checks
+ * timeline events for unassigned events within the cutoff.
+ */
+async function getRecentUnassignments(username, daysAgo, owner, repos, github, core) {
+  const cutoff = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+  const since = cutoff.toISOString().split('T')[0];
+
+  const promises = repos.map(async repo => {
+    const repoUnassignments = [];
+    try {
+      const q = `involves:${username} repo:${owner}/${repo} is:issue updated:>=${since}`;
+      const { data } = await github.rest.search.issuesAndPullRequests({ q });
+
+      for (const issue of data.items || []) {
+        try {
+          const events = await github.paginate(github.rest.issues.listEventsForTimeline, {
+            owner,
+            repo,
+            issue_number: issue.number,
+            per_page: 100,
+          });
+
+          for (const event of events) {
+            if (
+              event.event === 'unassigned' &&
+              event.assignee?.login?.toLowerCase() === username.toLowerCase() &&
+              new Date(event.created_at) >= cutoff
+            ) {
+              repoUnassignments.push({
+                repo,
+                issueNumber: issue.number,
+                issueUrl: issue.html_url,
+                issueTitle: issue.title,
+                unassignedAt: event.created_at,
+              });
+            }
+          }
+        } catch (tlError) {
+          core.warning(`Failed to fetch timeline for ${repo}#${issue.number}: ${tlError.message}`);
+        }
+      }
+    } catch (error) {
+      core.warning(`Failed to search issues in ${repo}: ${error.message}`);
+    }
+    return repoUnassignments;
+  });
+
+  const results = await Promise.all(promises);
+  const unassignments = results.flat();
+
+  // Deduplicate by issueUrl, keeping the most recent unassignment event.
+  // A user could be assigned/unassigned multiple times on the same issue
+  // within the cooldown window, and each event should only count once.
+  const byIssue = new Map();
+  for (const u of unassignments) {
+    const existing = byIssue.get(u.issueUrl);
+    if (!existing || new Date(u.unassignedAt) > new Date(existing.unassignedAt)) {
+      byIssue.set(u.issueUrl, u);
+    }
+  }
+  return [...byIssue.values()];
+}
+
 module.exports = {
   isContributor,
   isCloseContributor,
@@ -241,7 +340,10 @@ module.exports = {
   sendBotMessage,
   escapeIssueTitleForSlackMessage,
   hasRecentBotComment,
+  getLabels,
   hasLabel,
   getIssues,
   getPullRequests,
+  deleteBotComments,
+  getRecentUnassignments,
 };

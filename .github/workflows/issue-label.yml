@@ -1,0 +1,27 @@
+name: Handle issue label events
+on:
+  workflow_call:
+    secrets:
+      LE_BOT_APP_ID:
+        description: 'GitHub App ID for authentication'
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: 'GitHub App Private Key for authentication'
+        required: true
+jobs:
+  manage-issue-header:
+    name: Manage issue header
+    if: >-
+      (github.event.action == 'labeled' && github.event.label.name == 'help wanted') || (github.event.action == 'unlabeled' && github.event.label.name == 'help wanted')
+    uses: learningequality/.github/.github/workflows/manage-issue-header.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+  good-first-issue-comment:
+    name: Post good first issue guidance comment
+    if: >-
+      github.event.action == 'labeled' && github.event.label.name == 'good first issue'
+    uses: learningequality/.github/.github/workflows/good-first-issue-comment.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
