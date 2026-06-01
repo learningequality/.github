@@ -44,7 +44,7 @@ jobs:
         run: npm install
       - name: Run unassign script
         id: unassign
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
