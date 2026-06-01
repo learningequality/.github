@@ -1,4 +1,4 @@
-name: Manage issue header
+name: Post good first issue guidance comment
 on:
   workflow_call:
     secrets:
@@ -9,7 +9,7 @@ on:
         description: 'GitHub App Private Key for authentication'
         required: true
 jobs:
-  manage-issue-header:
+  good-first-issue-comment:
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub token
@@ -36,5 +36,5 @@ jobs:
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const script = require('./scripts/manage-issue-header.js');
+            const script = require('./scripts/good-first-issue-comment.js');
             await script({github, context, core});

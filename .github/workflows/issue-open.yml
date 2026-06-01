@@ -1,0 +1,17 @@
+name: Handle issue open events
+on:
+  workflow_call:
+    secrets:
+      LE_BOT_APP_ID:
+        description: 'GitHub App ID for authentication'
+        required: true
+      LE_BOT_PRIVATE_KEY:
+        description: 'GitHub App Private Key for authentication'
+        required: true
+jobs:
+  manage-issue-header:
+    name: Manage issue header
+    uses: learningequality/.github/.github/workflows/manage-issue-header.yml@main
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
