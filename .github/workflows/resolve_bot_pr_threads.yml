@@ -1,0 +1,62 @@
+name: Resolve bot PR review threads
+on:
+  workflow_call:
+jobs:
+  resolve-addressed-review-threads:
+    name: Resolve addressed review threads
+    if: >
+      github.event_name == 'pull_request_review_comment' && github.event.comment.user.login == 'rtibblesbot' && contains(github.event.comment.body, '<!-- agent:thread-resolved -->')
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Resolve the thread containing this comment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const commentId = context.payload.comment.id;
+            const { repository } = await github.graphql(
+              `query($owner: String!, $name: String!, $pr: Int!) {
+                repository(owner: $owner, name: $name) {
+                  pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        id
+                        isResolved
+                        comments(first: 1) {
+                          nodes { databaseId }
+                        }
+                      }
+                    }
+                  }
+                }
+              }`,
+              {
+                owner: context.payload.repository.owner.login,
+                name: context.payload.repository.name,
+                pr: context.payload.pull_request.number,
+              }
+            );
+
+            const nodes = repository.pullRequest.reviewThreads.nodes;
+            const thread = nodes.find(
+              t => !t.isResolved && t.comments.nodes[0]?.databaseId === commentId
+            );
+
+            if (!thread) {
+              core.info(`No matching unresolved thread for comment ${commentId}`);
+              return;
+            }
+
+            await github.graphql(
+              `mutation($id: ID!) {
+                resolveReviewThread(input: { threadId: $id }) {
+                  thread { id isResolved }
+                }
+              }`,
+              { id: thread.id }
+            );
+
+            core.info(`Resolved thread ${thread.id}`);
