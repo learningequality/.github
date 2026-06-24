@@ -13,10 +13,18 @@ repos:
     rev: v0.14.0
     hooks:
       - id: yamlfmt
-        exclude: '^tests/cassettes'
+        exclude: '^tests/cassettes|^\.github/workflows/automation(-caller)?\.yml$|^automation-template\.yml$'
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.7
     hooks:
       - id: actionlint
         # Expects shellcheck to be installed on the system
         # https://github.com/koalaman/shellcheck#installing
+  - repo: local
+    hooks:
+      - id: generate-automation
+        name: Check automation.yml / automation-template.yml are up to date
+        entry: node scripts/generate-automation.js --check
+        language: system
+        files: '^(automation-registry\.yml|\.github/workflows/automation\.yml|automation-template\.yml)$'
+        pass_filenames: false
