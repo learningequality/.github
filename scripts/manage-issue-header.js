@@ -58,23 +58,28 @@ module.exports = async ({ github, context, core }) => {
         header = isIssueHelpWanted(issue) ? HELP_WANTED_HEADER : NON_HELP_WANTED_HEADER;
         break;
       case 'labeled':
-        if (labelName === HELP_WANTED_LABEL) {
-          header = HELP_WANTED_HEADER;
+        // only the 'help wanted' label affects the header; other labels must not touch the body
+        if (labelName !== HELP_WANTED_LABEL) {
+          core.info(`Ignoring '${actionType}' event for unrelated label '${labelName}'.`);
+          return;
         }
+        header = HELP_WANTED_HEADER;
         break;
       case 'unlabeled':
-        if (labelName === HELP_WANTED_LABEL) {
-          header = NON_HELP_WANTED_HEADER;
-          await deleteBotComments(
-            issueNumber,
-            LE_BOT_USERNAME,
-            ASSIGN_GUIDANCE_MARKER,
-            repoOwner,
-            repoName,
-            github,
-            core,
-          );
+        if (labelName !== HELP_WANTED_LABEL) {
+          core.info(`Ignoring '${actionType}' event for unrelated label '${labelName}'.`);
+          return;
         }
+        header = NON_HELP_WANTED_HEADER;
+        await deleteBotComments(
+          issueNumber,
+          LE_BOT_USERNAME,
+          ASSIGN_GUIDANCE_MARKER,
+          repoOwner,
+          repoName,
+          github,
+          core,
+        );
         break;
       default:
         core.info(`Unsupported action type '${actionType}' or label '${labelName}'. Skipping.`);
