@@ -61,8 +61,7 @@ function collectSecrets(automations) {
   return secrets;
 }
 
-function buildAutomationYml(automations) {
-  const secrets = collectSecrets(automations);
+function buildAutomationYml(automations, secrets) {
   const secretsYaml = {};
   for (const name of Object.keys(secrets).sort()) {
     const info = secrets[name];
@@ -79,9 +78,7 @@ function buildAutomationYml(automations) {
       if: `\${{ ${a.if} }}`,
       uses: `learningequality/.github/.github/workflows/${a.leaf}@main`,
     };
-    if (!a.needs_write_permissions) {
-      job.permissions = { contents: 'read' };
-    }
+    job.permissions = a.permissions || { contents: 'read' };
     const secretNames = Object.keys(a.secrets || {});
     if (secretNames.length) {
       job.secrets = {};
@@ -108,8 +105,11 @@ function unionOn(automations) {
     for (const [event, value] of Object.entries(a.on || {})) {
       if (event === 'schedule') {
         on.schedule = on.schedule || [];
-        const cron = value.cron;
-        if (!on.schedule.some((s) => s.cron === cron)) on.schedule.push({ cron });
+        const entries = Array.isArray(value) ? value : [value];
+        for (const entry of entries) {
+          const { cron } = entry;
+          if (cron && !on.schedule.some((s) => s.cron === cron)) on.schedule.push({ cron });
+        }
       } else if (value && Array.isArray(value.types)) {
         on[event] = on[event] || { types: [] };
         for (const t of value.types) {
@@ -123,8 +123,7 @@ function unionOn(automations) {
   return on;
 }
 
-function buildTemplateYml(automations) {
-  const secrets = collectSecrets(automations);
+function buildTemplateYml(automations, secrets, description) {
   const secretsForward = {};
   for (const name of Object.keys(secrets).sort()) {
     secretsForward[name] = `\${{ secrets.${name} }}`;
@@ -142,23 +141,21 @@ function buildTemplateYml(automations) {
       },
     },
   };
-  return unquoteOnKey(
-    GENERATED_HEADER(
-      'Caller template: copy this file to .github/workflows/automation.yml in a consumer repo.\n' +
-        '# No edits are needed - the on: block is the exhaustive union of every enabled automation.'
-    ) + yaml.dump(doc, DUMP_OPTS)
-  );
+  return unquoteOnKey(GENERATED_HEADER(description) + yaml.dump(doc, DUMP_OPTS));
 }
 
 function main() {
   const check = process.argv.includes('--check');
   const automations = loadRegistry();
 
-  const templateContent = buildTemplateYml(automations);
+  const secrets = collectSecrets(automations);
   const targets = [
-    [AUTOMATION_PATH, buildAutomationYml(automations)],
-    [TEMPLATE_PATH, templateContent],
-    [DOGFOOD_PATH, templateContent],
+    [AUTOMATION_PATH, buildAutomationYml(automations, secrets)],
+    [TEMPLATE_PATH, buildTemplateYml(automations, secrets,
+      'Caller template: copy this file to .github/workflows/automation.yml in a consumer repo.\n' +
+      '# No edits are needed - the on: block is the exhaustive union of every enabled automation.')],
+    [DOGFOOD_PATH, buildTemplateYml(automations, secrets,
+      'This repo\'s own automation caller - .github acts as consumer zero and stays in sync automatically.')],
   ];
 
   if (check) {

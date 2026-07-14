@@ -10,13 +10,13 @@ on:
     secrets:
       CONTRIBUTIONS_SHEET_NAME:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: false
+        required: true
       CONTRIBUTIONS_SPREADSHEET_ID:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: false
+        required: true
       GH_UPLOADER_GCP_SA_CREDENTIALS:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: false
+        required: true
       LE_BOT_APP_ID:
         description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, holiday-message, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
@@ -25,10 +25,10 @@ on:
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Forwarded to: contributor-pr-reply, holiday-message, contributor-issue-comment, unassign-inactive-issues"
-        required: false
+        required: true
       SLACK_WEBHOOK_URL:
         description: "Forwarded to: contributor-issue-comment"
-        required: false
+        required: true
 jobs:
   review-requested:
     name: Review Requested
@@ -140,6 +140,9 @@ jobs:
     name: Resolve Bot Pr Threads
     if: ${{ github.event_name == 'pull_request_review_comment' }}
     uses: learningequality/.github/.github/workflows/resolve_bot_pr_threads.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
   unassign-inactive-issues:
     name: Unassign Inactive Issues
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}

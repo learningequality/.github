@@ -6,10 +6,9 @@
 #                            unioned across all enabled automations to build automation-template.yml's `on:` block
 #   if                     - the dispatch condition used as the job's `if:` in automation.yml
 #   secrets                - secrets to declare on automation.yml and forward to the leaf;
-#                            required: bot-app credentials must be present, optional: Slack/spreadsheet/GCP may be blank
-#   needs_write_permissions - true only for the one automation (resolve-bot-pr-threads) whose leaf job
-#                            uses the default GITHUB_TOKEN with contents/pull-requests write instead of the bot-app token;
-#                            every other job gets an explicit job-level `permissions: contents: read` override
+#                            required/optional: whether the leaf workflow requires the secret to be set
+#   permissions            - job-level permissions map; defaults to { contents: read } when absent;
+#                            set explicitly for automations whose leaf uses the default GITHUB_TOKEN with write access
 #
 # Run `node scripts/generate-automation.js` after editing this file to regenerate
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
@@ -56,7 +55,7 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
   - name: holiday-message
     enabled: true
     leaf: holiday-message.yml
@@ -69,7 +68,7 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
   - name: issue-open
     enabled: true
     leaf: manage-issue-header.yml
@@ -110,9 +109,9 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      CONTRIBUTIONS_SPREADSHEET_ID: optional
-      CONTRIBUTIONS_SHEET_NAME: optional
-      GH_UPLOADER_GCP_SA_CREDENTIALS: optional
+      CONTRIBUTIONS_SPREADSHEET_ID: required
+      CONTRIBUTIONS_SHEET_NAME: required
+      GH_UPLOADER_GCP_SA_CREDENTIALS: required
   - name: community-contribution-label
     enabled: true
     leaf: community-contribution-label.yml
@@ -133,12 +132,14 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_WEBHOOK_URL: optional
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
+      SLACK_WEBHOOK_URL: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
   - name: resolve-bot-pr-threads
     enabled: true
     leaf: resolve_bot_pr_threads.yml
-    needs_write_permissions: true
+    permissions:
+      contents: write
+      pull-requests: write
     on:
       pull_request_review_comment:
         types: [created]
@@ -155,4 +156,4 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required

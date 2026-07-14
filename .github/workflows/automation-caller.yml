@@ -2,8 +2,7 @@
 # Do not edit it by hand - edit the registry and run:
 #   node scripts/generate-automation.js
 #
-# Caller template: copy this file to .github/workflows/automation.yml in a consumer repo.
-# No edits are needed - the on: block is the exhaustive union of every enabled automation.
+# This repo's own automation caller - .github acts as consumer zero and stays in sync automatically.
 
 name: Automation
 on:

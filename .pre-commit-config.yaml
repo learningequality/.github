@@ -26,5 +26,5 @@ repos:
         name: Check automation.yml / automation-template.yml are up to date
         entry: node scripts/generate-automation.js --check
         language: system
-        files: '^(automation-registry\.yml|\.github/workflows/automation\.yml|automation-template\.yml)$'
+        files: '^(automation-registry\.yml|\.github/workflows/automation(-caller)?\.yml|automation-template\.yml)$'
         pass_filenames: false
