@@ -19,7 +19,7 @@ leaf workflows directly rather than going through an intermediate dispatcher.
 
 `automation-registry.yml` is the single source of truth: one entry per automation, declaring its
 leaf workflow, the events/types (or schedule) that should trigger it, the `if:` condition used to
-dispatch it, and which secrets it needs (required vs. optional). `scripts/generate-automation.js`
+dispatch it, which secrets it needs, and its job-level permissions (defaults to `contents: read`). `scripts/generate-automation.js`
 reads the registry and writes:
 
 - `.github/workflows/automation.yml` - the reusable workflow jobs
@@ -34,9 +34,19 @@ from the registry.
 ## Onboarding a new repo
 
 Copy `automation-template.yml` from this repo into the new repo as `.github/workflows/automation.yml`.
-No edits required. Make sure the repo has access to the required secrets (`LE_BOT_APP_ID`,
-`LE_BOT_PRIVATE_KEY`); the optional ones (Slack webhooks, the contributions spreadsheet, GCP
-credentials) can be left unset - automations that don't need them still run.
+No edits required. Make sure the repo has all secrets configured:
+
+| Secret | Purpose |
+|--------|---------|
+| `LE_BOT_APP_ID` | GitHub App ID for bot authentication |
+| `LE_BOT_PRIVATE_KEY` | GitHub App private key for bot authentication |
+| `SLACK_WEBHOOK_URL` | Slack `#support-dev` channel webhook |
+| `SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` | Slack `#support-dev-notifications` channel webhook |
+| `CONTRIBUTIONS_SPREADSHEET_ID` | Google Sheets spreadsheet ID for PR tracking |
+| `CONTRIBUTIONS_SHEET_NAME` | Sheet name within the spreadsheet |
+| `GH_UPLOADER_GCP_SA_CREDENTIALS` | GCP service account credentials for Sheets access |
+
+All secrets are required — leaf workflows fail loudly if any are absent.
 
 ## Adding or toggling an automation
 
