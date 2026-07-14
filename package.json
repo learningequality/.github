@@ -13,6 +13,7 @@
   "devDependencies": {
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
+    "js-yaml": "^4.1.0",
     "prettier": "^3.8.1"
   }
 }

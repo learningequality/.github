@@ -1,0 +1,159 @@
+# Single source of truth for the automations exposed through automation.yml.
+#
+# Each entry describes one automation:
+#   leaf                   - the reusable workflow file (in .github/workflows/) it dispatches to
+#   on                     - events/types (or schedule/workflow_dispatch) it should be triggered by;
+#                            unioned across all enabled automations to build automation-template.yml's `on:` block
+#   if                     - the dispatch condition used as the job's `if:` in automation.yml
+#   secrets                - secrets to declare on automation.yml and forward to the leaf;
+#                            required/optional: whether the leaf workflow requires the secret to be set
+#   permissions            - job-level permissions map; defaults to { contents: read } when absent;
+#                            set explicitly for automations whose leaf uses the default GITHUB_TOKEN with write access
+#
+# Run `node scripts/generate-automation.js` after editing this file to regenerate
+# automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
+# fails if the generated files are out of date (enforced by pre-commit + CI).
+
+automations:
+  - name: review-requested
+    enabled: true
+    leaf: review-requested.yml
+    on:
+      pull_request_target:
+        types: [review_requested]
+    if: "github.event_name == 'pull_request_target' && github.event.action == 'review_requested'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: pull-request-label
+    enabled: true
+    leaf: pull-request-label.yml
+    on:
+      pull_request_target:
+        types: [labeled]
+    if: "github.event_name == 'pull_request_target' && github.event.action == 'labeled'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: dependabot-reviewer
+    enabled: true
+    leaf: dependabot-reviewer.yml
+    on:
+      pull_request_target:
+        types: [opened]
+    if: "github.event_name == 'pull_request_target' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: contributor-pr-reply
+    enabled: true
+    leaf: contributor-pr-reply.yml
+    on:
+      pull_request_target:
+        types: [opened]
+    if: "github.event_name == 'pull_request_target' && github.event.action == 'opened'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+  - name: holiday-message
+    enabled: true
+    leaf: holiday-message.yml
+    on:
+      pull_request_target:
+        types: [opened]
+      issue_comment:
+        types: [created]
+    if: "(github.event_name == 'pull_request_target' && github.event.action == 'opened') || (github.event_name == 'issue_comment' && github.event.action == 'created')"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+  - name: issue-open
+    enabled: true
+    leaf: manage-issue-header.yml
+    on:
+      issues:
+        types: [opened, reopened]
+    if: "github.event_name == 'issues' && contains(fromJSON('[\"opened\",\"reopened\"]'), github.event.action)"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: issue-label-header
+    enabled: true
+    leaf: manage-issue-header.yml
+    on:
+      issues:
+        types: [labeled, unlabeled]
+    if: "github.event_name == 'issues' && contains(fromJSON('[\"labeled\",\"unlabeled\"]'), github.event.action) && github.event.label.name == 'help wanted'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: good-first-issue-comment
+    enabled: true
+    leaf: good-first-issue-comment.yml
+    on:
+      issues:
+        types: [labeled]
+    if: "github.event_name == 'issues' && github.event.action == 'labeled' && (github.event.label.name == 'good first issue' || github.event.label.name == 'help wanted')"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: update-pr-spreadsheet
+    enabled: true
+    leaf: update-pr-spreadsheet.yml
+    on:
+      pull_request_target:
+        types: [assigned, unassigned, opened, closed, reopened, edited, review_requested, review_request_removed]
+    if: "github.event_name == 'pull_request_target' && contains(fromJSON('[\"assigned\",\"unassigned\",\"opened\",\"closed\",\"reopened\",\"edited\",\"review_requested\",\"review_request_removed\"]'), github.event.action)"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+      CONTRIBUTIONS_SPREADSHEET_ID: required
+      CONTRIBUTIONS_SHEET_NAME: required
+      GH_UPLOADER_GCP_SA_CREDENTIALS: required
+  - name: community-contribution-label
+    enabled: true
+    leaf: community-contribution-label.yml
+    on:
+      issues:
+        types: [assigned, unassigned]
+    if: "github.event_name == 'issues' && contains(fromJSON('[\"assigned\",\"unassigned\"]'), github.event.action)"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: contributor-issue-comment
+    enabled: true
+    leaf: contributor-issue-comment.yml
+    on:
+      issue_comment:
+        types: [created]
+    if: "github.event_name == 'issue_comment' && github.event.action == 'created'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+      SLACK_WEBHOOK_URL: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+  - name: resolve-bot-pr-threads
+    enabled: true
+    leaf: resolve_bot_pr_threads.yml
+    permissions:
+      contents: write
+      pull-requests: write
+    on:
+      pull_request_review_comment:
+        types: [created]
+    if: "github.event_name == 'pull_request_review_comment'"
+    secrets: {}
+  - name: unassign-inactive-issues
+    enabled: true
+    leaf: unassign-inactive-issues.yaml
+    on:
+      schedule:
+        cron: "1 0 * * 1"
+      workflow_dispatch: {}
+    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
