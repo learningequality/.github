@@ -50,7 +50,7 @@ In `scripts/constants.js` set:
 
 # `good-first-issue-comment`
 
-Posts a guidance comment when the `good first issue` label is applied to an issue (triggered via the `issue-label` workflow). Explains the `/assign` command, issue limits, cooldown, and links to contributing guidelines.
+Posts a guidance comment when the `good first issue` or `help wanted` label is applied to an issue. Explains the `/assign` command, issue limits, cooldown, and links to contributing guidelines.
 
 - Only posts if the issue also has `help wanted` label
 - Deletes any previous guidance comment from the bot before posting a new one
