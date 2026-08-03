@@ -31,13 +31,13 @@ jobs:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
       - name: Checkout .github repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: learningequality/.github
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
       - name: Install dependencies
