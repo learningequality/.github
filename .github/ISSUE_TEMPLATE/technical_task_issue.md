@@ -38,7 +38,7 @@ Do NOT provide the solution - equip the developer to find it.
 ### The Change
 
 <!--
-Describe what needs to change and the general direction.
+Describe what needs to change and the general direction, using "should" or similar language to express an expected change.
 - For frontend new features: include screenshots/mockups of desired end state
 - For backend work: describe the expected behavior, not the implementation
 
