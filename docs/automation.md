@@ -47,12 +47,13 @@ No edits required. Then set the secrets:
 | `CONTRIBUTIONS_SHEET_NAME` | no | Sheet name within the spreadsheet |
 | `GH_UPLOADER_GCP_SA_CREDENTIALS` | no | GCP service account credentials for Sheets access |
 
-Every automation authenticates as the bot, so the two required secrets must be set. A repo that
-skips an optional secret still runs the automations that do not need it, because each job receives
-only its own secrets.
+Every automation except `resolve-bot-pr-threads` authenticates as the bot, so the two required
+secrets must be set. `resolve-bot-pr-threads` uses the default `GITHUB_TOKEN` instead.
 
-The generated caller forwards every key. An absent secret therefore reaches the leaf workflow as an
-empty string, and the one automation that needs it fails at run time.
+Optional means that you accept losing the automations that use the secret. It does not mean that
+they degrade gracefully. The generated caller forwards every key, so an absent secret reaches the
+leaf workflow as an empty string, and every automation that needs it fails at run time.
+`SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` reaches four of them.
 
 ## Adding or toggling an automation
 

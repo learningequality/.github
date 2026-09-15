@@ -52,6 +52,15 @@ function titleCase(name) {
     .join(' ');
 }
 
+// Omitting types: means all activity types for issues, but only opened,
+// synchronize and reopened for pull_request_target.
+function mixedTypesError(event, name) {
+  return new Error(
+    `Event "${event}" is declared both with and without types: (automation "${name}"). ` +
+      'Declare types: explicitly on every entry for that event.'
+  );
+}
+
 function unionPermissions(automations) {
   const merged = {};
   for (const a of automations) {
@@ -130,12 +139,13 @@ function unionOn(automations) {
           if (cron && !on.schedule.some((s) => s.cron === cron)) on.schedule.push({ cron });
         }
       } else if (value && Array.isArray(value.types)) {
-        if (on[event] && !on[event].types) continue;
+        if (on[event] && !on[event].types) throw mixedTypesError(event, a.name);
         on[event] = on[event] || { types: [] };
         for (const t of value.types) {
           if (!on[event].types.includes(t)) on[event].types.push(t);
         }
       } else {
+        if (on[event] && on[event].types) throw mixedTypesError(event, a.name);
         on[event] = {};
       }
     }
