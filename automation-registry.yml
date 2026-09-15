@@ -55,7 +55,7 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
   - name: holiday-message
     enabled: true
     leaf: holiday-message.yml
@@ -68,7 +68,7 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
   - name: issue-open
     enabled: true
     leaf: manage-issue-header.yml
@@ -109,9 +109,9 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      CONTRIBUTIONS_SPREADSHEET_ID: required
-      CONTRIBUTIONS_SHEET_NAME: required
-      GH_UPLOADER_GCP_SA_CREDENTIALS: required
+      CONTRIBUTIONS_SPREADSHEET_ID: optional
+      CONTRIBUTIONS_SHEET_NAME: optional
+      GH_UPLOADER_GCP_SA_CREDENTIALS: optional
   - name: community-contribution-label
     enabled: true
     leaf: community-contribution-label.yml
@@ -132,8 +132,8 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_WEBHOOK_URL: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+      SLACK_WEBHOOK_URL: optional
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
   - name: resolve-bot-pr-threads
     enabled: true
     leaf: resolve_bot_pr_threads.yml
@@ -156,4 +156,4 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: required
+      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional

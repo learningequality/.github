@@ -10,13 +10,13 @@ on:
     secrets:
       CONTRIBUTIONS_SHEET_NAME:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: true
+        required: false
       CONTRIBUTIONS_SPREADSHEET_ID:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: true
+        required: false
       GH_UPLOADER_GCP_SA_CREDENTIALS:
         description: "Forwarded to: update-pr-spreadsheet"
-        required: true
+        required: false
       LE_BOT_APP_ID:
         description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, holiday-message, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
@@ -25,10 +25,10 @@ on:
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Forwarded to: contributor-pr-reply, holiday-message, contributor-issue-comment, unassign-inactive-issues"
-        required: true
+        required: false
       SLACK_WEBHOOK_URL:
         description: "Forwarded to: contributor-issue-comment"
-        required: true
+        required: false
 jobs:
   review-requested:
     name: Review Requested
@@ -58,7 +58,7 @@ jobs:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
   contributor-pr-reply:
-    name: Contributor Pr Reply
+    name: Contributor PR Reply
     if: ${{ github.event_name == 'pull_request_target' && github.event.action == 'opened' }}
     uses: learningequality/.github/.github/workflows/contributor-pr-reply.yml@main
     permissions:
@@ -105,7 +105,7 @@ jobs:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
   update-pr-spreadsheet:
-    name: Update Pr Spreadsheet
+    name: Update PR Spreadsheet
     if: ${{ github.event_name == 'pull_request_target' && contains(fromJSON('["assigned","unassigned","opened","closed","reopened","edited","review_requested","review_request_removed"]'), github.event.action) }}
     uses: learningequality/.github/.github/workflows/update-pr-spreadsheet.yml@main
     permissions:
@@ -137,7 +137,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
   resolve-bot-pr-threads:
-    name: Resolve Bot Pr Threads
+    name: Resolve Bot PR Threads
     if: ${{ github.event_name == 'pull_request_review_comment' }}
     uses: learningequality/.github/.github/workflows/resolve_bot_pr_threads.yml@main
     permissions:

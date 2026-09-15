@@ -25,7 +25,8 @@ reads the registry and writes:
 - `.github/workflows/automation.yml` - the reusable workflow jobs
 - `automation-template.yml` - the file every consumer repo copies, including the generated
   exhaustive `on:` block (the union of every enabled automation's events/types)
-- `.github/workflows/automation-caller.yml` - this repo dogfeeding the same template against itself
+- `.github/workflows/automation-caller.yml` - this repo's own copy of the template, so `.github`
+  runs the automations it publishes
 
 A pre-commit hook (`generate-automation`, run via `prek`) regenerates and fails the commit if the
 checked-in files don't match what the registry produces - so the generated files can never drift
@@ -34,19 +35,24 @@ from the registry.
 ## Onboarding a new repo
 
 Copy `automation-template.yml` from this repo into the new repo as `.github/workflows/automation.yml`.
-No edits required. Make sure the repo has all secrets configured:
+No edits required. Then set the secrets:
 
-| Secret | Purpose |
-|--------|---------|
-| `LE_BOT_APP_ID` | GitHub App ID for bot authentication |
-| `LE_BOT_PRIVATE_KEY` | GitHub App private key for bot authentication |
-| `SLACK_WEBHOOK_URL` | Slack `#support-dev` channel webhook |
-| `SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` | Slack `#support-dev-notifications` channel webhook |
-| `CONTRIBUTIONS_SPREADSHEET_ID` | Google Sheets spreadsheet ID for PR tracking |
-| `CONTRIBUTIONS_SHEET_NAME` | Sheet name within the spreadsheet |
-| `GH_UPLOADER_GCP_SA_CREDENTIALS` | GCP service account credentials for Sheets access |
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `LE_BOT_APP_ID` | yes | GitHub App ID for bot authentication |
+| `LE_BOT_PRIVATE_KEY` | yes | GitHub App private key for bot authentication |
+| `SLACK_WEBHOOK_URL` | no | Slack `#support-dev` channel webhook |
+| `SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` | no | Slack `#support-dev-notifications` channel webhook |
+| `CONTRIBUTIONS_SPREADSHEET_ID` | no | Google Sheets spreadsheet ID for PR tracking |
+| `CONTRIBUTIONS_SHEET_NAME` | no | Sheet name within the spreadsheet |
+| `GH_UPLOADER_GCP_SA_CREDENTIALS` | no | GCP service account credentials for Sheets access |
 
-All secrets are required — leaf workflows fail loudly if any are absent.
+Every automation authenticates as the bot, so the two required secrets must be set. A repo that
+skips an optional secret still runs the automations that do not need it, because each job receives
+only its own secrets.
+
+The generated caller forwards every key. An absent secret therefore reaches the leaf workflow as an
+empty string, and the one automation that needs it fails at run time.
 
 ## Adding or toggling an automation
 
