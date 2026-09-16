@@ -17,13 +17,13 @@ on:
         description: "Forwarded to: update-pr-spreadsheet"
         required: false
       LE_BOT_APP_ID:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, holiday-message, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, holiday-message, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
-        description: "Forwarded to: contributor-pr-reply, holiday-message, contributor-issue-comment, unassign-inactive-issues"
+        description: "Forwarded to: contributor-pr-reply, contributor-issue-comment, unassign-inactive-issues"
         required: false
       SLACK_WEBHOOK_URL:
         description: "Forwarded to: contributor-issue-comment"
@@ -60,16 +60,6 @@ jobs:
     name: Contributor PR Reply
     if: ${{ github.event_name == 'pull_request_target' && github.event.action == 'opened' }}
     uses: learningequality/.github/.github/workflows/contributor-pr-reply.yml@main
-    permissions:
-      contents: read
-    secrets:
-      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
-      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-      SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
-  holiday-message:
-    name: Holiday Message
-    if: ${{ (github.event_name == 'pull_request_target' && github.event.action == 'opened') || (github.event_name == 'issue_comment' && github.event.action == 'created') }}
-    uses: learningequality/.github/.github/workflows/holiday-message.yml@main
     permissions:
       contents: read
     secrets:

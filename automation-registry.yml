@@ -1,6 +1,7 @@
 # Single source of truth for the automations exposed through automation.yml.
 #
 # Each entry describes one automation:
+#   enabled                - false drops the automation from every generated file, org-wide
 #   leaf                   - the reusable workflow file (in .github/workflows/) it dispatches to
 #   on                     - events/types (or schedule/workflow_dispatch) it should be triggered by;
 #                            unioned across all enabled automations to build automation-template.yml's `on:` block
@@ -57,7 +58,9 @@ automations:
       LE_BOT_PRIVATE_KEY: required
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
   - name: holiday-message
-    enabled: true
+    # Seasonal. The leaf has no date guard, so this must be flipped on before
+    # the holidays and off after them.
+    enabled: false
     leaf: holiday-message.yml
     on:
       pull_request_target:

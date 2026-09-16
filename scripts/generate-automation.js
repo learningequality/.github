@@ -152,7 +152,24 @@ function unionOn(automations) {
       }
     }
   }
-  return on;
+  return sortOn(on);
+}
+
+// Consumers hold a copied template, so key order must depend only on the set of
+// enabled automations, never on their order in the registry.
+function sortOn(on) {
+  const sorted = {};
+  for (const event of Object.keys(on).sort()) {
+    const value = on[event];
+    if (Array.isArray(value)) {
+      sorted[event] = [...value].sort((a, b) => a.cron.localeCompare(b.cron));
+    } else if (value && value.types) {
+      sorted[event] = { types: [...value.types].sort() };
+    } else {
+      sorted[event] = value;
+    }
+  }
+  return sorted;
 }
 
 function buildTemplateYml(automations, secrets, description) {
