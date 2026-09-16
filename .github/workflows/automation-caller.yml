@@ -4,7 +4,7 @@
 #
 # This repo's own automation caller - .github acts as consumer zero and stays in sync automatically.
 name: Automation
-on:
+on: # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     types:
       - review_requested

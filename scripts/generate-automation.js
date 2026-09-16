@@ -32,11 +32,14 @@ const DUMP_OPTS = { indent: 2, lineWidth: -1, noRefs: true, quotingType: '"' };
 const DEFAULT_PERMISSIONS = { contents: 'read' };
 const PERMISSION_RANK = { none: 0, read: 1, write: 2 };
 const ACRONYMS = { pr: 'PR' };
+// zizmor reports pull_request_target as a dangerous trigger. The hand-written
+// callers this template replaces carry the same inline ignore on their `on:` key.
+const ZIZMOR_IGNORE = '# zizmor: ignore[dangerous-triggers]';
 
 // js-yaml quotes the top-level `on` key (YAML 1.1 treats on/off as booleans),
 // but every hand-written workflow in this repo uses a bare `on:` - match that.
-function unquoteOnKey(content) {
-  return content.replace(/^"on":/m, 'on:');
+function unquoteOnKey(content, suffix) {
+  return content.replace(/^"on":/m, suffix ? `on: ${suffix}` : 'on:');
 }
 
 function loadRegistry() {
@@ -170,7 +173,7 @@ function buildTemplateYml(automations, secrets, description) {
       },
     },
   };
-  return unquoteOnKey(GENERATED_HEADER(description) + yaml.dump(doc, DUMP_OPTS));
+  return unquoteOnKey(GENERATED_HEADER(description) + yaml.dump(doc, DUMP_OPTS), ZIZMOR_IGNORE);
 }
 
 function main() {
