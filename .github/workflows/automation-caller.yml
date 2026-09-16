@@ -3,7 +3,6 @@
 #   node scripts/generate-automation.js
 #
 # This repo's own automation caller - .github acts as consumer zero and stays in sync automatically.
-
 name: Automation
 on:
   pull_request_target:

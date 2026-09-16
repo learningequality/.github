@@ -3,7 +3,6 @@
 #   node scripts/generate-automation.js
 #
 # Reusable workflow: one job per automation, gated on the original triggering event/action.
-
 name: Automation
 on:
   workflow_call:

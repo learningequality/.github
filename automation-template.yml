@@ -4,7 +4,6 @@
 #
 # Caller template: copy this file to .github/workflows/automation.yml in a consumer repo.
 # No edits are needed - the on: block is the exhaustive union of every enabled automation.
-
 name: Automation
 on:
   pull_request_target:
