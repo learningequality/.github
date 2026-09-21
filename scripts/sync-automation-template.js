@@ -25,26 +25,33 @@ const TITLE = 'Refresh automation.yml from the shared template';
 const REVIEWER = 'rtibblesbot';
 const API = 'https://api.github.com';
 
-const dryRun = process.argv.includes('--dry-run');
-const token = process.env.GITHUB_TOKEN;
+const PROBLEM_STATES = ['error', 'toolchain-conflict', 'not-migrated'];
 
-async function api(method, url, body) {
-  const res = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
-    method,
-    headers: {
-      authorization: `Bearer ${token}`,
-      accept: 'application/vnd.github+json',
-      'x-github-api-version': '2022-11-28',
-      'content-type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  return { ok: res.ok, status: res.status, data };
+function httpApi(token) {
+  return async function api(method, url, body) {
+    const res = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: 'application/vnd.github+json',
+        'x-github-api-version': '2022-11-28',
+        'content-type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    let data = null;
+    // A gateway error answers with an HTML page, so parsing has to be able to fail.
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { message: text.slice(0, 200) };
+    }
+    return { ok: res.ok, status: res.status, data };
+  };
 }
 
-function body(consumer) {
+function prBody(consumer) {
   const explanation = [
     `This replaces \`${TARGET_PATH}\` with the current \`automation-template.yml\` from`,
     `[${ORG}/.github](https://github.com/${ORG}/.github).`,
@@ -57,115 +64,161 @@ function body(consumer) {
   return consumer.body_prefix ? `${consumer.body_prefix.trimEnd()}\n\n${explanation}\n` : `${explanation}\n`;
 }
 
-async function currentCopy(repo, ref) {
+function detail(r) {
+  return `${r.status} ${(r.data && r.data.message) || ''}`.trim();
+}
+
+async function readCopy(api, repo, ref) {
   const r = await api('GET', `/repos/${ORG}/${repo}/contents/${TARGET_PATH}?ref=${ref}`);
-  if (r.status === 404) return { missing: true };
-  if (!r.ok) return { error: `read failed (${r.status}) ${r.data && r.data.message}` };
-  return { sha: r.data.sha, content: Buffer.from(r.data.content, 'base64').toString('utf8') };
+  if (r.ok) return { sha: r.data.sha, content: Buffer.from(r.data.content, 'base64').toString('utf8') };
+  // A repo the token cannot see answers 404, exactly like a missing file, so ask
+  // whether the repo itself is readable before calling the file missing.
+  if (r.status === 404) {
+    const probe = await api('GET', `/repos/${ORG}/${repo}`);
+    return probe.ok ? { missing: true } : { error: `no access to ${repo} (${detail(probe)})` };
+  }
+  return { error: `read failed (${detail(r)})` };
 }
 
-async function openSyncPr(repo) {
+async function lastTemplateChange(api) {
+  const r = await api('GET', `/repos/${ORG}/.github/commits?path=automation-template.yml&per_page=1`);
+  if (!r.ok || !r.data.length) return null;
+  return r.data[0].commit.committer.date;
+}
+
+async function openSyncPr(api, repo) {
   const r = await api('GET', `/repos/${ORG}/${repo}/pulls?state=open&head=${ORG}:${BRANCH}`);
-  return r.ok && r.data.length ? r.data[0] : null;
+  if (!r.ok) return { error: `could not list pull requests (${detail(r)})` };
+  return { pr: r.data.length ? r.data[0] : null };
 }
 
-// A sync pull request that merged, followed by the file drifting again, means the
-// repo's own tooling rewrites the copy. Reopening would loop, so report instead.
-async function revertedAfterMerge(repo) {
-  const r = await api('GET', `/repos/${ORG}/${repo}/pulls?state=closed&head=${ORG}:${BRANCH}&per_page=1`);
-  if (!r.ok || !r.data.length) return false;
-  return Boolean(r.data[0].merged_at);
+async function lastClosedSyncPr(api, repo) {
+  const r = await api(
+    'GET',
+    `/repos/${ORG}/${repo}/pulls?state=closed&head=${ORG}:${BRANCH}&sort=updated&direction=desc&per_page=1`
+  );
+  if (!r.ok) return { error: `could not list closed pull requests (${detail(r)})` };
+  return { pr: r.data.length ? r.data[0] : null };
 }
 
-async function syncRepo(consumer, template) {
+/**
+ * Decides what a drifted copy means, given the last closed sync pull request.
+ * A template change after that pull request closed is ordinary drift. With no
+ * such change, a merged pull request means the consumer reverted the file, and a
+ * closed one means a maintainer declined it.
+ */
+function classifyDrift(closedPr, templateChangedAt) {
+  if (!closedPr) return 'drift';
+  const closedAt = closedPr.merged_at || closedPr.closed_at;
+  if (templateChangedAt && closedAt && new Date(templateChangedAt) > new Date(closedAt)) return 'drift';
+  return closedPr.merged_at ? 'toolchain-conflict' : 'declined';
+}
+
+async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) {
   const { repo, base } = consumer;
-  const copy = await currentCopy(repo, base);
+  const copy = await readCopy(api, repo, base);
 
   if (copy.error) return { repo, state: 'error', detail: copy.error };
   if (copy.missing) return { repo, state: 'not-migrated' };
   if (copy.content === template) return { repo, state: 'in-sync' };
 
-  const existing = await openSyncPr(repo);
-  if (!existing && (await revertedAfterMerge(repo))) {
-    return { repo, state: 'toolchain-conflict' };
+  const open = await openSyncPr(api, repo);
+  if (open.error) return { repo, state: 'error', detail: open.error };
+
+  if (!open.pr) {
+    const closed = await lastClosedSyncPr(api, repo);
+    if (closed.error) return { repo, state: 'error', detail: closed.error };
+    const verdict = classifyDrift(closed.pr, templateChangedAt);
+    if (verdict !== 'drift') return { repo, state: verdict, pr: closed.pr.number };
   }
-  if (dryRun) return { repo, state: existing ? 'would-update' : 'would-open', pr: existing && existing.number };
+
+  if (dryRun) {
+    return { repo, state: open.pr ? 'would-update' : 'would-open', pr: open.pr && open.pr.number };
+  }
 
   const baseRef = await api('GET', `/repos/${ORG}/${repo}/git/ref/heads/${base}`);
-  if (!baseRef.ok) return { repo, state: 'error', detail: `base ${base} not found` };
+  if (!baseRef.ok) return { repo, state: 'error', detail: `base ${base} not found (${detail(baseRef)})` };
+  const baseSha = baseRef.data.object.sha;
 
-  if (!existing) {
-    const made = await api('POST', `/repos/${ORG}/${repo}/git/refs`, {
-      ref: `refs/heads/${BRANCH}`,
-      sha: baseRef.data.object.sha,
-    });
-    if (!made.ok && made.status !== 422) {
-      return { repo, state: 'error', detail: `branch failed (${made.status}) ${made.data && made.data.message}` };
+  if (!open.pr) {
+    const made = await api('POST', `/repos/${ORG}/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: baseSha });
+    if (!made.ok && made.status === 422) {
+      // The branch outlives a closed pull request, so start it again from base
+      // rather than carrying commits a maintainer already saw.
+      const reset = await api('PATCH', `/repos/${ORG}/${repo}/git/refs/heads/${BRANCH}`, { sha: baseSha, force: true });
+      if (!reset.ok) return { repo, state: 'error', detail: `branch reset failed (${detail(reset)})` };
+    } else if (!made.ok) {
+      return { repo, state: 'error', detail: `branch failed (${detail(made)})` };
     }
   }
 
-  const onBranch = await currentCopy(repo, BRANCH);
+  const onBranch = await readCopy(api, repo, BRANCH);
+  if (onBranch.error) return { repo, state: 'error', detail: onBranch.error };
+
   const put = await api('PUT', `/repos/${ORG}/${repo}/contents/${TARGET_PATH}`, {
     message: TITLE,
     content: Buffer.from(template, 'utf8').toString('base64'),
     branch: BRANCH,
     ...(onBranch.sha ? { sha: onBranch.sha } : {}),
   });
-  if (!put.ok) {
-    return { repo, state: 'error', detail: `write failed (${put.status}) ${put.data && put.data.message}` };
-  }
+  if (!put.ok) return { repo, state: 'error', detail: `write failed (${detail(put)})` };
 
-  if (existing) return { repo, state: 'updated', pr: existing.number, url: existing.html_url };
+  if (open.pr) return { repo, state: 'updated', pr: open.pr.number, url: open.pr.html_url };
 
   const pr = await api('POST', `/repos/${ORG}/${repo}/pulls`, {
     title: TITLE,
     head: BRANCH,
     base,
-    body: body(consumer),
+    body: prBody(consumer),
   });
-  if (!pr.ok) {
-    return { repo, state: 'error', detail: `pull request failed (${pr.status}) ${pr.data && pr.data.message}` };
-  }
+  if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
 
   const review = await api('POST', `/repos/${ORG}/${repo}/pulls/${pr.data.number}/requested_reviewers`, {
     reviewers: [REVIEWER],
   });
-  return {
-    repo,
-    state: 'opened',
-    pr: pr.data.number,
-    url: pr.data.html_url,
-    reviewerFailed: !review.ok,
-  };
+  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url, reviewerFailed: !review.ok };
+}
+
+async function run(api, registry, template, options) {
+  const templateChangedAt = await lastTemplateChange(api);
+  const results = [];
+  for (const consumer of registry.consumers) {
+    try {
+      results.push(await syncRepo(api, consumer, template, { ...options, templateChangedAt }));
+    } catch (err) {
+      results.push({ repo: consumer.repo, state: 'error', detail: err.message });
+    }
+  }
+  return results;
+}
+
+function report(results) {
+  for (const r of results) {
+    const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
+    const note = r.reviewerFailed ? `  (could not request ${REVIEWER})` : '';
+    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}${note}`);
+  }
+  const problems = results.filter((r) => PROBLEM_STATES.includes(r.state));
+  const drifted = results.filter((r) => r.state !== 'in-sync');
+  console.log(`\n${results.length} consumers, ${drifted.length} not in sync, ${problems.length} needing attention.`);
+  for (const p of problems) {
+    console.log(`::error title=${p.repo}::${p.state}${p.detail ? `: ${p.detail}` : ''}`);
+  }
+  return problems.length;
 }
 
 async function main() {
+  const token = process.env.GITHUB_TOKEN;
   if (!token) {
     console.error('GITHUB_TOKEN is not set.');
     process.exit(1);
   }
   const registry = yaml.load(fs.readFileSync(REGISTRY_PATH, 'utf8'));
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-
-  const results = [];
-  for (const consumer of registry.consumers) {
-    results.push(await syncRepo(consumer, template));
-  }
-
-  for (const r of results) {
-    const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
-    const note = r.reviewerFailed ? `  (could not request ${REVIEWER})` : '';
-    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}${note}`);
-  }
-
-  const problems = results.filter((r) => r.state === 'error' || r.state === 'toolchain-conflict');
-  const drifted = results.filter((r) => r.state !== 'in-sync');
-
-  console.log(`\n${results.length} consumers, ${drifted.length} not in sync, ${problems.length} needing attention.`);
-  for (const p of problems) {
-    console.log(`::error title=${p.repo}::${p.state}${p.detail ? `: ${p.detail}` : ''}`);
-  }
-  process.exit(problems.length ? 1 : 0);
+  const results = await run(httpApi(token), registry, template, { dryRun: process.argv.includes('--dry-run') });
+  process.exit(report(results) ? 1 : 0);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { run, syncRepo, classifyDrift, report, PROBLEM_STATES, BRANCH, REVIEWER, TARGET_PATH };

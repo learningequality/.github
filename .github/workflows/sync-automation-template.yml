@@ -16,6 +16,9 @@ on:
       - automation-template.yml
 permissions:
   contents: read
+concurrency:
+  group: sync-automation-template
+  cancel-in-progress: false
 jobs:
   sync:
     name: Sync consumers
