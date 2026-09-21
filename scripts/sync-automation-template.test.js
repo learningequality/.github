@@ -227,9 +227,12 @@ test('report counts only the states that stop a merge', () => {
   }
 });
 
-test('declined is deliberately not a problem state', () => {
-  assert.ok(!PROBLEM_STATES.includes('declined'));
-  assert.deepEqual([...PROBLEM_STATES].sort(), ['error', 'not-migrated', 'toolchain-conflict']);
+test('the set of problem states is closed', () => {
+  assert.deepEqual(
+    [...PROBLEM_STATES].sort(),
+    ['error', 'not-migrated', 'toolchain-conflict'],
+    'adding a state here turns the weekly run red for repos that were passing, so change it deliberately and cover it in the report test above'
+  );
 });
 
 test('a failed reviewer request is noted but does not fail the run', () => {
