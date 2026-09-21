@@ -50,7 +50,7 @@ In `scripts/constants.js` set:
 
 # `good-first-issue-comment`
 
-Posts a guidance comment when the `good first issue` label is applied to an issue (triggered via the `issue-label` workflow). Explains the `/assign` command, issue limits, cooldown, and links to contributing guidelines.
+Posts a guidance comment when the `good first issue` or `help wanted` label is applied to an issue. Explains the `/assign` command, issue limits, cooldown, and links to contributing guidelines.
 
 - Only posts if the issue also has `help wanted` label
 - Deletes any previous guidance comment from the bot before posting a new one
@@ -73,4 +73,4 @@ Sends a holiday message to community pull requests and issue comments.
 In `scripts/contants.js` set:
 - `HOLIDAY_MESSAGE`: Message text
 
-Before/after holidays, enable/disable all related workflows in all repositories that use it (search for `call-holiday-message`).
+Before/after holidays, toggle `enabled:` for `holiday-message` in [`automation-registry.yml`](../automation-registry.yml) and regenerate (see [`docs/automation.md`](./automation.md)) - no per-repo changes needed.
