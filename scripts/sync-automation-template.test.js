@@ -1,11 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { run, classifyDrift, BRANCH } = require('./sync-automation-template');
+const { run, classifyDrift, report, PROBLEM_STATES, BRANCH, REVIEWER } = require('./sync-automation-template');
 
 const TEMPLATE = 'name: Automation\non: {}\n';
 const STALE = 'name: Automation\non: {old: true}\n';
-const REGISTRY = { consumers: [{ repo: 'demo', base: 'main' }] };
+const PREFIX = '## Changelog\n\n  - **Description:** test\n';
+// Not "main": five of the eight real consumers target something else, so a
+// fixture on main cannot catch a hardcoded base.
+const BASE = 'develop';
+const REGISTRY = { consumers: [{ repo: 'demo', base: BASE }] };
 
 const encode = (s) => Buffer.from(s, 'utf8').toString('base64');
 const ok = (data) => ({ ok: true, status: 200, data });
@@ -36,7 +40,7 @@ const baseRoutes = (copy) => [
   ['GET contents/.github/workflows/automation.yml', ok({ sha: 'file-sha', content: encode(copy) })],
   ['GET /repos/learningequality/demo/pulls?state=open', ok([])],
   ['GET /repos/learningequality/demo/pulls?state=closed', ok([])],
-  ['GET /repos/learningequality/demo/git/ref/heads/main', ok({ object: { sha: 'base-sha' } })],
+  [`GET /repos/learningequality/demo/git/ref/heads/${BASE}`, ok({ object: { sha: 'base-sha' } })],
   ['POST /repos/learningequality/demo/git/refs', ok({})],
   ['PUT /repos/learningequality/demo/contents', ok({})],
   ['POST /repos/learningequality/demo/pulls', ok({ number: 7, html_url: 'https://example.test/7' })],
@@ -57,7 +61,32 @@ test('a drifted copy opens a pull request and requests the reviewer', async () =
   assert.ok(calls.some((c) => c.url.endsWith('/pulls/7/requested_reviewers')));
 });
 
-test('an open sync pull request is updated, not duplicated', async () => {
+test('the write targets the sync branch and carries the template', async () => {
+  const calls = [];
+  await run(makeApi(baseRoutes(STALE), calls), REGISTRY, TEMPLATE, {});
+  const put = calls.find((c) => c.method === 'PUT');
+  assert.equal(put.body.branch, BRANCH, 'must never write to a default branch');
+  assert.equal(Buffer.from(put.body.content, 'base64').toString('utf8'), TEMPLATE);
+});
+
+test('the pull request targets the consumer base and names the reviewer', async () => {
+  const calls = [];
+  await run(makeApi(baseRoutes(STALE), calls), REGISTRY, TEMPLATE, {});
+  const pr = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls'));
+  assert.equal(pr.body.base, BASE);
+  const review = calls.find((c) => c.url.endsWith('/requested_reviewers'));
+  assert.deepEqual(review.body.reviewers, [REVIEWER]);
+});
+
+test('a body_prefix reaches the pull request body', async () => {
+  const calls = [];
+  const registry = { consumers: [{ repo: 'demo', base: BASE, body_prefix: PREFIX }] };
+  await run(makeApi(baseRoutes(STALE), calls), registry, TEMPLATE, {});
+  const pr = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls'));
+  assert.ok(pr.body.body.startsWith('## Changelog'), 'KDS check-description needs the prefix');
+});
+
+test('an open sync pull request is updated in place, keeping the file sha', async () => {
   const calls = [];
   const routes = [
     ...baseRoutes(STALE),
@@ -66,6 +95,9 @@ test('an open sync pull request is updated, not duplicated', async () => {
   const results = await run(makeApi(routes, calls), REGISTRY, TEMPLATE, {});
   assert.equal(results[0].state, 'updated');
   assert.equal(calls.filter((c) => c.method === 'POST' && c.url.endsWith('/pulls')).length, 0);
+  const put = calls.find((c) => c.method === 'PUT');
+  assert.equal(put.body.sha, 'file-sha', 'an update without the sha fails with a 422');
+  assert.equal(put.body.branch, BRANCH);
 });
 
 test('a missing file in a readable repo is not-migrated', async () => {
@@ -147,6 +179,70 @@ test('a repo that reverted a merged sync is reported, and no pull request is ope
   const results = await run(makeApi(routes, calls), REGISTRY, TEMPLATE, {});
   assert.equal(results[0].state, 'toolchain-conflict');
   assert.equal(calls.filter((c) => c.method !== 'GET').length, 0);
+});
+
+test('an unreadable template history proposes rather than stopping the repo', async () => {
+  const calls = [];
+  const routes = [
+    ...baseRoutes(STALE),
+    ['GET /repos/learningequality/.github/commits', fail(502, 'Bad Gateway')],
+    [
+      'GET /repos/learningequality/demo/pulls?state=closed',
+      ok([{ number: 9, merged_at: '2026-03-01T00:00:00Z', closed_at: '2026-03-01T00:00:00Z' }]),
+    ],
+  ];
+  const results = await run(makeApi(routes, calls), REGISTRY, TEMPLATE, {});
+  assert.equal(results[0].state, 'opened', 'a 502 must not read as a toolchain conflict');
+});
+
+test('a thrown template history request does not kill the run', async () => {
+  const routes = [
+    ...baseRoutes(STALE),
+    [
+      'GET /repos/learningequality/.github/commits',
+      () => {
+        throw new Error('socket hang up');
+      },
+    ],
+  ];
+  const results = await run(makeApi(routes), REGISTRY, TEMPLATE, {});
+  assert.equal(results[0].state, 'opened');
+});
+
+test('report counts only the states that stop a merge', () => {
+  const quiet = console.log;
+  console.log = () => {};
+  try {
+    const problems = report([
+      { repo: 'a', state: 'in-sync' },
+      { repo: 'b', state: 'opened', pr: 1 },
+      { repo: 'c', state: 'declined', pr: 2 },
+      { repo: 'd', state: 'not-migrated' },
+      { repo: 'e', state: 'error', detail: 'no access' },
+      { repo: 'f', state: 'toolchain-conflict', pr: 3 },
+    ]);
+    assert.equal(problems, 3, 'not-migrated, error and toolchain-conflict each need attention');
+  } finally {
+    console.log = quiet;
+  }
+});
+
+test('declined is deliberately not a problem state', () => {
+  assert.ok(!PROBLEM_STATES.includes('declined'));
+  assert.deepEqual([...PROBLEM_STATES].sort(), ['error', 'not-migrated', 'toolchain-conflict']);
+});
+
+test('a failed reviewer request is noted but does not fail the run', () => {
+  const lines = [];
+  const quiet = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    const problems = report([{ repo: 'a', state: 'opened', pr: 1, reviewerFailed: true }]);
+    assert.equal(problems, 0);
+    assert.ok(lines.some((l) => l.includes(REVIEWER)));
+  } finally {
+    console.log = quiet;
+  }
 });
 
 test('a stale branch is reset to base when no pull request is open', async () => {

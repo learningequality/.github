@@ -81,9 +81,14 @@ async function readCopy(api, repo, ref) {
 }
 
 async function lastTemplateChange(api) {
-  const r = await api('GET', `/repos/${ORG}/.github/commits?path=automation-template.yml&per_page=1`);
-  if (!r.ok || !r.data.length) return null;
-  return r.data[0].commit.committer.date;
+  try {
+    const r = await api('GET', `/repos/${ORG}/.github/commits?path=automation-template.yml&per_page=1`);
+    if (!r.ok) return { date: null, failed: true, detail: detail(r) };
+    if (!r.data.length) return { date: null, failed: false };
+    return { date: r.data[0].commit.committer.date, failed: false };
+  } catch (err) {
+    return { date: null, failed: true, detail: err.message };
+  }
 }
 
 async function openSyncPr(api, repo) {
@@ -106,11 +111,15 @@ async function lastClosedSyncPr(api, repo) {
  * A template change after that pull request closed is ordinary drift. With no
  * such change, a merged pull request means the consumer reverted the file, and a
  * closed one means a maintainer declined it.
+ *
+ * An unknown template date resolves to drift. A needless pull request costs one
+ * review, where a wrong toolchain-conflict stops syncing the repo entirely.
  */
 function classifyDrift(closedPr, templateChangedAt) {
-  if (!closedPr) return 'drift';
+  if (!closedPr || !templateChangedAt) return 'drift';
   const closedAt = closedPr.merged_at || closedPr.closed_at;
-  if (templateChangedAt && closedAt && new Date(templateChangedAt) > new Date(closedAt)) return 'drift';
+  if (!closedAt) return 'drift';
+  if (new Date(templateChangedAt) > new Date(closedAt)) return 'drift';
   return closedPr.merged_at ? 'toolchain-conflict' : 'declined';
 }
 
@@ -180,7 +189,11 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
 }
 
 async function run(api, registry, template, options) {
-  const templateChangedAt = await lastTemplateChange(api);
+  const change = await lastTemplateChange(api);
+  if (change.failed) {
+    console.log(`::warning::could not read the template history (${change.detail}); treating drift as ordinary`);
+  }
+  const templateChangedAt = change.date;
   const results = [];
   for (const consumer of registry.consumers) {
     try {

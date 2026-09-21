@@ -91,13 +91,19 @@ final review and merges, under that repo's own rules.
 
 Run it with `dry_run` to see which repos have drifted without opening anything.
 
-Two results need a core maintainer rather than a merge:
+Four results need a core maintainer rather than a merge. The first three turn the run red:
 
-- `toolchain-conflict` means a sync pull request merged before and the file has drifted again. The
-  repo's own tooling rewrites the copy, so the template is not stable under that toolchain. Fix the
-  template rather than reopening the pull request.
 - `error` means the repo could not be read or written. Check that the bot app is installed there and
   holds `contents: write` and `pull-requests: write`.
+- `not-migrated` means the repo has no `.github/workflows/automation.yml` at all. Either it has not
+  been onboarded yet, or it belongs in `consumers` by mistake. Copy the template in, or remove the
+  entry.
+- `toolchain-conflict` means a sync pull request merged before, the template has not changed since,
+  and the file has drifted again. The repo's own tooling rewrites the copy, so the template is not
+  stable under that toolchain. Fix the template rather than reopening the pull request.
+- `declined` means a core maintainer closed the last sync pull request without merging it. The
+  workflow leaves that repo alone until the template changes again, so it stays drifted while the
+  run stays green. To restore it sooner, copy the template in by hand.
 
 To onboard a repo, add it to `consumers` with the branch its pull requests must target. Leave
 archived repos out, because Actions do not run on them.
