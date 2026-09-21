@@ -14,7 +14,48 @@
 # Run `node scripts/generate-automation.js` after editing this file to regenerate
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
 # fails if the generated files are out of date (enforced by pre-commit + CI).
+#
+# `consumers` lists the repos that copy automation-template.yml. Each entry gives:
+#   repo                   - the repo name inside the learningequality org
+#   base                   - the branch the sync pull request targets
+#   body_prefix            - optional text placed above the sync pull request body, for repos
+#                            whose checks require something in the description
+#
+# scripts/sync-automation-template.js opens one pull request per repo whose copy has drifted.
+# Archived repos are left out, because Actions do not run on them and their copies are inert.
 
+consumers:
+  - repo: kolibri
+    base: develop
+  - repo: studio
+    base: unstable
+  - repo: ricecooker
+    base: main
+  - repo: kolibri-design-system
+    base: develop
+    # check-description fails unless the body carries a Changelog block whose
+    # Description line is not the template placeholder.
+    body_prefix: |
+      ## Changelog
+      <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG START -->
+
+        - **Description:** Internal: refresh the copied automation.yml so it matches the current shared template
+        - **Products impact:** none
+        - **Addresses:** -
+        - **Components:** -
+        - **Breaking:** -
+        - **Impacts a11y:** -
+        - **Guidance:** -
+
+      <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG END -->
+  - repo: le-utils
+    base: main
+  - repo: kolibri-data-portal
+    base: develop
+  - repo: morango
+    base: release-v0.9.x
+  - repo: kolibri-installer-debian
+    base: main
 automations:
   - name: review-requested
     enabled: true

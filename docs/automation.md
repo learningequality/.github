@@ -68,3 +68,33 @@ leaf workflow as an empty string, and every automation that needs it fails at ru
    picks up the wider `on:` block the next time they re-copy `automation-template.yml` - existing
    copies keep running on their current `on:` block until then, since GitHub workflow triggers are
    evaluated from the file checked into the consumer repo itself, not from this repo.
+
+## Keeping the copies in sync
+
+Most registry changes reach consumers on their own, because their copied file only says
+`uses: learningequality/.github/.github/workflows/automation.yml@main`. A consumer must copy the
+template again only when the template itself changes, which happens when a new event or activity
+type enters the `on:` union, when the permissions widen, or when the secret list changes.
+
+`.github/workflows/sync-automation-template.yml` handles that. It runs weekly, on manual dispatch,
+and whenever `automation-template.yml` changes on `main`. For each repo in the `consumers` list in
+`automation-registry.yml`, it compares that repo's `.github/workflows/automation.yml` against the
+template and opens a pull request where the two differ. A repo already in sync gets nothing, and a
+repo with a sync pull request already open gets that pull request updated rather than a second one.
+
+The workflow only proposes. It opens pull requests on a branch, never commits to a default branch,
+and never merges, approves, or enables auto-merge. Someone in each consumer repo reviews and merges,
+under that repo's own rules.
+
+Run it with `dry_run` to see which repos have drifted without opening anything.
+
+Two results need a person rather than a merge:
+
+- `toolchain-conflict` means a sync pull request merged before and the file has drifted again. The
+  repo's own tooling rewrites the copy, so the template is not stable under that toolchain. Fix the
+  template rather than reopening the pull request.
+- `error` means the repo could not be read or written. Check that the bot app is installed there and
+  holds `contents: write` and `pull-requests: write`.
+
+To onboard a repo, add it to `consumers` with the branch its pull requests must target. Leave
+archived repos out, because Actions do not run on them.
