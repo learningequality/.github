@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { run, classifyDrift, report, PROBLEM_STATES, BRANCH, REVIEWER } = require('./sync-automation-template');
+const { run, classifyDrift, report, PROBLEM_STATES, BRANCH } = require('./sync-automation-template');
 
 const TEMPLATE = 'name: Automation\non: {}\n';
 const STALE = 'name: Automation\non: {old: true}\n';
@@ -44,7 +44,6 @@ const baseRoutes = (copy) => [
   ['POST /repos/learningequality/demo/git/refs', ok({})],
   ['PUT /repos/learningequality/demo/contents', ok({})],
   ['POST /repos/learningequality/demo/pulls', ok({ number: 7, html_url: 'https://example.test/7' })],
-  ['POST /repos/learningequality/demo/pulls/7/requested_reviewers', ok({})],
 ];
 
 const only = async (routes, options = {}) => (await run(makeApi(routes), REGISTRY, TEMPLATE, options))[0];
@@ -53,12 +52,10 @@ test('a matching copy is in sync', async () => {
   assert.equal((await only(baseRoutes(TEMPLATE))).state, 'in-sync');
 });
 
-test('a drifted copy opens a pull request and requests the reviewer', async () => {
-  const calls = [];
-  const results = await run(makeApi(baseRoutes(STALE), calls), REGISTRY, TEMPLATE, {});
+test('a drifted copy opens a pull request', async () => {
+  const results = await run(makeApi(baseRoutes(STALE)), REGISTRY, TEMPLATE, {});
   assert.equal(results[0].state, 'opened');
   assert.equal(results[0].pr, 7);
-  assert.ok(calls.some((c) => c.url.endsWith('/pulls/7/requested_reviewers')));
 });
 
 test('the write targets the sync branch and carries the template', async () => {
@@ -69,13 +66,12 @@ test('the write targets the sync branch and carries the template', async () => {
   assert.equal(Buffer.from(put.body.content, 'base64').toString('utf8'), TEMPLATE);
 });
 
-test('the pull request targets the consumer base and names the reviewer', async () => {
+test('the pull request targets the consumer base, not a default of main', async () => {
   const calls = [];
   await run(makeApi(baseRoutes(STALE), calls), REGISTRY, TEMPLATE, {});
   const pr = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls'));
   assert.equal(pr.body.base, BASE);
-  const review = calls.find((c) => c.url.endsWith('/requested_reviewers'));
-  assert.deepEqual(review.body.reviewers, [REVIEWER]);
+  assert.equal(pr.body.head, BRANCH);
 });
 
 test('a body_template keeps its own shape and receives the explanation', async () => {
@@ -245,19 +241,6 @@ test('the set of problem states is closed', () => {
     ['error', 'not-migrated', 'toolchain-conflict'],
     'adding a state here turns the weekly run red for repos that were passing, so change it deliberately and cover it in the report test above'
   );
-});
-
-test('a failed reviewer request is noted but does not fail the run', () => {
-  const lines = [];
-  const quiet = console.log;
-  console.log = (line) => lines.push(line);
-  try {
-    const problems = report([{ repo: 'a', state: 'opened', pr: 1, reviewerFailed: true }]);
-    assert.equal(problems, 0);
-    assert.ok(lines.some((l) => l.includes(REVIEWER)));
-  } finally {
-    console.log = quiet;
-  }
 });
 
 test('a stale branch is reset to base when no pull request is open', async () => {

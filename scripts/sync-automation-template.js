@@ -22,7 +22,6 @@ const ORG = 'learningequality';
 const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
 const TITLE = 'Refresh automation.yml from the shared template';
-const REVIEWER = 'rtibblesbot';
 const API = 'https://api.github.com';
 
 const PROBLEM_STATES = ['error', 'toolchain-conflict', 'not-migrated'];
@@ -182,11 +181,7 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
     body: prBody(consumer),
   });
   if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
-
-  const review = await api('POST', `/repos/${ORG}/${repo}/pulls/${pr.data.number}/requested_reviewers`, {
-    reviewers: [REVIEWER],
-  });
-  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url, reviewerFailed: !review.ok };
+  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
 }
 
 async function run(api, registry, template, options) {
@@ -209,8 +204,7 @@ async function run(api, registry, template, options) {
 function report(results) {
   for (const r of results) {
     const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
-    const note = r.reviewerFailed ? `  (could not request ${REVIEWER})` : '';
-    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}${note}`);
+    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}`);
   }
   const problems = results.filter((r) => PROBLEM_STATES.includes(r.state));
   const drifted = results.filter((r) => r.state !== 'in-sync');
@@ -235,4 +229,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { run, syncRepo, classifyDrift, report, PROBLEM_STATES, BRANCH, REVIEWER, TARGET_PATH };
+module.exports = { run, syncRepo, classifyDrift, report, PROBLEM_STATES, BRANCH, TARGET_PATH };
