@@ -5,7 +5,7 @@ const { run, classifyDrift, report, PROBLEM_STATES, BRANCH, REVIEWER } = require
 
 const TEMPLATE = 'name: Automation\non: {}\n';
 const STALE = 'name: Automation\non: {old: true}\n';
-const PREFIX = '## Changelog\n\n  - **Description:** test\n';
+const TEMPLATE_BODY = '## Description\n\n{{explanation}}\n\n## Changelog\n\n  - **Description:** test\n';
 // Not "main": five of the eight real consumers target something else, so a
 // fixture on main cannot catch a hardcoded base.
 const BASE = 'develop';
@@ -78,12 +78,24 @@ test('the pull request targets the consumer base and names the reviewer', async 
   assert.deepEqual(review.body.reviewers, [REVIEWER]);
 });
 
-test('a body_prefix reaches the pull request body', async () => {
+test('a body_template keeps its own shape and receives the explanation', async () => {
   const calls = [];
-  const registry = { consumers: [{ repo: 'demo', base: BASE, body_prefix: PREFIX }] };
+  const registry = { consumers: [{ repo: 'demo', base: BASE, body_template: TEMPLATE_BODY }] };
   await run(makeApi(baseRoutes(STALE), calls), registry, TEMPLATE, {});
-  const pr = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls'));
-  assert.ok(pr.body.body.startsWith('## Changelog'), 'KDS check-description needs the prefix');
+  const { body } = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body;
+  assert.ok(body.startsWith('## Description'), 'the repo template decides the order, not the script');
+  assert.ok(body.includes('## Changelog'), 'KDS check-description needs the Changelog block');
+  assert.ok(body.includes('automation-template.yml'), 'the explanation must replace the placeholder');
+  assert.ok(!body.includes('{{explanation}}'));
+  assert.ok(body.indexOf('## Description') < body.indexOf('## Changelog'));
+});
+
+test('a consumer with no template gets the plain explanation', async () => {
+  const calls = [];
+  await run(makeApi(baseRoutes(STALE), calls), REGISTRY, TEMPLATE, {});
+  const { body } = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body;
+  assert.ok(!body.includes('## '));
+  assert.ok(body.includes('automation-template.yml'));
 });
 
 test('an open sync pull request is updated in place, keeping the file sha', async () => {

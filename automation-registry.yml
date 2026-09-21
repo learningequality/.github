@@ -18,8 +18,8 @@
 # `consumers` lists the repos that copy automation-template.yml. Each entry gives:
 #   repo                   - the repo name inside the learningequality org
 #   base                   - the branch the sync pull request targets
-#   body_prefix            - optional text placed above the sync pull request body, for repos
-#                            whose checks require something in the description
+#   body_template          - optional pull request body for repos with their own template or
+#                            description checks; {{explanation}} is replaced by the generated text
 #
 # scripts/sync-automation-template.js opens one pull request per repo whose copy has drifted.
 # Archived repos are left out, because Actions do not run on them and their copies are inert.
@@ -33,9 +33,14 @@ consumers:
     base: main
   - repo: kolibri-design-system
     base: develop
-    # check-description fails unless the body carries a Changelog block whose
-    # Description line is not the template placeholder.
-    body_prefix: |
+    # Follows this repo's own pull request template. check-description fails
+    # unless the Changelog block holds a Description line that is not the
+    # placeholder text.
+    body_template: |
+      ## Description
+
+      {{explanation}}
+
       ## Changelog
       <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG START -->
 
@@ -48,6 +53,16 @@ consumers:
         - **Guidance:** -
 
       <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG END -->
+
+      ## Steps to test
+
+      1. Confirm the diff touches only `.github/workflows/automation.yml`.
+      2. Confirm the Automation workflow runs here and every job skips or succeeds.
+
+      ## Comments
+
+      Opened by the sync workflow in `learningequality/.github`. The file is generated from
+      `automation-registry.yml`, so no part of this change was written by hand.
   - repo: le-utils
     base: main
   - repo: kolibri-data-portal

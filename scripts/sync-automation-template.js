@@ -61,7 +61,8 @@ function prBody(consumer) {
     '',
     'Opened automatically. A core maintainer reviews and merges it.',
   ].join('\n');
-  return consumer.body_prefix ? `${consumer.body_prefix.trimEnd()}\n\n${explanation}\n` : `${explanation}\n`;
+  if (!consumer.body_template) return `${explanation}\n`;
+  return `${consumer.body_template.replaceAll('{{explanation}}', explanation).trimEnd()}\n`;
 }
 
 function detail(r) {

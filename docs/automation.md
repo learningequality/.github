@@ -107,3 +107,8 @@ Four results need a core maintainer rather than a merge. The first three turn th
 
 To onboard a repo, add it to `consumers` with the branch its pull requests must target. Leave
 archived repos out, because Actions do not run on them.
+
+A repo with its own pull request template, or a check on the description, can also carry a
+`body_template`. The workflow puts the generated text where `{{explanation}}` appears, so the body
+follows that repo's own section order. `kolibri-design-system` needs one, because its
+`check-description` job fails unless the body holds a Changelog block.
