@@ -22,6 +22,7 @@ const ORG = 'learningequality';
 const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
 const TITLE = 'Refresh automation.yml from the shared template';
+const REVIEWER = 'rtibblesbot';
 const API = 'https://api.github.com';
 
 const dryRun = process.argv.includes('--dry-run');
@@ -51,7 +52,7 @@ function body(consumer) {
     'The file is generated. Do not edit this copy: edit `automation-registry.yml` upstream',
     'and regenerate, or the next sync will overwrite the change.',
     '',
-    'Opened automatically. A person reviews and merges it.',
+    'Opened automatically. A core maintainer reviews and merges it.',
   ].join('\n');
   return consumer.body_prefix ? `${consumer.body_prefix.trimEnd()}\n\n${explanation}\n` : `${explanation}\n`;
 }
@@ -125,7 +126,17 @@ async function syncRepo(consumer, template) {
   if (!pr.ok) {
     return { repo, state: 'error', detail: `pull request failed (${pr.status}) ${pr.data && pr.data.message}` };
   }
-  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
+
+  const review = await api('POST', `/repos/${ORG}/${repo}/pulls/${pr.data.number}/requested_reviewers`, {
+    reviewers: [REVIEWER],
+  });
+  return {
+    repo,
+    state: 'opened',
+    pr: pr.data.number,
+    url: pr.data.html_url,
+    reviewerFailed: !review.ok,
+  };
 }
 
 async function main() {
@@ -143,7 +154,8 @@ async function main() {
 
   for (const r of results) {
     const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
-    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}`);
+    const note = r.reviewerFailed ? `  (could not request ${REVIEWER})` : '';
+    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}${note}`);
   }
 
   const problems = results.filter((r) => r.state === 'error' || r.state === 'toolchain-conflict');

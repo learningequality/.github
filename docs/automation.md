@@ -82,13 +82,16 @@ and whenever `automation-template.yml` changes on `main`. For each repo in the `
 template and opens a pull request where the two differ. A repo already in sync gets nothing, and a
 repo with a sync pull request already open gets that pull request updated rather than a second one.
 
+Each new sync pull request requests a review from `rtibblesbot`, so it gets a first pass before a
+person looks at it, the same way a dependabot pull request does.
+
 The workflow only proposes. It opens pull requests on a branch, never commits to a default branch,
-and never merges, approves, or enables auto-merge. Someone in each consumer repo reviews and merges,
-under that repo's own rules.
+and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo gives the
+final review and merges, under that repo's own rules.
 
 Run it with `dry_run` to see which repos have drifted without opening anything.
 
-Two results need a person rather than a merge:
+Two results need a core maintainer rather than a merge:
 
 - `toolchain-conflict` means a sync pull request merged before and the file has drifted again. The
   repo's own tooling rewrites the copy, so the template is not stable under that toolchain. Fix the
