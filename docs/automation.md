@@ -72,9 +72,12 @@ leaf workflow as an empty string, and every automation that needs it fails at ru
 ## Keeping the copies in sync
 
 Most registry changes reach consumers on their own, because their copied file only says
-`uses: learningequality/.github/.github/workflows/automation.yml@main`. A consumer must copy the
-template again only when the template itself changes, which happens when a new event or activity
-type enters the `on:` union, when the permissions widen, or when the secret list changes.
+`uses: learningequality/.github/.github/workflows/automation.yml@main`. A consumer needs the file
+again whenever its copy stops matching the template, which happens two ways.
+
+The template changes here, when a new event or activity type enters the `on:` union, when the
+permissions widen, or when the secret list changes. Or the consumer's own tooling rewrites its copy,
+which is what a `toolchain-conflict` below reports.
 
 `.github/workflows/sync-automation-template.yml` handles that. It runs weekly, on manual dispatch,
 and whenever `automation-template.yml` changes on `main`. For each repo in the `consumers` list in
@@ -88,22 +91,26 @@ final review and merges, under that repo's own rules.
 
 Run it with `dry_run` to see which repos have drifted without opening anything.
 
-Four results need a core maintainer rather than a merge. The first three turn the run red:
+Three results turn the run red and need someone to act:
 
-- `error` means the repo could not be read or written. Check that the bot app is installed there and
-  holds `contents: write` and `pull-requests: write`.
+- `error` means the repo could not be read or written. The app already holds the permissions the
+  sync needs, so this is usually a transient API failure, or the app not being installed on that
+  repo. Check the installation first on a repo that was added recently.
 - `not-migrated` means the repo has no `.github/workflows/automation.yml` at all. Either it has not
   been onboarded yet, or it belongs in `consumers` by mistake. Copy the template in, or remove the
   entry.
 - `toolchain-conflict` means a sync pull request merged before, the template has not changed since,
   and the file has drifted again. The repo's own tooling rewrites the copy, so the template is not
   stable under that toolchain. Fix the template rather than reopening the pull request.
-- `declined` means a core maintainer closed the last sync pull request without merging it. The
-  workflow leaves that repo alone until the template changes again, so it stays drifted while the
-  run stays green. To restore it sooner, copy the template in by hand.
 
-To onboard a repo, add it to `consumers` with the branch its pull requests must target. Leave
-archived repos out, because Actions do not run on them.
+A fourth result, `declined`, keeps the run green and asks for nothing. It means a core maintainer
+closed the last sync pull request without merging it, so the workflow leaves that repo alone until
+the template changes again. The repo stays drifted in the meantime. To restore it sooner, copy the
+template in by hand.
+
+To onboard a repo, add it to `consumers` with the branch its pull requests must target, and make
+sure that the bot app is installed on it. The app already holds the permissions the sync needs, so
+installation is the only per-repo step. Leave archived repos out, because Actions do not run on them.
 
 A repo with its own pull request template, or a check on the description, can also carry a
 `body_template`. The workflow puts the generated text where `{{explanation}}` appears, so the body
