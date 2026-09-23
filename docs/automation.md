@@ -47,8 +47,9 @@ No edits required. Then set the secrets:
 | `CONTRIBUTIONS_SHEET_NAME` | no | Sheet name within the spreadsheet |
 | `GH_UPLOADER_GCP_SA_CREDENTIALS` | no | GCP service account credentials for Sheets access |
 
-Every automation except `resolve-bot-pr-threads` authenticates as the bot, so the two required
-secrets must be set. `resolve-bot-pr-threads` uses the default `GITHUB_TOKEN` instead.
+Every automation except `resolve-bot-pr-threads` authenticates as `learning-equality-bot[bot]`, the
+GitHub App behind `LE_BOT_APP_ID`, so the two required secrets must be set. `resolve-bot-pr-threads`
+uses the default `GITHUB_TOKEN` instead.
 
 Optional means that you accept losing the automations that use the secret. It does not mean that
 they degrade gracefully. The generated caller forwards every key, so an absent secret reaches the
@@ -71,48 +72,50 @@ leaf workflow as an empty string, and every automation that needs it fails at ru
 
 ## Keeping the copies in sync
 
-Most registry changes reach consumers on their own, because their copied file only says
-`uses: learningequality/.github/.github/workflows/automation.yml@main`. A consumer needs the file
-again whenever its copy stops matching the template, which happens two ways.
+Most registry changes reach consumers automatically because their copied file only says:
+`uses: learningequality/.github/.github/workflows/automation.yml@main`. A consumer needs its file
+updated whenever its copy no longer matches the template, which happens in two ways.
 
-The template changes here, when a new event or activity type enters the `on:` union, when the
-permissions widen, or when the secret list changes. Or the consumer's own tooling rewrites its copy,
-which is what a `toolchain-conflict` below reports.
+The template changes here, such as when a new event or activity type is added to the `on:` union,
+permissions are widened, or the secret list changes. Or the consumer's own tooling rewrites its
+copy, which is reported as a `toolchain-conflict` below.
 
-`.github/workflows/sync-automation-template.yml` handles that. It runs weekly, on manual dispatch,
+`.github/workflows/sync-automation-template.yml` handles this. It runs weekly, on manual dispatch,
 and whenever `automation-template.yml` changes on `main`. For each repo in the `consumers` list in
-`automation-registry.yml`, it compares that repo's `.github/workflows/automation.yml` against the
-template and opens a pull request where the two differ. A repo already in sync gets nothing, and a
-repo with a sync pull request already open gets that pull request updated rather than a second one.
+`automation-registry.yml`, it compares that repo's `.github/workflows/automation.yml` with the
+template and opens a pull request when they differ. A repo that is already in sync gets nothing,
+while a repo with an existing sync pull request has that pull request updated rather than a second
+one opened.
 
-The workflow only proposes. It opens pull requests on a branch, never commits to a default branch,
-and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo gives the
-final review and merges, under that repo's own rules.
+The workflow only proposes changes. It opens pull requests on a branch, never commits to a default
+branch, and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo
+gives the final review and merges under that repo's own rules.
 
-Run it with `dry_run` to see which repos have drifted without opening anything.
+Run it with `dry_run` to see which repos have drifted without opening any pull requests.
 
-Three results turn the run red and need someone to act:
+Three results turn the run red and require action:
 
-- `error` means the repo could not be read or written. The app already holds the permissions the
-  sync needs, so this is usually a transient API failure, or the app not being installed on that
-  repo. Check the installation first on a repo that was added recently.
-- `not-migrated` means the repo has no `.github/workflows/automation.yml` at all. Either it has not
-  been onboarded yet, or it belongs in `consumers` by mistake. Copy the template in, or remove the
+- `error` means the repo could not be read or written. The app already has the permissions required
+  for syncing, so this is usually a transient API failure or the app not being installed on that
+  repo. Check the installation first for a recently added repo.
+- `not-migrated` means the repo has no `.github/workflows/automation.yml`. Either it has not been
+  onboarded yet, or it was added to `consumers` by mistake. Copy the template in, or remove the
   entry.
-- `toolchain-conflict` means a sync pull request merged before, the template has not changed since,
-  and the file has drifted again. The repo's own tooling rewrites the copy, so the template is not
+- `toolchain-conflict` means a sync pull request was merged, the template has not changed since, and
+  the file has drifted again. The repo's own tooling is rewriting the copy, so the template is not
   stable under that toolchain. Fix the template rather than reopening the pull request.
 
-A fourth result, `declined`, keeps the run green and asks for nothing. It means a core maintainer
+A fourth result, `declined`, keeps the run green and requires no action. It means a core maintainer
 closed the last sync pull request without merging it, so the workflow leaves that repo alone until
-the template changes again. The repo stays drifted in the meantime. To restore it sooner, copy the
+the template changes again. The repo remains drifted in the meantime. To restore it sooner, copy the
 template in by hand.
 
 To onboard a repo, add it to `consumers` with the branch its pull requests must target, and make
-sure that the bot app is installed on it. The app already holds the permissions the sync needs, so
-installation is the only per-repo step. Leave archived repos out, because Actions do not run on them.
+sure the `learning-equality-bot[bot]` app is installed on it. The app already has the permissions
+required for syncing, so installation is the only per-repo step. Leave archived repos out because
+Actions do not run on them.
 
-A repo with its own pull request template, or a check on the description, can also carry a
-`body_template`. The workflow puts the generated text where `{{explanation}}` appears, so the body
-follows that repo's own section order. `kolibri-design-system` needs one, because its
-`check-description` job fails unless the body holds a Changelog block.
+A repo with its own pull request template, or a check on the description, can also specify a
+`body_template`. The workflow inserts the generated text wherever `{{explanation}}` appears, so the
+body follows that repo's own section order. `kolibri-design-system` needs one because its
+`check-description` job fails unless the body contains a Changelog block.
