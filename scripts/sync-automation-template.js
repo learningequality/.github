@@ -74,18 +74,18 @@ function sections(markdown) {
 
 function prBody(prTemplate, { keep, describe, answers }) {
   if (!prTemplate) return `${EXPLANATION}\n`;
-  const body = sections(prTemplate)
-    .filter((s) => keep.includes(s.heading))
-    .map((s) => {
-      if (s.heading === describe) return `${s.heading}\n\n${EXPLANATION}`;
-      const filled = s.lines.join('\n').replace(FIELD, (line, prefix, field) => {
-        const answer = answers[field.trim().toLowerCase()];
-        return `${prefix} ${answer === undefined ? '-' : answer}`;
-      });
-      return `${s.heading}\n${filled.trimEnd()}`;
-    })
-    .join('\n\n');
-  return `${body.trimEnd()}\n`;
+  const kept = sections(prTemplate).filter((s) => keep.includes(s.heading));
+  const parts = kept.map((s) => {
+    if (s.heading === describe) return `${s.heading}\n\n${EXPLANATION}`;
+    const filled = s.lines.join('\n').replace(FIELD, (line, prefix, field) => {
+      const answer = answers[field.trim().toLowerCase()];
+      return `${prefix} ${answer === undefined ? '-' : answer}`;
+    });
+    return `${s.heading}\n${filled.trimEnd()}`;
+  });
+  // A renamed heading would otherwise leave the pull request unexplained, or empty.
+  if (!kept.some((s) => s.heading === describe)) parts.unshift(EXPLANATION);
+  return `${parts.join('\n\n').trimEnd()}\n`;
 }
 
 function detail(r) {

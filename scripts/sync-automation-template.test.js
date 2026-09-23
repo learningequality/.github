@@ -126,6 +126,31 @@ test('a repo that checks the description gets its own template, with every field
   assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
 });
 
+test('a renamed description heading still leaves the change explained', async () => {
+  const calls = [];
+  const renamed = PR_TEMPLATE.replace('## Description', '## Overview');
+  const routes = [
+    ...checkedRoutes(STALE),
+    ['GET contents/.github/pull_request_template.md', ok({ content: encode(renamed) })],
+  ];
+  await run(makeApi(routes, calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(body.startsWith('This replaces'), 'the explanation must not go missing');
+  assert.ok(body.includes('## Changelog'), 'a section that survived is kept, so their check still passes');
+});
+
+test('a template with none of the kept headings still explains itself', async () => {
+  const calls = [];
+  const routes = [
+    ...checkedRoutes(STALE),
+    ['GET contents/.github/pull_request_template.md', ok({ content: encode('## Notes\n\nnothing here\n') })],
+  ];
+  await run(makeApi(routes, calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(body.includes('automation-template.yml'), 'the body must never be empty');
+  assert.ok(body.trim().length, 'a bare newline is not a pull request body');
+});
+
 test('sections that would arrive unfilled are dropped', async () => {
   const calls = [];
   await run(makeApi(checkedRoutes(STALE), calls), TEMPLATE, {});
