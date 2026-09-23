@@ -81,11 +81,16 @@ permissions are widened, or the secret list changes. Or the consumer's own tooli
 copy, which is reported as a `toolchain-conflict` below.
 
 `.github/workflows/sync-automation-template.yml` handles this. It runs weekly, on manual dispatch,
-and whenever `automation-template.yml` changes on `main`. For each repo in the `consumers` list in
-`automation-registry.yml`, it compares that repo's `.github/workflows/automation.yml` with the
-template and opens a pull request when they differ. A repo that is already in sync gets nothing,
-while a repo with an existing sync pull request has that pull request updated rather than a second
-one opened.
+and whenever `automation-template.yml` changes on `main`.
+
+It discovers the consumers by walking the org's repos, skipping archived ones and forks, and keeping
+every repo whose `.github/workflows/automation.yml` calls this repo's `automation.yml`. Each pull
+request targets that repo's default branch, which is the only branch GitHub evaluates workflow
+triggers from.
+
+For each consumer it compares the copy with the template and opens a pull request when they differ.
+A repo that is already in sync gets nothing, while a repo with an existing sync pull request has
+that pull request updated rather than a second one opened.
 
 The workflow only proposes changes. It opens pull requests on a branch, never commits to a default
 branch, and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo
@@ -93,29 +98,26 @@ gives the final review and merges under that repo's own rules.
 
 Run it with `dry_run` to see which repos have drifted without opening any pull requests.
 
-Three results turn the run red and require action:
+Two results turn the run red and require action:
 
 - `error` means the repo could not be read or written. The app already has the permissions required
   for syncing, so this is usually a transient API failure or the app not being installed on that
   repo. Check the installation first for a recently added repo.
-- `not-migrated` means the repo has no `.github/workflows/automation.yml`. Either it has not been
-  onboarded yet, or it was added to `consumers` by mistake. Copy the template in, or remove the
-  entry.
 - `toolchain-conflict` means a sync pull request was merged, the template has not changed since, and
   the file has drifted again. The repo's own tooling is rewriting the copy, so the template is not
   stable under that toolchain. Fix the template rather than reopening the pull request.
 
-A fourth result, `declined`, keeps the run green and requires no action. It means a core maintainer
+A third result, `declined`, keeps the run green and requires no action. It means a core maintainer
 closed the last sync pull request without merging it, so the workflow leaves that repo alone until
 the template changes again. The repo remains drifted in the meantime. To restore it sooner, copy the
 template in by hand.
 
-To onboard a repo, add it to `consumers` with the branch its pull requests must target, and make
-sure the `learning-equality-bot[bot]` app is installed on it. The app already has the permissions
-required for syncing, so installation is the only per-repo step. Leave archived repos out because
-Actions do not run on them.
+To onboard a repo, copy the template in and make sure the `learning-equality-bot[bot]` app is
+installed on it. The next run picks it up. A repo on which the app is not installed stays invisible
+to the sync, so the installation is what enrols it.
 
-A repo with its own pull request template, or a check on the description, can also specify a
-`body_template`. The workflow inserts the generated text wherever `{{explanation}}` appears, so the
-body follows that repo's own section order. `kolibri-design-system` needs one because its
-`check-description` job fails unless the body contains a Changelog block.
+A repo with its own pull request template, or a check on the description, needs an entry under
+`consumers` in `automation-registry.yml` carrying a `body_template`. The workflow inserts the
+generated text wherever `{{explanation}}` appears, so the body follows that repo's own section
+order. `kolibri-design-system` needs one because its `check-description` job fails unless the body
+contains a Changelog block. Every other consumer needs no entry at all.

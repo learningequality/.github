@@ -23,8 +23,11 @@ const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
 const TITLE = 'Refresh automation.yml from the shared template';
 const API = 'https://api.github.com';
+// A consumer copy calls the shared workflow. This repo's own reusable
+// automation.yml sits at the same path and does not, so the marker excludes it.
+const CONSUMER_MARKER = 'workflows/automation.yml@';
 
-const PROBLEM_STATES = ['error', 'toolchain-conflict', 'not-migrated'];
+const PROBLEM_STATES = ['error', 'toolchain-conflict'];
 
 function httpApi(token) {
   return async function api(method, url, body) {
@@ -71,13 +74,37 @@ function detail(r) {
 async function readCopy(api, repo, ref) {
   const r = await api('GET', `/repos/${ORG}/${repo}/contents/${TARGET_PATH}?ref=${ref}`);
   if (r.ok) return { sha: r.data.sha, content: Buffer.from(r.data.content, 'base64').toString('utf8') };
-  // A repo the token cannot see answers 404, exactly like a missing file, so ask
-  // whether the repo itself is readable before calling the file missing.
-  if (r.status === 404) {
-    const probe = await api('GET', `/repos/${ORG}/${repo}`);
-    return probe.ok ? { missing: true } : { error: `no access to ${repo} (${detail(probe)})` };
-  }
+  if (r.status === 404) return { missing: true };
   return { error: `read failed (${detail(r)})` };
+}
+
+/**
+ * Finds every repo in the org holding a copy of the template. Archived repos are
+ * skipped because Actions do not run on them, and forks because their copy
+ * belongs to the upstream repo.
+ */
+async function findConsumers(api, overrides) {
+  const repos = [];
+  for (let page = 1; ; page += 1) {
+    const r = await api('GET', `/orgs/${ORG}/repos?per_page=100&type=all&page=${page}`);
+    if (!r.ok) throw new Error(`could not list the org's repos (${detail(r)})`);
+    repos.push(...r.data);
+    if (r.data.length < 100) break;
+  }
+
+  const consumers = [];
+  for (const repo of repos) {
+    if (repo.archived || repo.fork) continue;
+    const copy = await readCopy(api, repo.name, repo.default_branch);
+    if (copy.missing) continue;
+    if (copy.error) {
+      consumers.push({ repo: repo.name, base: repo.default_branch, unreadable: copy.error });
+      continue;
+    }
+    if (!copy.content.includes(CONSUMER_MARKER)) continue;
+    consumers.push({ repo: repo.name, base: repo.default_branch, ...(overrides[repo.name] || {}) });
+  }
+  return consumers;
 }
 
 async function lastTemplateChange(api) {
@@ -125,10 +152,11 @@ function classifyDrift(closedPr, templateChangedAt) {
 
 async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) {
   const { repo, base } = consumer;
-  const copy = await readCopy(api, repo, base);
+  if (consumer.unreadable) return { repo, state: 'error', detail: consumer.unreadable };
 
+  const copy = await readCopy(api, repo, base);
   if (copy.error) return { repo, state: 'error', detail: copy.error };
-  if (copy.missing) return { repo, state: 'not-migrated' };
+  if (copy.missing) return { repo, state: 'error', detail: 'the copy disappeared during the run' };
   if (copy.content === template) return { repo, state: 'in-sync' };
 
   const open = await openSyncPr(api, repo);
@@ -190,8 +218,12 @@ async function run(api, registry, template, options) {
     console.log(`::warning::could not read the template history (${change.detail}); treating drift as ordinary`);
   }
   const templateChangedAt = change.date;
+
+  const overrides = Object.fromEntries((registry.consumers || []).map((c) => [c.repo, c]));
+  const consumers = await findConsumers(api, overrides);
+
   const results = [];
-  for (const consumer of registry.consumers) {
+  for (const consumer of consumers) {
     try {
       results.push(await syncRepo(api, consumer, template, { ...options, templateChangedAt }));
     } catch (err) {
@@ -229,4 +261,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { run, syncRepo, classifyDrift, report, PROBLEM_STATES, BRANCH, TARGET_PATH };
+module.exports = { run, syncRepo, classifyDrift, findConsumers, report, PROBLEM_STATES, BRANCH, TARGET_PATH };

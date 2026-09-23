@@ -15,24 +15,18 @@
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
 # fails if the generated files are out of date (enforced by pre-commit + CI).
 #
-# `consumers` lists the repos that copy automation-template.yml. Each entry gives:
-#   repo                   - the repo name inside the learningequality org
-#   base                   - the branch the sync pull request targets
-#   body_template          - optional pull request body for repos with their own template or
-#                            description checks; {{explanation}} is replaced by the generated text
+# scripts/sync-automation-template.js finds the consumers itself: every repo in the org holding a
+# .github/workflows/automation.yml that calls this repo's automation.yml. It targets each repo's
+# default branch, which is the only branch GitHub evaluates workflow triggers from. Archived repos
+# and forks are skipped.
 #
-# scripts/sync-automation-template.js opens one pull request per repo whose copy has drifted.
-# Archived repos are left out, because Actions do not run on them and their copies are inert.
+# `consumers` holds per-repo overrides only, so a repo belongs here only when it needs one:
+#   repo                   - the repo name inside the learningequality org
+#   body_template          - pull request body for repos with their own template or a description
+#                            check; {{explanation}} is replaced by the generated text
 
 consumers:
-  - repo: kolibri
-    base: develop
-  - repo: studio
-    base: unstable
-  - repo: ricecooker
-    base: main
   - repo: kolibri-design-system
-    base: develop
     body_template: |
       ## Description
 
@@ -60,14 +54,6 @@ consumers:
 
       Opened by the sync workflow in `learningequality/.github`. The file is generated from
       `automation-registry.yml`, so no part of this change was written by hand.
-  - repo: le-utils
-    base: main
-  - repo: kolibri-data-portal
-    base: develop
-  - repo: morango
-    base: release-v0.9.x
-  - repo: kolibri-installer-debian
-    base: main
 automations:
   - name: review-requested
     enabled: true
