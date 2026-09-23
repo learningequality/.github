@@ -12,10 +12,8 @@
  */
 const fs = require('fs');
 const path = require('path');
-const yaml = require('js-yaml');
 
 const ROOT = path.join(__dirname, '..');
-const REGISTRY_PATH = path.join(ROOT, 'automation-registry.yml');
 const TEMPLATE_PATH = path.join(ROOT, 'automation-template.yml');
 
 const ORG = 'learningequality';
@@ -53,22 +51,50 @@ function httpApi(token) {
   };
 }
 
-function prBody(consumer) {
-  const explanation = [
-    `This replaces \`${TARGET_PATH}\` with the current \`automation-template.yml\` from`,
-    `[${ORG}/.github](https://github.com/${ORG}/.github).`,
-    '',
-    'The file is generated. Do not edit this copy: edit `automation-registry.yml` upstream',
-    'and regenerate, or the next sync will overwrite the change.',
-    '',
-    'Opened automatically. A core maintainer reviews and merges it.',
-  ].join('\n');
-  if (!consumer.body_template) return `${explanation}\n`;
-  return `${consumer.body_template.replaceAll('{{explanation}}', explanation).trimEnd()}\n`;
+const EXPLANATION = [
+  `This replaces \`${TARGET_PATH}\` with the current \`automation-template.yml\` from`,
+  `[${ORG}/.github](https://github.com/${ORG}/.github).`,
+  '',
+  'The file is generated. Do not edit this copy: edit `automation-registry.yml` upstream',
+  'and regenerate, or the next sync will overwrite the change.',
+  '',
+  'Opened automatically. A core maintainer reviews and merges it.',
+].join('\n');
+
+// A pull request template ships each field with instructions for a human author.
+// Left alone they read as an unanswered form, and a repo can check that the
+// description in particular is no longer the placeholder.
+const SUMMARY = 'Internal: refresh the copied automation.yml so it matches the current shared template';
+const FIELD = /^([ \t]*-[ \t]*\*\*([^*]+?):\*\*).*$/gm;
+const ANSWERS = { description: SUMMARY, 'products impact': 'none' };
+
+function prBody(prTemplate) {
+  if (!prTemplate) return `${EXPLANATION}\n`;
+  const filled = prTemplate.replace(FIELD, (line, prefix, field) => {
+    const answer = ANSWERS[field.trim().toLowerCase()];
+    return `${prefix} ${answer === undefined ? '-' : answer}`;
+  });
+  return `${filled.trimEnd()}\n\n---\n\n${EXPLANATION}\n`;
 }
 
 function detail(r) {
   return `${r.status} ${(r.data && r.data.message) || ''}`.trim();
+}
+
+const PR_TEMPLATE_PATHS = [
+  '.github/pull_request_template.md',
+  '.github/PULL_REQUEST_TEMPLATE.md',
+  'PULL_REQUEST_TEMPLATE.md',
+  'pull_request_template.md',
+  'docs/PULL_REQUEST_TEMPLATE.md',
+];
+
+async function readPrTemplate(api, repo, ref) {
+  for (const p of PR_TEMPLATE_PATHS) {
+    const r = await api('GET', `/repos/${ORG}/${repo}/contents/${p}?ref=${ref}`);
+    if (r.ok) return Buffer.from(r.data.content, 'base64').toString('utf8');
+  }
+  return null;
 }
 
 async function readCopy(api, repo, ref) {
@@ -83,7 +109,7 @@ async function readCopy(api, repo, ref) {
  * skipped because Actions do not run on them, and forks because their copy
  * belongs to the upstream repo.
  */
-async function findConsumers(api, overrides) {
+async function findConsumers(api) {
   const repos = [];
   for (let page = 1; ; page += 1) {
     const r = await api('GET', `/orgs/${ORG}/repos?per_page=100&type=all&page=${page}`);
@@ -102,7 +128,7 @@ async function findConsumers(api, overrides) {
       continue;
     }
     if (!copy.content.includes(CONSUMER_MARKER)) continue;
-    consumers.push({ repo: repo.name, base: repo.default_branch, ...(overrides[repo.name] || {}) });
+    consumers.push({ repo: repo.name, base: repo.default_branch });
   }
   return consumers;
 }
@@ -206,21 +232,19 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
     title: TITLE,
     head: BRANCH,
     base,
-    body: prBody(consumer),
+    body: prBody(await readPrTemplate(api, repo, base)),
   });
   if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
   return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
 }
 
-async function run(api, registry, template, options) {
+async function run(api, template, options) {
   const change = await lastTemplateChange(api);
   if (change.failed) {
     console.log(`::warning::could not read the template history (${change.detail}); treating drift as ordinary`);
   }
   const templateChangedAt = change.date;
-
-  const overrides = Object.fromEntries((registry.consumers || []).map((c) => [c.repo, c]));
-  const consumers = await findConsumers(api, overrides);
+  const consumers = await findConsumers(api);
 
   const results = [];
   for (const consumer of consumers) {
@@ -253,9 +277,8 @@ async function main() {
     console.error('GITHUB_TOKEN is not set.');
     process.exit(1);
   }
-  const registry = yaml.load(fs.readFileSync(REGISTRY_PATH, 'utf8'));
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  const results = await run(httpApi(token), registry, template, { dryRun: process.argv.includes('--dry-run') });
+  const results = await run(httpApi(token), template, { dryRun: process.argv.includes('--dry-run') });
   process.exit(report(results) ? 1 : 0);
 }
 

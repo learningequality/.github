@@ -14,46 +14,7 @@
 # Run `node scripts/generate-automation.js` after editing this file to regenerate
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
 # fails if the generated files are out of date (enforced by pre-commit + CI).
-#
-# scripts/sync-automation-template.js finds the consumers itself: every repo in the org holding a
-# .github/workflows/automation.yml that calls this repo's automation.yml. It targets each repo's
-# default branch, which is the only branch GitHub evaluates workflow triggers from. Archived repos
-# and forks are skipped.
-#
-# `consumers` holds per-repo overrides only, so a repo belongs here only when it needs one:
-#   repo                   - the repo name inside the learningequality org
-#   body_template          - pull request body for repos with their own template or a description
-#                            check; {{explanation}} is replaced by the generated text
 
-consumers:
-  - repo: kolibri-design-system
-    body_template: |
-      ## Description
-
-      {{explanation}}
-
-      ## Changelog
-      <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG START -->
-
-        - **Description:** Internal: refresh the copied automation.yml so it matches the current shared template
-        - **Products impact:** none
-        - **Addresses:** -
-        - **Components:** -
-        - **Breaking:** -
-        - **Impacts a11y:** -
-        - **Guidance:** -
-
-      <!-- [DO NOT REMOVE-USED BY GH ACTION] CHANGELOG END -->
-
-      ## Steps to test
-
-      1. Confirm the diff touches only `.github/workflows/automation.yml`.
-      2. Confirm the Automation workflow runs here and every job skips or succeeds.
-
-      ## Comments
-
-      Opened by the sync workflow in `learningequality/.github`. The file is generated from
-      `automation-registry.yml`, so no part of this change was written by hand.
 automations:
   - name: review-requested
     enabled: true

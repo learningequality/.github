@@ -116,8 +116,11 @@ To onboard a repo, copy the template in and make sure the `learning-equality-bot
 installed on it. The next run picks it up. A repo on which the app is not installed stays invisible
 to the sync, so the installation is what enrols it.
 
-A repo with its own pull request template, or a check on the description, needs an entry under
-`consumers` in `automation-registry.yml` carrying a `body_template`. The workflow inserts the
-generated text wherever `{{explanation}}` appears, so the body follows that repo's own section
-order. `kolibri-design-system` needs one because its `check-description` job fails unless the body
-contains a Changelog block. Every other consumer needs no entry at all.
+The pull request body comes from the consumer's own pull request template when it has one, so it
+follows that repo's sections and stays current as they change it. A repo with no template gets a
+short explanation instead.
+
+Template fields are answered rather than copied, because a template ships each one with
+instructions for a human author. `Description` gets a line naming the change, `Products impact`
+gets `none`, and anything else gets a dash. This also satisfies a repo that checks the description
+is no longer the placeholder, as `kolibri-design-system` does.

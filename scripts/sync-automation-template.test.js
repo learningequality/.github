@@ -6,11 +6,22 @@ const { run, classifyDrift, findConsumers, report, PROBLEM_STATES, BRANCH } = re
 const USES = 'jobs:\n  automation:\n    uses: learningequality/.github/.github/workflows/automation.yml@main\n';
 const TEMPLATE = `name: Automation\non: {}\n${USES}`;
 const STALE = `name: Automation\non: {old: true}\n${USES}`;
-const TEMPLATE_BODY = '## Description\n\n{{explanation}}\n\n## Changelog\n\n  - **Description:** test\n';
+// Shaped like kolibri-design-system's, including the placeholder its own
+// check-description job rejects.
+const PR_TEMPLATE = [
+  '## Description',
+  '',
+  '<!-- describe the change -->',
+  '',
+  '## Changelog',
+  '',
+  '  - **Description:** Summary of change(s)',
+  '  - **Products impact:** Choose from - none / bugfix / new API',
+  '  - **Breaking:** Choose from: yes / no',
+  '',
+].join('\n');
 // Not "main": a default branch that differs is the only way to catch a hardcoded base.
 const BASE = 'develop';
-const NO_OVERRIDES = { consumers: [] };
-
 const encode = (s) => Buffer.from(s, 'utf8').toString('base64');
 const ok = (data) => ({ ok: true, status: 200, data });
 const fail = (status, message) => ({ ok: false, status, data: { message } });
@@ -48,8 +59,7 @@ const baseRoutes = (copy, repos = [repo()]) => [
   ['POST /repos/learningequality/demo/pulls', ok({ number: 7, html_url: 'https://example.test/7' })],
 ];
 
-const only = async (routes, options = {}, registry = NO_OVERRIDES) =>
-  (await run(makeApi(routes), registry, TEMPLATE, options))[0];
+const only = async (routes, options = {}) => (await run(makeApi(routes), TEMPLATE, options))[0];
 
 test('a matching copy is in sync', async () => {
   assert.equal((await only(baseRoutes(TEMPLATE))).state, 'in-sync');
@@ -63,7 +73,7 @@ test('a drifted copy opens a pull request', async () => {
 
 test('the write targets the sync branch and carries the template', async () => {
   const calls = [];
-  await run(makeApi(baseRoutes(STALE), calls), NO_OVERRIDES, TEMPLATE, {});
+  await run(makeApi(baseRoutes(STALE), calls), TEMPLATE, {});
   const put = calls.find((c) => c.method === 'PUT');
   assert.equal(put.body.branch, BRANCH, 'must never write to a default branch');
   assert.equal(Buffer.from(put.body.content, 'base64').toString('utf8'), TEMPLATE);
@@ -71,25 +81,41 @@ test('the write targets the sync branch and carries the template', async () => {
 
 test('the pull request targets the discovered default branch', async () => {
   const calls = [];
-  await run(makeApi(baseRoutes(STALE), calls), NO_OVERRIDES, TEMPLATE, {});
+  await run(makeApi(baseRoutes(STALE), calls), TEMPLATE, {});
   const pr = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls'));
   assert.equal(pr.body.base, BASE);
   assert.equal(pr.body.head, BRANCH);
 });
 
-test('an override supplies the body template for that repo only', async () => {
+const withPrTemplate = (copy) => [
+  ...baseRoutes(copy),
+  ['GET contents/.github/pull_request_template.md', ok({ content: encode(PR_TEMPLATE) })],
+];
+
+const bodyOf = (calls) => calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body.body;
+
+test("the body uses the repo's own pull request template when it has one", async () => {
   const calls = [];
-  const registry = { consumers: [{ repo: 'demo', body_template: TEMPLATE_BODY }] };
-  await run(makeApi(baseRoutes(STALE), calls), registry, TEMPLATE, {});
-  const { body } = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body;
-  assert.ok(body.startsWith('## Description'), 'the repo template decides the order, not the script');
-  assert.ok(body.includes('## Changelog'), 'KDS check-description needs the Changelog block');
-  assert.ok(!body.includes('{{explanation}}'));
+  await run(makeApi(withPrTemplate(STALE), calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(body.startsWith('## Description'), 'the repo template decides the shape');
+  assert.ok(body.includes('<!-- describe the change -->'), 'prose outside the fields is left alone');
+  assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
 });
 
-test('a consumer with no override gets the plain explanation', async () => {
+test('every field is answered, so the body is not a half-filled form', async () => {
   const calls = [];
-  await run(makeApi(baseRoutes(STALE), calls), NO_OVERRIDES, TEMPLATE, {});
+  await run(makeApi(withPrTemplate(STALE), calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(!body.includes('Summary of change(s)'), 'the placeholder fails check-description');
+  assert.match(body, /- \*\*Description:\*\* Internal: refresh the copied automation\.yml/);
+  assert.ok(body.includes('- **Breaking:** -'), 'a field we have no answer for gets a dash');
+  assert.ok(!body.includes('yes / no'), 'instructions for a human author do not survive');
+});
+
+test('a repo with no pull request template gets the plain explanation', async () => {
+  const calls = [];
+  await run(makeApi(baseRoutes(STALE), calls), TEMPLATE, {});
   const { body } = calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body;
   assert.ok(!body.includes('## '));
   assert.ok(body.includes('automation-template.yml'));
@@ -101,7 +127,7 @@ test('an open sync pull request is updated in place, keeping the file sha', asyn
     ...baseRoutes(STALE),
     ['GET /repos/learningequality/demo/pulls?state=open', ok([{ number: 3, html_url: 'https://example.test/3' }])],
   ];
-  const results = await run(makeApi(routes, calls), NO_OVERRIDES, TEMPLATE, {});
+  const results = await run(makeApi(routes, calls), TEMPLATE, {});
   assert.equal(results[0].state, 'updated');
   assert.equal(calls.filter((c) => c.method === 'POST' && c.url.endsWith('/pulls')).length, 0);
   const put = calls.find((c) => c.method === 'PUT');
@@ -110,7 +136,7 @@ test('an open sync pull request is updated in place, keeping the file sha', asyn
 
 test('discovery skips archived repos and forks', async () => {
   const repos = [repo({ name: 'old', archived: true }), repo({ name: 'mirror', fork: true }), repo()];
-  const results = await run(makeApi(baseRoutes(TEMPLATE, repos)), NO_OVERRIDES, TEMPLATE, {});
+  const results = await run(makeApi(baseRoutes(TEMPLATE, repos)), TEMPLATE, {});
   assert.deepEqual(
     results.map((r) => r.repo),
     ['demo']
@@ -119,7 +145,7 @@ test('discovery skips archived repos and forks', async () => {
 
 test('a repo with no copy is not a consumer', async () => {
   const routes = [...baseRoutes(TEMPLATE), ['GET contents/.github/workflows/automation.yml', fail(404, 'Not Found')]];
-  const results = await run(makeApi(routes), NO_OVERRIDES, TEMPLATE, {});
+  const results = await run(makeApi(routes), TEMPLATE, {});
   assert.deepEqual(results, []);
 });
 
@@ -128,7 +154,7 @@ test('a file that does not call the shared workflow is not a consumer', async ()
     ...baseRoutes(TEMPLATE),
     ['GET contents/.github/workflows/automation.yml', ok({ sha: 'x', content: encode('name: Something else\n') })],
   ];
-  const results = await run(makeApi(routes), NO_OVERRIDES, TEMPLATE, {});
+  const results = await run(makeApi(routes), TEMPLATE, {});
   assert.deepEqual(results, []);
 });
 
@@ -141,7 +167,7 @@ test('a repo that cannot be read is reported, not skipped', async () => {
 
 test('a failed repo listing stops the run loudly', async () => {
   const routes = [...baseRoutes(TEMPLATE), ['GET /orgs/learningequality/repos', fail(403, 'Forbidden')]];
-  await assert.rejects(() => run(makeApi(routes), NO_OVERRIDES, TEMPLATE, {}), /could not list the org's repos/);
+  await assert.rejects(() => run(makeApi(routes), TEMPLATE, {}), /could not list the org's repos/);
 });
 
 test('a failed pull request listing is an error, not a missing pull request', async () => {
@@ -168,7 +194,7 @@ test('a thrown request is contained and reported per repo', async () => {
 
 test('dry run reports without writing', async () => {
   const calls = [];
-  const results = await run(makeApi(baseRoutes(STALE), calls), NO_OVERRIDES, TEMPLATE, { dryRun: true });
+  const results = await run(makeApi(baseRoutes(STALE), calls), TEMPLATE, { dryRun: true });
   assert.equal(results[0].state, 'would-open');
   assert.equal(
     calls.filter((c) => c.method !== 'GET').length,
@@ -205,7 +231,7 @@ test('a repo that reverted a merged sync is reported, and no pull request is ope
       ok([{ number: 9, merged_at: '2026-03-01T00:00:00Z', closed_at: '2026-03-01T00:00:00Z' }]),
     ],
   ];
-  const results = await run(makeApi(routes, calls), NO_OVERRIDES, TEMPLATE, {});
+  const results = await run(makeApi(routes, calls), TEMPLATE, {});
   assert.equal(results[0].state, 'toolchain-conflict');
   assert.equal(calls.filter((c) => c.method !== 'GET').length, 0);
 });
@@ -251,7 +277,7 @@ test('the set of problem states is closed', () => {
 test('a stale branch is reset to base when no pull request is open', async () => {
   const calls = [];
   const routes = [...baseRoutes(STALE), ['POST /repos/learningequality/demo/git/refs', fail(422, 'Reference exists')]];
-  await run(makeApi(routes, calls), NO_OVERRIDES, TEMPLATE, {});
+  await run(makeApi(routes, calls), TEMPLATE, {});
   const reset = calls.find((c) => c.method === 'PATCH' && c.url.endsWith(`/git/refs/heads/${BRANCH}`));
   assert.ok(reset, 'expected the branch to be reset');
   assert.equal(reset.body.sha, 'base-sha');
@@ -265,7 +291,7 @@ test('findConsumers pages through the org listing', async () => {
     ...baseRoutes(TEMPLATE, many),
     ['GET /orgs/learningequality/repos', (url) => ok(url.includes('page=2') ? [repo()] : many)],
   ];
-  const consumers = await findConsumers(makeApi(routes, calls), {});
+  const consumers = await findConsumers(makeApi(routes, calls));
   assert.equal(consumers.length, 101);
   assert.ok(calls.some((c) => c.url.includes('page=2')));
 });
