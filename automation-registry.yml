@@ -33,9 +33,6 @@ consumers:
     base: main
   - repo: kolibri-design-system
     base: develop
-    # Follows this repo's own pull request template. check-description fails
-    # unless the Changelog block holds a Description line that is not the
-    # placeholder text.
     body_template: |
       ## Description
 
