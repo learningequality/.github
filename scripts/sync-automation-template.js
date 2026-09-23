@@ -21,8 +21,6 @@ const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
 const TITLE = 'Refresh automation.yml from the shared template';
 const API = 'https://api.github.com';
-// A consumer copy calls the shared workflow. This repo's own reusable
-// automation.yml sits at the same path and does not, so the marker excludes it.
 const CONSUMER_MARKER = 'workflows/automation.yml@';
 
 const PROBLEM_STATES = ['error', 'toolchain-conflict'];
@@ -131,6 +129,8 @@ async function findConsumers(api) {
       consumers.push({ repo: repo.name, base: repo.default_branch, unreadable: copy.error });
       continue;
     }
+    // This repo's own reusable automation.yml sits at the same path and does not
+    // call the shared workflow, so this excludes it without a special case.
     if (!copy.content.includes(CONSUMER_MARKER)) continue;
     consumers.push({ repo: repo.name, base: repo.default_branch });
   }
