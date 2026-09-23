@@ -87,30 +87,44 @@ test('the pull request targets the discovered default branch', async () => {
   assert.equal(pr.body.head, BRANCH);
 });
 
-const withPrTemplate = (copy) => [
-  ...baseRoutes(copy),
+// The repo whose check-description job forces the template path.
+const CHECKED = 'kolibri-design-system';
+
+const checkedRoutes = (copy) => [
+  ...baseRoutes(copy, [repo({ name: CHECKED })]),
+  [`GET /repos/learningequality/${CHECKED}/pulls?state=open`, ok([])],
+  [`GET /repos/learningequality/${CHECKED}/pulls?state=closed`, ok([])],
+  [`GET /repos/learningequality/${CHECKED}/git/ref/heads/${BASE}`, ok({ object: { sha: 'base-sha' } })],
+  [`POST /repos/learningequality/${CHECKED}/git/refs`, ok({})],
+  [`PUT /repos/learningequality/${CHECKED}/contents`, ok({})],
+  [`POST /repos/learningequality/${CHECKED}/pulls`, ok({ number: 7, html_url: 'https://example.test/7' })],
   ['GET contents/.github/pull_request_template.md', ok({ content: encode(PR_TEMPLATE) })],
 ];
 
 const bodyOf = (calls) => calls.find((c) => c.method === 'POST' && c.url.endsWith('/pulls')).body.body;
 
-test("the body uses the repo's own pull request template when it has one", async () => {
+test('a repo that checks the description gets its own template, with every field answered', async () => {
   const calls = [];
-  await run(makeApi(withPrTemplate(STALE), calls), TEMPLATE, {});
+  await run(makeApi(checkedRoutes(STALE), calls), TEMPLATE, {});
   const body = bodyOf(calls);
   assert.ok(body.startsWith('## Description'), 'the repo template decides the shape');
-  assert.ok(body.includes('<!-- describe the change -->'), 'prose outside the fields is left alone');
-  assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
-});
-
-test('every field is answered, so the body is not a half-filled form', async () => {
-  const calls = [];
-  await run(makeApi(withPrTemplate(STALE), calls), TEMPLATE, {});
-  const body = bodyOf(calls);
   assert.ok(!body.includes('Summary of change(s)'), 'the placeholder fails check-description');
   assert.match(body, /- \*\*Description:\*\* Internal: refresh the copied automation\.yml/);
   assert.ok(body.includes('- **Breaking:** -'), 'a field we have no answer for gets a dash');
   assert.ok(!body.includes('yes / no'), 'instructions for a human author do not survive');
+  assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
+});
+
+test('any other repo gets the plain explanation, template or not', async () => {
+  const calls = [];
+  const routes = [
+    ...baseRoutes(STALE),
+    ['GET contents/.github/pull_request_template.md', ok({ content: encode(PR_TEMPLATE) })],
+  ];
+  await run(makeApi(routes, calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(!body.includes('## Description'), 'a template is not fetched for a repo that does not need it');
+  assert.ok(body.includes('automation-template.yml'));
 });
 
 test('a repo with no pull request template gets the plain explanation', async () => {

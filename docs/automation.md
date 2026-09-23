@@ -116,11 +116,10 @@ To onboard a repo, copy the template in and make sure the `learning-equality-bot
 installed on it. The next run picks it up. A repo on which the app is not installed stays invisible
 to the sync, so the installation is what enrols it.
 
-The pull request body comes from the consumer's own pull request template when it has one, so it
-follows that repo's sections and stays current as they change it. A repo with no template gets a
-short explanation instead.
+The pull request body is a short explanation of what changed and why the file is generated.
 
-Template fields are answered rather than copied, because a template ships each one with
-instructions for a human author. `Description` gets a line naming the change, `Products impact`
-gets `none`, and anything else gets a dash. This also satisfies a repo that checks the description
-is no longer the placeholder, as `kolibri-design-system` does.
+`kolibri-design-system` is the exception. Its `check-description` job fails unless the body carries
+a Changelog section whose Description is not the placeholder its own template ships with, and a
+plain explanation has no such section. For that repo the sync reads its template and fills each
+field, so the body is not a half-filled form. Nothing about that template is stored here, so it
+stays current as they change it.

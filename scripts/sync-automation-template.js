@@ -61,17 +61,13 @@ const EXPLANATION = [
   'Opened automatically. A core maintainer reviews and merges it.',
 ].join('\n');
 
-// A pull request template ships each field with instructions for a human author.
-// Left alone they read as an unanswered form, and a repo can check that the
-// description in particular is no longer the placeholder.
 const SUMMARY = 'Internal: refresh the copied automation.yml so it matches the current shared template';
 const FIELD = /^([ \t]*-[ \t]*\*\*([^*]+?):\*\*).*$/gm;
-const ANSWERS = { description: SUMMARY, 'products impact': 'none' };
 
-function prBody(prTemplate) {
+function prBody(prTemplate, answers) {
   if (!prTemplate) return `${EXPLANATION}\n`;
   const filled = prTemplate.replace(FIELD, (line, prefix, field) => {
-    const answer = ANSWERS[field.trim().toLowerCase()];
+    const answer = answers[field.trim().toLowerCase()];
     return `${prefix} ${answer === undefined ? '-' : answer}`;
   });
   return `${filled.trimEnd()}\n\n---\n\n${EXPLANATION}\n`;
@@ -81,15 +77,23 @@ function detail(r) {
   return `${r.status} ${(r.data && r.data.message) || ''}`.trim();
 }
 
-const PR_TEMPLATE_PATHS = [
-  '.github/pull_request_template.md',
-  '.github/PULL_REQUEST_TEMPLATE.md',
-  'PULL_REQUEST_TEMPLATE.md',
-  'pull_request_template.md',
-  'docs/PULL_REQUEST_TEMPLATE.md',
-];
+// kolibri-design-system's check-description job needs a Changelog section whose
+// Description is not the placeholder its template ships with.
+const KDS_REPO = 'kolibri-design-system';
+const KDS_TEMPLATE_ANSWERS = {
+  description: SUMMARY,
+  'products impact': 'none',
+  addresses: '-',
+  components: '-',
+  breaking: '-',
+  'impacts a11y': '-',
+  guidance: '-',
+};
+
+const PR_TEMPLATE_PATHS = ['.github/pull_request_template.md', '.github/PULL_REQUEST_TEMPLATE.md'];
 
 async function readPrTemplate(api, repo, ref) {
+  if (repo !== KDS_REPO) return null;
   for (const p of PR_TEMPLATE_PATHS) {
     const r = await api('GET', `/repos/${ORG}/${repo}/contents/${p}?ref=${ref}`);
     if (r.ok) return Buffer.from(r.data.content, 'base64').toString('utf8');
@@ -232,7 +236,7 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
     title: TITLE,
     head: BRANCH,
     base,
-    body: prBody(await readPrTemplate(api, repo, base)),
+    body: prBody(await readPrTemplate(api, repo, base), KDS_TEMPLATE_ANSWERS),
   });
   if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
   return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
