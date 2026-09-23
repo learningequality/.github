@@ -9,15 +9,26 @@ const STALE = `name: Automation\non: {old: true}\n${USES}`;
 // Shaped like kolibri-design-system's, including the placeholder its own
 // check-description job rejects.
 const PR_TEMPLATE = [
+  '<!-- Please remove any unused sections -->',
+  '',
   '## Description',
   '',
   '<!-- describe the change -->',
+  '',
+  '#### Issue addressed',
+  '',
+  'Addresses #*PR# HERE*',
   '',
   '## Changelog',
   '',
   '  - **Description:** Summary of change(s)',
   '  - **Products impact:** Choose from - none / bugfix / new API',
   '  - **Breaking:** Choose from: yes / no',
+  '',
+  '## Steps to test',
+  '',
+  '1. Step 1',
+  '2. Step 2',
   '',
 ].join('\n');
 // Not "main": a default branch that differs is the only way to catch a hardcoded base.
@@ -115,6 +126,16 @@ test('a repo that checks the description gets its own template, with every field
   assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
 });
 
+test('sections that would arrive unfilled are dropped', async () => {
+  const calls = [];
+  await run(makeApi(checkedRoutes(STALE), calls), TEMPLATE, {});
+  const body = bodyOf(calls);
+  assert.ok(!body.includes('## Steps to test'), 'their template asks for unused sections to go');
+  assert.ok(!body.includes('1. Step 1'));
+  assert.ok(!body.includes('Addresses #'));
+  assert.deepEqual(body.match(/^## .*/gm), ['## Description', '## Changelog']);
+});
+
 test('any other repo gets the plain explanation, template or not', async () => {
   const calls = [];
   const routes = [
@@ -191,7 +212,7 @@ test('a failed pull request listing is an error, not a missing pull request', as
   assert.match(result.detail, /could not list/);
 });
 
-test('a thrown request is contained and reported per repo', async () => {
+test('a thrown request during the sync is contained and reported per repo', async () => {
   const routes = [
     ...baseRoutes(STALE),
     [
@@ -203,6 +224,21 @@ test('a thrown request is contained and reported per repo', async () => {
   ];
   const result = await only(routes);
   assert.equal(result.state, 'error');
+  assert.equal(result.detail, 'socket hang up');
+});
+
+test('a thrown request during discovery is contained, not fatal', async () => {
+  const routes = [
+    ...baseRoutes(STALE),
+    [
+      'GET contents/.github/workflows/automation.yml',
+      () => {
+        throw new Error('socket hang up');
+      },
+    ],
+  ];
+  const result = await only(routes);
+  assert.equal(result.state, 'error', 'discovery runs before the per-repo try, so it needs its own');
   assert.equal(result.detail, 'socket hang up');
 });
 

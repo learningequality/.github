@@ -62,13 +62,30 @@ const EXPLANATION = [
 const SUMMARY = 'Internal: refresh the copied automation.yml so it matches the current shared template';
 const FIELD = /^([ \t]*-[ \t]*\*\*([^*]+?):\*\*).*$/gm;
 
-function prBody(prTemplate, answers) {
+// Splits on level-two headings only, so a deeper heading stays inside its section.
+function sections(markdown) {
+  const out = [];
+  for (const line of markdown.split('\n')) {
+    if (/^## [^#]/.test(line)) out.push({ heading: line.trim(), lines: [] });
+    else if (out.length) out[out.length - 1].lines.push(line);
+  }
+  return out;
+}
+
+function prBody(prTemplate, { keep, describe, answers }) {
   if (!prTemplate) return `${EXPLANATION}\n`;
-  const filled = prTemplate.replace(FIELD, (line, prefix, field) => {
-    const answer = answers[field.trim().toLowerCase()];
-    return `${prefix} ${answer === undefined ? '-' : answer}`;
-  });
-  return `${filled.trimEnd()}\n\n---\n\n${EXPLANATION}\n`;
+  const body = sections(prTemplate)
+    .filter((s) => keep.includes(s.heading))
+    .map((s) => {
+      if (s.heading === describe) return `${s.heading}\n\n${EXPLANATION}`;
+      const filled = s.lines.join('\n').replace(FIELD, (line, prefix, field) => {
+        const answer = answers[field.trim().toLowerCase()];
+        return `${prefix} ${answer === undefined ? '-' : answer}`;
+      });
+      return `${s.heading}\n${filled.trimEnd()}`;
+    })
+    .join('\n\n');
+  return `${body.trimEnd()}\n`;
 }
 
 function detail(r) {
@@ -77,15 +94,21 @@ function detail(r) {
 
 // kolibri-design-system's check-description job needs a Changelog section whose
 // Description is not the placeholder its template ships with.
+// Its template opens with "Please remove any unused sections", so only the two
+// that carry content are kept.
 const KDS_REPO = 'kolibri-design-system';
-const KDS_TEMPLATE_ANSWERS = {
-  description: SUMMARY,
-  'products impact': 'none',
-  addresses: '-',
-  components: '-',
-  breaking: '-',
-  'impacts a11y': '-',
-  guidance: '-',
+const KDS_TEMPLATE = {
+  keep: ['## Description', '## Changelog'],
+  describe: '## Description',
+  answers: {
+    description: SUMMARY,
+    'products impact': 'none',
+    addresses: '-',
+    components: '-',
+    breaking: '-',
+    'impacts a11y': '-',
+    guidance: '-',
+  },
 };
 
 const PR_TEMPLATE_PATHS = ['.github/pull_request_template.md', '.github/PULL_REQUEST_TEMPLATE.md'];
@@ -123,7 +146,12 @@ async function findConsumers(api) {
   const consumers = [];
   for (const repo of repos) {
     if (repo.archived || repo.fork) continue;
-    const copy = await readCopy(api, repo.name, repo.default_branch);
+    let copy;
+    try {
+      copy = await readCopy(api, repo.name, repo.default_branch);
+    } catch (err) {
+      copy = { error: err.message };
+    }
     if (copy.missing) continue;
     if (copy.error) {
       consumers.push({ repo: repo.name, base: repo.default_branch, unreadable: copy.error });
@@ -236,7 +264,7 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
     title: TITLE,
     head: BRANCH,
     base,
-    body: prBody(await readPrTemplate(api, repo, base), KDS_TEMPLATE_ANSWERS),
+    body: prBody(await readPrTemplate(api, repo, base), KDS_TEMPLATE),
   });
   if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
   return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
