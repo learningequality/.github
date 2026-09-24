@@ -1,0 +1,46 @@
+name: Sync automation template
+run-name: Open a pull request in every consumer repo whose automation.yml has drifted
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report drift without opening pull requests'
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+    paths:
+      - automation-template.yml
+permissions:
+  contents: read
+concurrency:
+  group: sync-automation-template
+  cancel-in-progress: false
+jobs:
+  sync:
+    name: Sync consumers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.LE_BOT_APP_ID }}
+          private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+          owner: learningequality
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Sync consumers
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: node scripts/sync-automation-template.js ${{ inputs.dry_run && '--dry-run' || '' }}
