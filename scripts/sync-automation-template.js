@@ -16,7 +16,9 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const TEMPLATE_PATH = path.join(ROOT, 'automation-template.yml');
 
-const ORG = 'learningequality';
+// SYNC_ORG points the whole run at another org, so the write path can be
+// exercised somewhere other than production.
+const ORG = process.env.SYNC_ORG || 'learningequality';
 const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
 const TITLE = 'Refresh automation.yml from the shared template';
