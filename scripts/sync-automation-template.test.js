@@ -277,51 +277,67 @@ test('dry run reports without writing', async () => {
   );
 });
 
+const MERGED = { merged_at: '2026-03-01T00:00:00Z', merge_commit_sha: 'm1' };
+const CLOSED = { merged_at: null, head: { sha: 'h1' } };
+
 test('classifyDrift: no prior pull request is ordinary drift', () => {
-  assert.equal(classifyDrift(null, '2026-01-02T00:00:00Z'), 'drift');
+  assert.equal(classifyDrift(null, undefined, TEMPLATE), 'drift');
 });
 
-test('classifyDrift: a template change after a merge is ordinary drift', () => {
-  const merged = { merged_at: '2026-01-01T00:00:00Z', closed_at: '2026-01-01T00:00:00Z' };
-  assert.equal(classifyDrift(merged, '2026-02-01T00:00:00Z'), 'drift');
+test('classifyDrift: a template published since the merge is ordinary drift', () => {
+  assert.equal(classifyDrift(MERGED, STALE, TEMPLATE), 'drift');
 });
 
-test('classifyDrift: drift with no template change after a merge is a toolchain conflict', () => {
-  const merged = { merged_at: '2026-03-01T00:00:00Z', closed_at: '2026-03-01T00:00:00Z' };
-  assert.equal(classifyDrift(merged, '2026-01-01T00:00:00Z'), 'toolchain-conflict');
+test('classifyDrift: drift with the template unchanged since the merge is a toolchain conflict', () => {
+  assert.equal(classifyDrift(MERGED, TEMPLATE, TEMPLATE), 'toolchain-conflict');
 });
 
 test('classifyDrift: a pull request closed unmerged is declined until the template moves', () => {
-  const closed = { merged_at: null, closed_at: '2026-03-01T00:00:00Z' };
-  assert.equal(classifyDrift(closed, '2026-01-01T00:00:00Z'), 'declined');
-  assert.equal(classifyDrift(closed, '2026-04-01T00:00:00Z'), 'drift');
+  assert.equal(classifyDrift(CLOSED, TEMPLATE, TEMPLATE), 'declined');
+  assert.equal(classifyDrift(CLOSED, STALE, TEMPLATE), 'drift');
 });
+
+const mergedSync = (sha) => [
+  'GET /repos/learningequality/demo/pulls?state=closed',
+  ok([{ number: 9, merged_at: '2026-03-01T00:00:00Z', merge_commit_sha: sha }]),
+];
+
+// The copy at a given ref, so a test can say what the closed pull request left.
+const atRef = (sha, content) => [
+  `GET contents/.github/workflows/automation.yml?ref=${sha}`,
+  ok({ sha: 'x', content: encode(content) }),
+];
 
 test('a repo that reverted a merged sync is reported, and no pull request is opened', async () => {
   const calls = [];
-  const routes = [
-    ...baseRoutes(STALE),
-    [
-      'GET /repos/learningequality/demo/pulls?state=closed',
-      ok([{ number: 9, merged_at: '2026-03-01T00:00:00Z', closed_at: '2026-03-01T00:00:00Z' }]),
-    ],
-  ];
+  const routes = [...baseRoutes(STALE), mergedSync('m1'), atRef('m1', TEMPLATE)];
   const results = await run(makeApi(routes, calls), TEMPLATE, {});
-  assert.equal(results[0].state, 'toolchain-conflict');
+  assert.equal(results[0].state, 'toolchain-conflict', 'the merge left the template, so the consumer changed it');
   assert.equal(calls.filter((c) => c.method !== 'GET').length, 0);
 });
 
-test('an unreadable template history proposes rather than stopping the repo', async () => {
+test('a template published after the merge is drift, whatever the commit dates say', async () => {
+  const calls = [];
+  // The case dates get wrong: a template whose commits predate the sync merge,
+  // but which reached main after it, because the branch was merged later.
+  const routes = [...baseRoutes(STALE), mergedSync('m1'), atRef('m1', STALE)];
+  const results = await run(makeApi(routes, calls), TEMPLATE, {});
+  assert.equal(results[0].state, 'opened', 'the merge left something older, so the template moved on');
+});
+
+test('a closed unmerged pull request is read at its head', async () => {
+  const calls = [];
   const routes = [
     ...baseRoutes(STALE),
-    ['GET /repos/learningequality/.github/commits', fail(502, 'Bad Gateway')],
-    [
-      'GET /repos/learningequality/demo/pulls?state=closed',
-      ok([{ number: 9, merged_at: '2026-03-01T00:00:00Z', closed_at: '2026-03-01T00:00:00Z' }]),
-    ],
+    ['GET /repos/learningequality/demo/pulls?state=closed', ok([{ number: 9, merged_at: null, head: { sha: 'h1' } }])],
+    atRef('h1', TEMPLATE),
   ];
-  const result = await only(routes);
-  assert.equal(result.state, 'opened', 'a 502 must not read as a toolchain conflict');
+  const results = await run(makeApi(routes, calls), TEMPLATE, {});
+  assert.equal(results[0].state, 'declined');
+  assert.ok(
+    calls.some((c) => c.url.includes('ref=h1')),
+    'the head stays readable after the branch is reset'
+  );
 });
 
 test('report counts only the states that stop a merge', () => {

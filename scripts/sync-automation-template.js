@@ -167,17 +167,6 @@ async function findConsumers(api) {
   return consumers;
 }
 
-async function lastTemplateChange(api) {
-  try {
-    const r = await api('GET', `/repos/${ORG}/.github/commits?path=automation-template.yml&per_page=1`);
-    if (!r.ok) return { date: null, failed: true, detail: detail(r) };
-    if (!r.data.length) return { date: null, failed: false };
-    return { date: r.data[0].commit.committer.date, failed: false };
-  } catch (err) {
-    return { date: null, failed: true, detail: err.message };
-  }
-}
-
 async function openSyncPr(api, repo) {
   const r = await api('GET', `/repos/${ORG}/${repo}/pulls?state=open&head=${ORG}:${BRANCH}`);
   if (!r.ok) return { error: `could not list pull requests (${detail(r)})` };
@@ -194,23 +183,28 @@ async function lastClosedSyncPr(api, repo) {
 }
 
 /**
- * Decides what a drifted copy means, given the last closed sync pull request.
- * A template change after that pull request closed is ordinary drift. With no
- * such change, a merged pull request means the consumer reverted the file, and a
- * closed one means a maintainer declined it.
+ * Decides what a drifted copy means, given what the last closed sync pull
+ * request left behind. `proposed` is the file as that pull request had it.
  *
- * An unknown template date resolves to drift. A needless pull request costs one
- * review, where a wrong toolchain-conflict stops syncing the repo entirely.
+ * Matching the template means nothing new has been published since, so the
+ * difference came from the consumer: a merge they then reverted, or a pull
+ * request a maintainer declined. Otherwise the template has moved on.
+ *
+ * Content rather than dates, because a commit carries the date it was written
+ * rather than the date it reached main, and a branch can be merged long after.
  */
-function classifyDrift(closedPr, templateChangedAt) {
-  if (!closedPr || !templateChangedAt) return 'drift';
-  const closedAt = closedPr.merged_at || closedPr.closed_at;
-  if (!closedAt) return 'drift';
-  if (new Date(templateChangedAt) > new Date(closedAt)) return 'drift';
+function classifyDrift(closedPr, proposed, template) {
+  if (!closedPr || proposed !== template) return 'drift';
   return closedPr.merged_at ? 'toolchain-conflict' : 'declined';
 }
 
-async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) {
+// The reference the pull request left behind: its merge commit once merged,
+// otherwise its head, which stays readable after the branch is reset.
+function closedPrRef(closedPr) {
+  return closedPr.merged_at ? closedPr.merge_commit_sha : closedPr.head && closedPr.head.sha;
+}
+
+async function syncRepo(api, consumer, template, { dryRun }) {
   const { repo, base } = consumer;
   if (consumer.unreadable) return { repo, state: 'error', detail: consumer.unreadable };
 
@@ -225,8 +219,13 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
   if (!open.pr) {
     const closed = await lastClosedSyncPr(api, repo);
     if (closed.error) return { repo, state: 'error', detail: closed.error };
-    const verdict = classifyDrift(closed.pr, templateChangedAt);
-    if (verdict !== 'drift') return { repo, state: verdict, pr: closed.pr.number };
+    if (closed.pr) {
+      const ref = closedPrRef(closed.pr);
+      const proposed = ref ? await readCopy(api, repo, ref) : { error: 'no reference on the closed pull request' };
+      if (proposed.error) return { repo, state: 'error', detail: proposed.error };
+      const verdict = classifyDrift(closed.pr, proposed.content, template);
+      if (verdict !== 'drift') return { repo, state: verdict, pr: closed.pr.number };
+    }
   }
 
   if (dryRun) {
@@ -273,17 +272,12 @@ async function syncRepo(api, consumer, template, { dryRun, templateChangedAt }) 
 }
 
 async function run(api, template, options) {
-  const change = await lastTemplateChange(api);
-  if (change.failed) {
-    console.log(`::warning::could not read the template history (${change.detail}); treating drift as ordinary`);
-  }
-  const templateChangedAt = change.date;
   const consumers = await findConsumers(api);
 
   const results = [];
   for (const consumer of consumers) {
     try {
-      results.push(await syncRepo(api, consumer, template, { ...options, templateChangedAt }));
+      results.push(await syncRepo(api, consumer, template, options));
     } catch (err) {
       results.push({ repo: consumer.repo, state: 'error', detail: err.message });
     }
