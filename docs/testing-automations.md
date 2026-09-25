@@ -16,13 +16,21 @@ the `if:` condition on each job did not match, so check the event first.
 
 ### Automations that need an outside contributor
 
-Some automations run only when `is-contributor` is true, meaning the author is not a member of the organization. An org member cannot trigger them, so they skip. These are `review-requested`, `pull-request-label`, `contributor-pr-reply`, `contributor-issue-comment`, and `update-pr-spreadsheet`, plus `holiday-message` when enabled.
+Some automations run only when `is-contributor` is true, meaning the author is not a member of the
+organization. An org member cannot trigger them, so they skip. These are `review-requested`,
+`pull-request-label`, `contributor-pr-reply`, `contributor-issue-comment`, and
+`update-pr-spreadsheet`, plus `holiday-message` when enabled.
 
-Use a second GitHub account that is not in the organization. It needs no permissions, secrets, or app. For a pull request, it forks `test-actions` and opens a pull request back to it. `pull_request_target` then runs in `test-actions` with `test-actions`' secrets rather than the fork's. For an issue or comment, no fork is needed.
+Use a second GitHub account that is not in the organization. It needs no permissions, secrets, or
+app. For a pull request, it forks `test-actions` and opens a pull request back to it.
+`pull_request_target` then runs in `test-actions` with `test-actions`' secrets rather than the
+fork's. For an issue or comment, no fork is needed.
 
 Keep that account out of the organization. Adding it makes these automations skip again.
 
-`update-pr-spreadsheet` writes to a test sheet rather than the production sheet because `CONTRIBUTIONS_SPREADSHEET_ID` and `CONTRIBUTIONS_SHEET_NAME` are set as repository secrets there. A repository secret takes precedence over an organization secret with the same name.
+`update-pr-spreadsheet` writes to a test sheet rather than the production sheet because
+`CONTRIBUTIONS_SPREADSHEET_ID` and `CONTRIBUTIONS_SHEET_NAME` are set as repository secrets there. A
+repository secret takes precedence over an organization secret with the same name.
 
 ## Testing the sync workflow
 
