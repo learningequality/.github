@@ -123,3 +123,8 @@ a Changelog section whose Description is not the placeholder its own template sh
 plain explanation has no such section. For that repo the sync reads its template and fills each
 field, so the body is not a half-filled form. Nothing about that template is stored here, so it
 stays current as they change it.
+
+## Testing a change
+
+See [testing-automations.md](./testing-automations.md). Test in `learningequality/test-actions`,
+where the bot app and the secrets are already in place.

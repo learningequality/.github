@@ -375,6 +375,35 @@ test('a stale branch is reset to base when no pull request is open', async () =>
   assert.equal(reset.body.force, true);
 });
 
+test('only limits the run to that repo, and never lists the org', async () => {
+  const calls = [];
+  const others = [repo({ name: 'demo' }), repo({ name: 'production-repo' })];
+  const routes = [...baseRoutes(TEMPLATE, others), ['GET =/repos/learningequality/demo', ok(repo())]];
+  const results = await run(makeApi(routes, calls), TEMPLATE, { only: 'demo' });
+  assert.deepEqual(
+    results.map((r) => r.repo),
+    ['demo']
+  );
+  assert.ok(
+    !calls.some((c) => c.url.includes('/orgs/')),
+    'the org listing is the path to every other repo, so it must not be walked'
+  );
+});
+
+test('without only, every repo in the listing is considered', async () => {
+  const others = [repo({ name: 'demo' }), repo({ name: 'production-repo' })];
+  const results = await run(makeApi(baseRoutes(TEMPLATE, others)), TEMPLATE, {});
+  assert.deepEqual(
+    results.map((r) => r.repo),
+    ['demo', 'production-repo']
+  );
+});
+
+test('only reports an error when the repo cannot be read', async () => {
+  const routes = [...baseRoutes(TEMPLATE), ['GET =/repos/learningequality/missing', fail(404, 'Not Found')]];
+  await assert.rejects(() => run(makeApi(routes), TEMPLATE, { only: 'missing' }), /could not read missing/);
+});
+
 test('findConsumers pages through the org listing', async () => {
   const calls = [];
   const many = Array.from({ length: 100 }, (_, i) => repo({ name: `r${i}` }));

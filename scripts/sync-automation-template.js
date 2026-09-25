@@ -4,8 +4,9 @@
  * drifted from automation-template.yml.
  *
  * Usage:
- *   node scripts/sync-automation-template.js           open or update pull requests
- *   node scripts/sync-automation-template.js --dry-run report only, change nothing
+ *   node scripts/sync-automation-template.js             open or update pull requests
+ *   node scripts/sync-automation-template.js --dry-run   report only, change nothing
+ *   node scripts/sync-automation-template.js --only=repo limit the run to one repo
  *
  * Requires GITHUB_TOKEN with contents:write and pull-requests:write on each
  * consumer repo. It never commits to a default branch and never merges.
@@ -136,9 +137,14 @@ async function readCopy(api, repo, ref) {
  * skipped because Actions do not run on them, and forks because their copy
  * belongs to the upstream repo.
  */
-async function findConsumers(api) {
+async function findConsumers(api, only) {
   const repos = [];
-  for (let page = 1; ; page += 1) {
+  if (only) {
+    const r = await api('GET', `/repos/${ORG}/${only}`);
+    if (!r.ok) throw new Error(`could not read ${only} (${detail(r)})`);
+    repos.push(r.data);
+  }
+  for (let page = 1; !only; page += 1) {
     const r = await api('GET', `/orgs/${ORG}/repos?per_page=100&type=all&page=${page}`);
     if (!r.ok) throw new Error(`could not list the org's repos (${detail(r)})`);
     repos.push(...r.data);
@@ -272,7 +278,7 @@ async function syncRepo(api, consumer, template, { dryRun }) {
 }
 
 async function run(api, template, options) {
-  const consumers = await findConsumers(api);
+  const consumers = await findConsumers(api, options.only);
 
   const results = [];
   for (const consumer of consumers) {
@@ -306,7 +312,11 @@ async function main() {
     process.exit(1);
   }
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  const results = await run(httpApi(token), template, { dryRun: process.argv.includes('--dry-run') });
+  const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+  const results = await run(httpApi(token), template, {
+    dryRun: process.argv.includes('--dry-run'),
+    only: onlyArg && onlyArg.slice('--only='.length),
+  });
   process.exit(report(results) ? 1 : 0);
 }
 
