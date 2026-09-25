@@ -58,7 +58,8 @@ path, so a branch-pinned caller there looks like drift and gets a pull request o
 Close test pull requests and delete their branches. Leave `.github/workflows/automation.yml` in
 place, since the repo is only a consumer while that file exists.
 
-## When this is not enough
+## Testing in a separate organization
 
-Testing against an app or secrets that are not in production requires a separate organization, with
-its own app installed and its own secrets. Point the sync at it with `SYNC_ORG`.
+Changing the bot app itself, using different secret values, or changing discovery across several
+repos needs an organization you control. See
+[testing-in-a-separate-org](./testing-in-a-separate-org.md).
