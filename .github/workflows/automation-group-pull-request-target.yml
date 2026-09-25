@@ -7,20 +7,11 @@ name: "Automation: Pull Request Target"
 on:
   workflow_call:
     secrets:
-      CONTRIBUTIONS_SHEET_NAME:
-        description: "Forwarded to: update-pr-spreadsheet"
-        required: false
-      CONTRIBUTIONS_SPREADSHEET_ID:
-        description: "Forwarded to: update-pr-spreadsheet"
-        required: false
-      GH_UPLOADER_GCP_SA_CREDENTIALS:
-        description: "Forwarded to: update-pr-spreadsheet"
-        required: false
       LE_BOT_APP_ID:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, update-pr-spreadsheet"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply"
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, update-pr-spreadsheet"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply"
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Forwarded to: contributor-pr-reply"
@@ -63,15 +54,3 @@ jobs:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
-  update-pr-spreadsheet:
-    name: Update PR Spreadsheet
-    if: ${{ github.event_name == 'pull_request_target' && contains(fromJSON('["assigned","unassigned","opened","closed","reopened","edited","review_requested","review_request_removed"]'), github.event.action) }}
-    uses: learningequality/.github/.github/workflows/update-pr-spreadsheet.yml@main
-    permissions:
-      contents: read
-    secrets:
-      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
-      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-      CONTRIBUTIONS_SPREADSHEET_ID: ${{ secrets.CONTRIBUTIONS_SPREADSHEET_ID }}
-      CONTRIBUTIONS_SHEET_NAME: ${{ secrets.CONTRIBUTIONS_SHEET_NAME }}
-      GH_UPLOADER_GCP_SA_CREDENTIALS: ${{ secrets.GH_UPLOADER_GCP_SA_CREDENTIALS }}

@@ -45,7 +45,10 @@ function unquoteOnKey(content, suffix) {
 
 function loadRegistry() {
   const raw = yaml.load(fs.readFileSync(REGISTRY_PATH, 'utf8'));
-  return raw.automations.filter((a) => a.enabled);
+  return {
+    automations: raw.automations.filter((a) => a.enabled),
+    retiredSecrets: raw.retired_secrets || [],
+  };
 }
 
 function titleCase(name) {
@@ -111,15 +114,15 @@ function leafJob(a) {
   return callJob(titleCase(a.name), a.if, a.leaf, permissions, Object.keys(a.secrets || {}));
 }
 
-function reusableYml(name, automations, jobs, description) {
+function reusableYml(name, automations, jobs, description, retiredSecrets = []) {
   const secrets = collectSecrets(automations);
+  const retired = retiredSecrets.filter((s) => !secrets[s]);
   const secretsYaml = {};
-  for (const secret of Object.keys(secrets).sort()) {
+  for (const secret of [...Object.keys(secrets), ...retired].sort()) {
     const info = secrets[secret];
-    secretsYaml[secret] = {
-      description: `Forwarded to: ${info.usedBy.join(', ')}`,
-      required: info.required,
-    };
+    secretsYaml[secret] = info
+      ? { description: `Forwarded to: ${info.usedBy.join(', ')}`, required: info.required }
+      : { description: 'Unused - accepted until every consumer stops forwarding it', required: false };
   }
   const doc = { name, on: { workflow_call: { secrets: secretsYaml } }, jobs };
   return unquoteOnKey(GENERATED_HEADER(description) + yaml.dump(doc, DUMP_OPTS));
@@ -137,7 +140,7 @@ function groupByEvents(automations) {
 
 // GitHub posts a check on the PR for every job in a run, even a skipped one,
 // but a skipped call to a reusable workflow posts only one.
-function buildReusableWorkflows(automations) {
+function buildReusableWorkflows(automations, retiredSecrets = []) {
   const files = {};
   const jobs = {};
   const addJob = (id, job) => {
@@ -176,7 +179,8 @@ function buildReusableWorkflows(automations) {
     automations,
     jobs,
     'Reusable workflow: one job per automation, or per group of automations sharing trigger events,\n' +
-      '# gated on the original triggering event/action.'
+      '# gated on the original triggering event/action.',
+    retiredSecrets
   );
   return files;
 }
@@ -247,11 +251,11 @@ function buildTemplateYml(automations, secrets, description) {
 
 function main() {
   const check = process.argv.includes('--check');
-  const automations = loadRegistry();
+  const { automations, retiredSecrets } = loadRegistry();
 
   const secrets = collectSecrets(automations);
   const targets = [
-    ...Object.entries(buildReusableWorkflows(automations)).map(([file, content]) => [
+    ...Object.entries(buildReusableWorkflows(automations, retiredSecrets)).map(([file, content]) => [
       path.join(WORKFLOWS_DIR, file),
       content,
     ]),

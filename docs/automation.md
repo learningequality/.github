@@ -1,9 +1,13 @@
 # Automation entry point
 
 Every learningequality repo that wants our shared bot automations (review-request routing,
-contributor replies, issue header management, the community-contribution spreadsheet, etc.)
-copies a single file: `automation-template.yml`. There is nothing else to maintain per repo —
-no per-automation caller, no hand-written `on:` block to keep in sync.
+contributor replies, issue header management, etc.) copies a single file: `automation-template.yml`.
+There is nothing else to maintain per repo — no per-automation caller, no hand-written `on:` block
+to keep in sync.
+
+The community-contribution spreadsheet is not one of them. `update-pr-spreadsheet.yml` runs daily
+in this repo and upserts every public contributor PR in the org updated in the last two days. Run it
+by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
 
 ## How it fits together
 
@@ -49,9 +53,6 @@ No edits required. Then set the secrets:
 | `LE_BOT_PRIVATE_KEY` | yes | GitHub App private key for bot authentication |
 | `SLACK_WEBHOOK_URL` | no | Slack `#support-dev` channel webhook |
 | `SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` | no | Slack `#support-dev-notifications` channel webhook |
-| `CONTRIBUTIONS_SPREADSHEET_ID` | no | Google Sheets spreadsheet ID for PR tracking |
-| `CONTRIBUTIONS_SHEET_NAME` | no | Sheet name within the spreadsheet |
-| `GH_UPLOADER_GCP_SA_CREDENTIALS` | no | GCP service account credentials for Sheets access |
 
 Every automation except `resolve-bot-pr-threads` authenticates as `learning-equality-bot[bot]`, the
 GitHub App behind `LE_BOT_APP_ID`, so the two required secrets must be set. `resolve-bot-pr-threads`

@@ -9,19 +9,19 @@ on:
   workflow_call:
     secrets:
       CONTRIBUTIONS_SHEET_NAME:
-        description: "Forwarded to: update-pr-spreadsheet"
+        description: Unused - accepted until every consumer stops forwarding it
         required: false
       CONTRIBUTIONS_SPREADSHEET_ID:
-        description: "Forwarded to: update-pr-spreadsheet"
+        description: Unused - accepted until every consumer stops forwarding it
         required: false
       GH_UPLOADER_GCP_SA_CREDENTIALS:
-        description: "Forwarded to: update-pr-spreadsheet"
+        description: Unused - accepted until every consumer stops forwarding it
         required: false
       LE_BOT_APP_ID:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, update-pr-spreadsheet, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, issue-open, issue-label-header, good-first-issue-comment, community-contribution-label, contributor-issue-comment, unassign-inactive-issues"
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Forwarded to: contributor-pr-reply, contributor-issue-comment, unassign-inactive-issues"
@@ -32,14 +32,11 @@ on:
 jobs:
   pull-request-target:
     name: Pull Request Target
-    if: ${{ (github.event_name == 'pull_request_target' && github.event.action == 'review_requested') || (github.event_name == 'pull_request_target' && github.event.action == 'labeled') || (github.event_name == 'pull_request_target' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]') || (github.event_name == 'pull_request_target' && github.event.action == 'opened') || (github.event_name == 'pull_request_target' && contains(fromJSON('["assigned","unassigned","opened","closed","reopened","edited","review_requested","review_request_removed"]'), github.event.action)) }}
+    if: ${{ (github.event_name == 'pull_request_target' && github.event.action == 'review_requested') || (github.event_name == 'pull_request_target' && github.event.action == 'labeled') || (github.event_name == 'pull_request_target' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]') || (github.event_name == 'pull_request_target' && github.event.action == 'opened') }}
     uses: learningequality/.github/.github/workflows/automation-group-pull-request-target.yml@main
     permissions:
       contents: read
     secrets:
-      CONTRIBUTIONS_SHEET_NAME: ${{ secrets.CONTRIBUTIONS_SHEET_NAME }}
-      CONTRIBUTIONS_SPREADSHEET_ID: ${{ secrets.CONTRIBUTIONS_SPREADSHEET_ID }}
-      GH_UPLOADER_GCP_SA_CREDENTIALS: ${{ secrets.GH_UPLOADER_GCP_SA_CREDENTIALS }}
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
