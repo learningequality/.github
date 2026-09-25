@@ -9,6 +9,10 @@ on:
         description: 'Report drift without opening pull requests'
         type: boolean
         default: false
+      only:
+        description: 'Limit the run to one repo, for testing'
+        type: string
+        default: ''
   push:
     branches:
       - main
@@ -43,4 +47,9 @@ jobs:
       - name: Sync consumers
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: node scripts/sync-automation-template.js ${{ inputs.dry_run && '--dry-run' || '' }}
+          ONLY: ${{ inputs.only }}
+          DRY_RUN: ${{ inputs.dry_run && 'yes' || '' }}
+        run: |
+          node scripts/sync-automation-template.js \
+            ${DRY_RUN:+--dry-run} \
+            ${ONLY:+--only="$ONLY"}

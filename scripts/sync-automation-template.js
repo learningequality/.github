@@ -4,8 +4,9 @@
  * drifted from automation-template.yml.
  *
  * Usage:
- *   node scripts/sync-automation-template.js           open or update pull requests
- *   node scripts/sync-automation-template.js --dry-run report only, change nothing
+ *   node scripts/sync-automation-template.js             open or update pull requests
+ *   node scripts/sync-automation-template.js --dry-run   report only, change nothing
+ *   node scripts/sync-automation-template.js --only=repo limit the run to one repo
  *
  * Requires GITHUB_TOKEN with contents:write and pull-requests:write on each
  * consumer repo. It never commits to a default branch and never merges.
@@ -136,32 +137,52 @@ async function readCopy(api, repo, ref) {
  * skipped because Actions do not run on them, and forks because their copy
  * belongs to the upstream repo.
  */
-async function findConsumers(api) {
+async function findConsumers(api, only) {
   const repos = [];
-  for (let page = 1; ; page += 1) {
+  if (only) {
+    const r = await api('GET', `/repos/${ORG}/${only}`);
+    if (!r.ok) throw new Error(`could not read ${only} (${detail(r)})`);
+    repos.push(r.data);
+  }
+  for (let page = 1; !only; page += 1) {
     const r = await api('GET', `/orgs/${ORG}/repos?per_page=100&type=all&page=${page}`);
     if (!r.ok) throw new Error(`could not list the org's repos (${detail(r)})`);
     repos.push(...r.data);
     if (r.data.length < 100) break;
   }
 
+  // Skipping a named repo would report no consumers and exit 0, which reads as
+  // "in sync". Say why instead.
+  const skip = (repo, why) => {
+    if (only) throw new Error(`${repo.name} is not a consumer: ${why}`);
+  };
+
   const consumers = [];
   for (const repo of repos) {
-    if (repo.archived || repo.fork) continue;
+    if (repo.archived || repo.fork) {
+      skip(repo, repo.archived ? 'archived' : 'a fork');
+      continue;
+    }
     let copy;
     try {
       copy = await readCopy(api, repo.name, repo.default_branch);
     } catch (err) {
       copy = { error: err.message };
     }
-    if (copy.missing) continue;
+    if (copy.missing) {
+      skip(repo, `no ${TARGET_PATH}`);
+      continue;
+    }
     if (copy.error) {
       consumers.push({ repo: repo.name, base: repo.default_branch, unreadable: copy.error });
       continue;
     }
     // This repo's own reusable automation.yml sits at the same path and does not
     // call the shared workflow, so this excludes it without a special case.
-    if (!copy.content.includes(CONSUMER_MARKER)) continue;
+    if (!copy.content.includes(CONSUMER_MARKER)) {
+      skip(repo, 'its automation.yml does not call the shared workflow');
+      continue;
+    }
     consumers.push({ repo: repo.name, base: repo.default_branch });
   }
   return consumers;
@@ -272,7 +293,7 @@ async function syncRepo(api, consumer, template, { dryRun }) {
 }
 
 async function run(api, template, options) {
-  const consumers = await findConsumers(api);
+  const consumers = await findConsumers(api, options.only);
 
   const results = [];
   for (const consumer of consumers) {
@@ -299,6 +320,18 @@ function report(results) {
   return problems.length;
 }
 
+// Both spellings, because an --only nobody parses is a full run against every
+// consumer, which is the opposite of what it asks for.
+function parseArgs(argv) {
+  const i = argv.findIndex((a) => a === '--only' || a.startsWith('--only='));
+  let only;
+  if (i !== -1) {
+    only = argv[i] === '--only' ? argv[i + 1] : argv[i].slice('--only='.length);
+    if (!only || only.startsWith('--')) throw new Error('--only needs a repo name');
+  }
+  return { dryRun: argv.includes('--dry-run'), only };
+}
+
 async function main() {
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
@@ -306,10 +339,25 @@ async function main() {
     process.exit(1);
   }
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  const results = await run(httpApi(token), template, { dryRun: process.argv.includes('--dry-run') });
+  const results = await run(httpApi(token), template, parseArgs(process.argv.slice(2)));
   process.exit(report(results) ? 1 : 0);
 }
 
-if (require.main === module) main();
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err.message);
+    process.exit(1);
+  });
+}
 
-module.exports = { run, syncRepo, classifyDrift, findConsumers, report, PROBLEM_STATES, BRANCH, TARGET_PATH };
+module.exports = {
+  run,
+  syncRepo,
+  classifyDrift,
+  findConsumers,
+  parseArgs,
+  report,
+  PROBLEM_STATES,
+  BRANCH,
+  TARGET_PATH,
+};

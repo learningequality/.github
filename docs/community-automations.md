@@ -73,4 +73,4 @@ Sends a holiday message to community pull requests and issue comments.
 In `scripts/contants.js` set:
 - `HOLIDAY_MESSAGE`: Message text
 
-Before/after holidays, toggle `enabled:` for `holiday-message` in [`automation-registry.yml`](../automation-registry.yml) and regenerate (see [`docs/automation.md`](./automation.md)) - no per-repo changes needed.
+Before/after holidays, toggle `enabled:` for `holiday-message` in [`automation-registry.yml`](../automation-registry.yml) and regenerate (see [the automation entry point](./automation.md)) - no per-repo changes needed.

@@ -1,7 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { run, classifyDrift, findConsumers, report, PROBLEM_STATES, BRANCH } = require('./sync-automation-template');
+const {
+  run,
+  classifyDrift,
+  findConsumers,
+  parseArgs,
+  report,
+  PROBLEM_STATES,
+  BRANCH,
+} = require('./sync-automation-template');
 
 const USES = 'jobs:\n  automation:\n    uses: learningequality/.github/.github/workflows/automation.yml@main\n';
 const TEMPLATE = `name: Automation\non: {}\n${USES}`;
@@ -373,6 +381,68 @@ test('a stale branch is reset to base when no pull request is open', async () =>
   assert.ok(reset, 'expected the branch to be reset');
   assert.equal(reset.body.sha, 'base-sha');
   assert.equal(reset.body.force, true);
+});
+
+test('both spellings of --only are parsed, because an ignored one runs against everything', () => {
+  assert.equal(parseArgs(['--only=demo']).only, 'demo');
+  assert.equal(parseArgs(['--only', 'demo']).only, 'demo');
+  assert.equal(parseArgs(['--dry-run', '--only', 'demo']).dryRun, true);
+  assert.equal(parseArgs(['--dry-run']).only, undefined);
+});
+
+test('--only without a repo name is an error, not a full run', () => {
+  assert.throws(() => parseArgs(['--only']), /needs a repo name/);
+  assert.throws(() => parseArgs(['--only=']), /needs a repo name/);
+  assert.throws(() => parseArgs(['--only', '--dry-run']), /needs a repo name/);
+});
+
+test('a named repo that is not a consumer says why, rather than reporting none', async () => {
+  const cases = [
+    [repo({ archived: true }), /archived/],
+    [repo({ fork: true }), /a fork/],
+  ];
+  for (const [r, expected] of cases) {
+    const routes = [...baseRoutes(TEMPLATE), ['GET =/repos/learningequality/demo', ok(r)]];
+    await assert.rejects(() => run(makeApi(routes), TEMPLATE, { only: 'demo' }), expected);
+  }
+});
+
+test('a named repo without the marker says why', async () => {
+  const routes = [
+    ...baseRoutes(TEMPLATE),
+    ['GET =/repos/learningequality/demo', ok(repo())],
+    ['GET contents/.github/workflows/automation.yml', ok({ sha: 'x', content: encode('name: other\n') })],
+  ];
+  await assert.rejects(() => run(makeApi(routes), TEMPLATE, { only: 'demo' }), /does not call the shared workflow/);
+});
+
+test('only limits the run to that repo, and never lists the org', async () => {
+  const calls = [];
+  const others = [repo({ name: 'demo' }), repo({ name: 'production-repo' })];
+  const routes = [...baseRoutes(TEMPLATE, others), ['GET =/repos/learningequality/demo', ok(repo())]];
+  const results = await run(makeApi(routes, calls), TEMPLATE, { only: 'demo' });
+  assert.deepEqual(
+    results.map((r) => r.repo),
+    ['demo']
+  );
+  assert.ok(
+    !calls.some((c) => c.url.includes('/orgs/')),
+    'the org listing is the path to every other repo, so it must not be walked'
+  );
+});
+
+test('without only, every repo in the listing is considered', async () => {
+  const others = [repo({ name: 'demo' }), repo({ name: 'production-repo' })];
+  const results = await run(makeApi(baseRoutes(TEMPLATE, others)), TEMPLATE, {});
+  assert.deepEqual(
+    results.map((r) => r.repo),
+    ['demo', 'production-repo']
+  );
+});
+
+test('only reports an error when the repo cannot be read', async () => {
+  const routes = [...baseRoutes(TEMPLATE), ['GET =/repos/learningequality/missing', fail(404, 'Not Found')]];
+  await assert.rejects(() => run(makeApi(routes), TEMPLATE, { only: 'missing' }), /could not read missing/);
 });
 
 test('findConsumers pages through the org listing', async () => {
