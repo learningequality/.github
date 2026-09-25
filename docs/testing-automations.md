@@ -22,9 +22,9 @@ organization. An org member cannot trigger them, so they skip. These are `review
 `update-pr-spreadsheet`, plus `holiday-message` when enabled.
 
 Use a second GitHub account that is not in the organization. It needs no permissions, secrets, or
-app. For a pull request, it forks `test-actions` and opens a pull request back to it.
-`pull_request_target` then runs in `test-actions` with `test-actions`' secrets rather than the
-fork's. For an issue or comment, no fork is needed.
+app. To open a pull request, fork `test-actions` and open one back to it. `pull_request_target` then
+runs in `test-actions` with `test-actions`' secrets rather than the fork's. For an issue or comment,
+no fork is needed.
 
 Keep that account out of the organization. Adding it makes these automations skip again.
 
