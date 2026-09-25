@@ -50,6 +50,9 @@ Point a caller at your branch, for example:
 
 `uses: learningequality/.github/.github/workflows/automation.yml@my-branch`
 
+Only that file comes from the branch. What it calls still comes from `main`, so to test a changed
+group or leaf workflow, point the caller at that file instead.
+
 Put that caller at a path other than `.github/workflows/automation.yml`. The sync reads exactly that
 path, so a branch-pinned caller there looks like drift and gets a pull request on every run.
 

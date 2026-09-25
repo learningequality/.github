@@ -5,7 +5,7 @@
 #   leaf                   - the reusable workflow file (in .github/workflows/) it dispatches to
 #   on                     - events/types (or schedule/workflow_dispatch) it should be triggered by;
 #                            unioned across all enabled automations to build automation-template.yml's `on:` block
-#   if                     - the dispatch condition used as the job's `if:` in automation.yml
+#   if                     - the dispatch condition used as the automation's job `if:`
 #   secrets                - secrets to declare on automation.yml and forward to the leaf;
 #                            required/optional: whether the leaf workflow requires the secret to be set
 #   permissions            - job-level permissions map; defaults to { contents: read } when absent;
