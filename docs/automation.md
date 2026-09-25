@@ -126,5 +126,5 @@ stays current as they change it.
 
 ## Testing a change
 
-See [testing-automations.md](./testing-automations.md). Test in `learningequality/test-actions`,
+See [testing-automations](./testing-automations.md). Test in `learningequality/test-actions`,
 where the bot app and the secrets are already in place.
