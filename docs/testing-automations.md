@@ -58,6 +58,10 @@ path, so a branch-pinned caller there looks like drift and gets a pull request o
 Close test pull requests and delete their branches. Leave `.github/workflows/automation.yml` in
 place, since the repo is only a consumer while that file exists.
 
+If you drifted the copy to make the sync propose something, either merge the sync pull request or
+revert the drift. Closing it without merging leaves test-actions out of sync, so the workflow
+reports it as declined and stops proposing updates until the template changes.
+
 ## Testing in a separate organization
 
 Changing the bot app, using different secret values, or testing discovery across several repos

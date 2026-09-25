@@ -47,7 +47,9 @@ jobs:
       - name: Sync consumers
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          ONLY: ${{ inputs.only }}
+          DRY_RUN: ${{ inputs.dry_run && 'yes' || '' }}
         run: |
           node scripts/sync-automation-template.js \
-            ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
+            ${DRY_RUN:+--dry-run} \
+            ${ONLY:+--only="$ONLY"}
