@@ -1,7 +1,7 @@
 # Testing in a separate organization
 
 Most testing belongs in `learningequality/test-actions`, where the app and the secrets are already
-in place. See [testing-automations](./testing-automations.md).
+in place. See [testing the automations](./testing-automations.md).
 
 A separate organization is worth the setup when:
 

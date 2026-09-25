@@ -62,4 +62,4 @@ place, since the repo is only a consumer while that file exists.
 
 Changing the bot app itself, using different secret values, or changing discovery across several
 repos needs an organization you control. See
-[testing-in-a-separate-org](./testing-in-a-separate-org.md).
+[testing in a separate organization](./testing-in-a-separate-org.md).
