@@ -5,16 +5,23 @@
 #   leaf                   - the reusable workflow file (in .github/workflows/) it dispatches to
 #   on                     - events/types (or schedule/workflow_dispatch) it should be triggered by;
 #                            unioned across all enabled automations to build automation-template.yml's `on:` block
-#   if                     - the dispatch condition used as the job's `if:` in automation.yml
+#   if                     - the dispatch condition used as the automation's job `if:`
 #   secrets                - secrets to declare on automation.yml and forward to the leaf;
 #                            required/optional: whether the leaf workflow requires the secret to be set
 #   permissions            - job-level permissions map; defaults to { contents: read } when absent;
 #                            set explicitly for automations whose leaf uses the default GITHUB_TOKEN with write access
 #
+# retired_secrets lists secrets no automation uses that automation.yml still accepts, because GitHub
+# fails a caller that forwards an undeclared secret. Remove one once every consumer has synced.
+#
 # Run `node scripts/generate-automation.js` after editing this file to regenerate
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
 # fails if the generated files are out of date (enforced by pre-commit + CI).
 
+retired_secrets:
+  - CONTRIBUTIONS_SHEET_NAME
+  - CONTRIBUTIONS_SPREADSHEET_ID
+  - GH_UPLOADER_GCP_SA_CREDENTIALS
 automations:
   - name: review-requested
     enabled: true
@@ -102,19 +109,6 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
-  - name: update-pr-spreadsheet
-    enabled: true
-    leaf: update-pr-spreadsheet.yml
-    on:
-      pull_request_target:
-        types: [assigned, unassigned, opened, closed, reopened, edited, review_requested, review_request_removed]
-    if: "github.event_name == 'pull_request_target' && contains(fromJSON('[\"assigned\",\"unassigned\",\"opened\",\"closed\",\"reopened\",\"edited\",\"review_requested\",\"review_request_removed\"]'), github.event.action)"
-    secrets:
-      LE_BOT_APP_ID: required
-      LE_BOT_PRIVATE_KEY: required
-      CONTRIBUTIONS_SPREADSHEET_ID: optional
-      CONTRIBUTIONS_SHEET_NAME: optional
-      GH_UPLOADER_GCP_SA_CREDENTIALS: optional
   - name: community-contribution-label
     enabled: true
     leaf: community-contribution-label.yml

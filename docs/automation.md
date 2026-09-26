@@ -1,28 +1,38 @@
 # Automation entry point
 
 Every learningequality repo that wants our shared bot automations (review-request routing,
-contributor replies, issue header management, the community-contribution spreadsheet, etc.)
-copies a single file: `automation-template.yml`. There is nothing else to maintain per repo —
-no per-automation caller, no hand-written `on:` block to keep in sync.
+contributor replies, issue header management, etc.) copies a single file: `automation-template.yml`.
+There is nothing else to maintain per repo — no per-automation caller, no hand-written `on:` block
+to keep in sync.
+
+The community-contribution spreadsheet is not one of them. `update-pr-spreadsheet.yml` runs daily
+in this repo and upserts every public contributor PR in the org updated in the last two days. Run it
+by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
 
 ## How it fits together
 
 ```
 consumer repo's .github/workflows/automation.yml   (copy of automation-template.yml)
-  -> .github/workflows/automation.yml               (this repo, reusable, one job per automation)
-       -> leaf workflow (e.g. review-requested.yml)
-            -> is-contributor.yml                   (where applicable)
+  -> .github/workflows/automation.yml               (this repo, reusable)
+       -> automation-group-<events>.yml             (automations sharing trigger events)
+            -> leaf workflow (e.g. review-requested.yml)
+                 -> is-contributor.yml              (where applicable)
 ```
 
-That's 4 levels deep, GitHub's maximum for reusable workflow nesting - `automation.yml` calls
-leaf workflows directly rather than going through an intermediate dispatcher.
+GitHub posts a check on the PR for every job in a run, even a skipped one, but a skipped call to a
+reusable workflow posts only one. Automations sharing trigger events therefore sit behind one group
+job, so an event expands only the group it can match. An automation alone on its events is called
+directly from `automation.yml`.
+
+GitHub allows 10 levels of nesting and 50 reusable workflow calls per run.
 
 `automation-registry.yml` is the single source of truth: one entry per automation, declaring its
 leaf workflow, the events/types (or schedule) that should trigger it, the `if:` condition used to
 dispatch it, which secrets it needs, and its job-level permissions (defaults to `contents: read`). `scripts/generate-automation.js`
 reads the registry and writes:
 
-- `.github/workflows/automation.yml` - the reusable workflow jobs
+- `.github/workflows/automation.yml` and `.github/workflows/automation-group-*.yml` - the reusable
+  workflow jobs
 - `automation-template.yml` - the file every consumer repo copies, including the generated
   exhaustive `on:` block (the union of every enabled automation's events/types)
 - `.github/workflows/automation-caller.yml` - this repo's own copy of the template, so `.github`
@@ -43,9 +53,6 @@ No edits required. Then set the secrets:
 | `LE_BOT_PRIVATE_KEY` | yes | GitHub App private key for bot authentication |
 | `SLACK_WEBHOOK_URL` | no | Slack `#support-dev` channel webhook |
 | `SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL` | no | Slack `#support-dev-notifications` channel webhook |
-| `CONTRIBUTIONS_SPREADSHEET_ID` | no | Google Sheets spreadsheet ID for PR tracking |
-| `CONTRIBUTIONS_SHEET_NAME` | no | Sheet name within the spreadsheet |
-| `GH_UPLOADER_GCP_SA_CREDENTIALS` | no | GCP service account credentials for Sheets access |
 
 Every automation except `resolve-bot-pr-threads` authenticates as `learning-equality-bot[bot]`, the
 GitHub App behind `LE_BOT_APP_ID`, so the two required secrets must be set. `resolve-bot-pr-threads`
@@ -61,8 +68,8 @@ leaf workflow as an empty string, and every automation that needs it fails at ru
 1. Edit `automation-registry.yml`: add a new entry, or flip an existing one's `enabled: true/false`
    (e.g. to switch `holiday-message` on/off seasonally - no per-repo changes needed, every consumer
    picks it up the next time they pull `automation.yml@main`).
-2. Run `node scripts/generate-automation.js` to regenerate `automation.yml`, `automation-template.yml`,
-   and `automation-caller.yml`.
+2. Run `node scripts/generate-automation.js` to regenerate `automation.yml`, the group workflows,
+   `automation-template.yml`, and `automation-caller.yml`.
 3. Commit the registry change together with the regenerated files (pre-commit will refuse the
    commit otherwise).
 4. If the change adds a new event/type that no existing automation triggers on, every consumer repo
