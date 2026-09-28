@@ -196,6 +196,50 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
 }
 
 /**
+ * Fetches the issues a pull request is linked to. GitHub only records a link here
+ * when the description uses a closing keyword, so a bare '#123' returns nothing.
+ */
+async function getLinkedIssues(prNumber, { github, context, core }) {
+  const query = `
+    query ($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          closingIssuesReferences(first: 10) {
+            nodes {
+              number
+              title
+              url
+              assignees(first: 10) {
+                nodes {
+                  login
+                }
+              }
+            }
+          }
+        }
+      }
+    }`;
+
+  try {
+    const { repository } = await github.graphql(query, {
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      number: prNumber,
+    });
+    const nodes = repository?.pullRequest?.closingIssuesReferences?.nodes || [];
+    return nodes.map(issue => ({
+      number: issue.number,
+      title: issue.title,
+      url: issue.url,
+      assignees: (issue.assignees?.nodes || []).map(assignee => assignee.login),
+    }));
+  } catch (error) {
+    core.warning(`Failed to fetch linked issues for #${prNumber}: ${error.message}`);
+    return [];
+  }
+}
+
+/**
  * Fetches issues assigned to an assignee in given repositories.
  */
 async function getIssues(assignee, state, owner, repos, github, core) {
@@ -343,6 +387,7 @@ module.exports = {
   hasRecentBotComment,
   getLabels,
   hasLabel,
+  getLinkedIssues,
   getIssues,
   getPullRequests,
   deleteBotComments,
