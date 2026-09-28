@@ -1,33 +1,21 @@
 name: Update community pull requests spreadsheet
 on:
-  workflow_call:
-    secrets:
-      LE_BOT_APP_ID:
-        description: 'GitHub App ID for authentication'
-        required: true
-      LE_BOT_PRIVATE_KEY:
-        description: 'GitHub App Private Key for authentication'
-        required: true
-      CONTRIBUTIONS_SPREADSHEET_ID:
-        required: true
-      CONTRIBUTIONS_SHEET_NAME:
-        required: true
-      GH_UPLOADER_GCP_SA_CREDENTIALS:
-        required: true
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Include PRs updated in the last N days'
+        default: '2'
+      dry_run:
+        description: 'Log the rows instead of writing them'
+        type: boolean
+        default: false
+permissions:
+  contents: read
 jobs:
-  check-if-contributor:
-    name: Check if author is contributor
-    uses: learningequality/.github/.github/workflows/is-contributor.yml@main
-    secrets:
-      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
-      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-    with:
-      username: ${{ github.event.pull_request.user.login }}
-      author_association: ${{ github.event.pull_request.author_association }}
   update-spreadsheet:
-    needs: [check-if-contributor]
     runs-on: ubuntu-latest
-    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     steps:
       - name: Generate App Token
         id: generate-token
@@ -38,9 +26,7 @@ jobs:
       - name: Checkout .github repository
         uses: actions/checkout@v7
         with:
-          repository: learningequality/.github
-          ref: main
-          token: ${{ steps.generate-token.outputs.token }}
+          persist-credentials: false
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -59,3 +45,5 @@ jobs:
           CONTRIBUTIONS_SPREADSHEET_ID: ${{ secrets.CONTRIBUTIONS_SPREADSHEET_ID }}
           CONTRIBUTIONS_SHEET_NAME: ${{ secrets.CONTRIBUTIONS_SHEET_NAME }}
           GOOGLE_CREDENTIALS: ${{ secrets.GH_UPLOADER_GCP_SA_CREDENTIALS }}
+          LOOKBACK_DAYS: ${{ inputs.days || '2' }}
+          DRY_RUN: ${{ inputs.dry_run || false }}

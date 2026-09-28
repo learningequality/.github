@@ -18,8 +18,8 @@ the `if:` condition on each job did not match, so check the event first.
 
 Some automations run only when `is-contributor` is true, meaning the author is not a member of the
 organization. An org member cannot trigger them, so they skip. These are `review-requested`,
-`pull-request-label`, `contributor-pr-reply`, `contributor-issue-comment`, and
-`update-pr-spreadsheet`, plus `holiday-message` when enabled.
+`pull-request-label`, `contributor-pr-reply`, and `contributor-issue-comment`, plus
+`holiday-message` when enabled.
 
 Use a second GitHub account that is not in the organization. It needs no permissions, secrets, or
 app. To open a pull request, fork `test-actions` and open one back to it. `pull_request_target` then
@@ -28,9 +28,11 @@ no fork is needed.
 
 Keep that account out of the organization. Adding it makes these automations skip again.
 
-`update-pr-spreadsheet` writes to a test sheet rather than the production sheet because
-`CONTRIBUTIONS_SPREADSHEET_ID` and `CONTRIBUTIONS_SHEET_NAME` are set as repository secrets there. A
-repository secret takes precedence over an organization secret with the same name.
+## Testing the spreadsheet update
+
+`update-pr-spreadsheet` runs in `.github`, not `test-actions`, and writes to the production sheet.
+Test it from a branch with `gh workflow run update-pr-spreadsheet.yml --ref <branch> -f dry_run=true`,
+which logs the rows it would write.
 
 ## Testing the sync workflow
 
@@ -49,6 +51,9 @@ differs from the template, then run it with `only: test-actions`.
 Point a caller at your branch, for example:
 
 `uses: learningequality/.github/.github/workflows/automation.yml@my-branch`
+
+Only that file comes from the branch. What it calls still comes from `main`, so to test a changed
+group or leaf workflow, point the caller at that file instead.
 
 Put that caller at a path other than `.github/workflows/automation.yml`. The sync reads exactly that
 path, so a branch-pinned caller there looks like drift and gets a pull request on every run.
