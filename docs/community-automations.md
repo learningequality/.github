@@ -66,14 +66,12 @@ Sends reply to a community pull request, and acts on the issue that pull request
 What happens depends on who the linked issue is assigned to:
 
 - assigned to someone else: posts a closing message instead of the reply, closes the pull request, and notifies Slack
-- assigned to the author: requests `rtibblesbot` for review, adds the `community-review` label, then sends the reply
+- assigned to the author: sends the reply, then requests `rtibblesbot` for review and adds the `community-review` label
 - not assigned, or no issue linked: sends the reply
 
 An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
 
 If a pull request links more than one issue, only the one assigned to the author is considered, so the pull request is not closed.
-
-`review-requested` and `pull-request-label` post their own notes when a person requests the review or adds the label. They skip the note when the bot did it, because the reply already carries that text.
 
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
