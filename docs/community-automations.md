@@ -61,18 +61,23 @@ In `scripts/constants.js` set:
 
 # `contributor-pr-reply`
 
-Sends reply to a community pull requests, and acts on the issues the pull request closes.
+Sends reply to a community pull request, and acts on the issue that pull request closes.
 
-Linked issues come from the GraphQL `closingIssuesReferences` field, so only a closing keyword counts. A bare `#123` links nothing, and the pull request falls to the last case below.
+What happens depends on who the linked issue is assigned to:
 
-- A linked issue is assigned to someone else, and none is assigned to the author: sends the closing message, closes the pull request, and notifies Slack. The reply is not sent
-- A linked issue is assigned to the author: requests `rtibblesbot` for review, adds the `community-review` label, then sends the reply
-- Anything else: sends the reply
+- assigned to someone else: posts a closing message instead of the reply, closes the pull request, and notifies Slack
+- assigned to the author: requests `rtibblesbot` for review, adds the `community-review` label, then sends the reply
+- not assigned, or no issue linked: sends the reply
+
+An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
+
+If a pull request links more than one issue, only the one assigned to the author is considered, so the pull request is not closed.
 
 `review-requested` and `pull-request-label` post their own notes when a person requests the review or adds the label. They skip the note when the bot did it, because the reply already carries that text.
 
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
+- `BOT_MESSAGE_LINK_ISSUE`: Text added when no issue is linked
 - `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message text
 
 # `holiday-message`

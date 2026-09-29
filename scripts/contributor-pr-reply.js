@@ -1,5 +1,6 @@
 const {
   BOT_MESSAGE_PULL_REQUEST,
+  BOT_MESSAGE_LINK_ISSUE,
   BOT_MESSAGE_PULL_REQUEST_CLOSED,
   LABEL_COMMUNITY_REVIEW,
   RTIBBLESBOT_USERNAME,
@@ -55,7 +56,9 @@ module.exports = async ({ github, context, core }) => {
       });
     }
 
-    const botMessageUrl = await sendBotMessage(number, BOT_MESSAGE_PULL_REQUEST(author), {
+    const reply =
+      BOT_MESSAGE_PULL_REQUEST(author) + (linkedIssues.length ? '' : BOT_MESSAGE_LINK_ISSUE);
+    const botMessageUrl = await sendBotMessage(number, reply, {
       github,
       context,
       core,

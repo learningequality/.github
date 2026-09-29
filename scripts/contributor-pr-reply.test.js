@@ -172,6 +172,20 @@ test('a linked issue with no assignee leaves the pull request alone', async () =
   assert.deepEqual(github.calls.labels, []);
 });
 
+test('an unlinked pull request is asked to link an issue', async () => {
+  const github = fakeGithub([]);
+  await run(github);
+
+  assert.match(github.calls.comments[0].body, /link one under \*\*References\*\*/);
+});
+
+test('a linked pull request is not asked to link an issue', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [] }]);
+  await run(github);
+
+  assert.doesNotMatch(github.calls.comments[0].body, /link one under/);
+});
+
 test('a failed lookup falls back to the standard reply', async () => {
   const github = fakeGithub([], { graphqlError: 'API down' });
   const core = await run(github);
