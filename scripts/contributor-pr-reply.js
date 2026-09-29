@@ -56,8 +56,9 @@ module.exports = async ({ github, context, core }) => {
       });
     }
 
-    const reply =
-      BOT_MESSAGE_PULL_REQUEST(author) + (linkedIssues.length ? '' : BOT_MESSAGE_LINK_ISSUE);
+    const reply = linkedIssues.length
+      ? BOT_MESSAGE_PULL_REQUEST(author)
+      : `${BOT_MESSAGE_PULL_REQUEST(author)}\n\n${BOT_MESSAGE_LINK_ISSUE}`;
     const botMessageUrl = await sendBotMessage(number, reply, {
       github,
       context,
