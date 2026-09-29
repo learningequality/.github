@@ -43,7 +43,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
     const reply =
-      lookup && linkedIssues.length === 0
+      lookup !== null && lookup.length === 0
         ? `${BOT_MESSAGE_PULL_REQUEST(author)}\n\n${BOT_MESSAGE_LINK_ISSUE}`
         : BOT_MESSAGE_PULL_REQUEST(author);
     const botMessageUrl = await sendBotMessage(number, reply, {
@@ -60,18 +60,22 @@ module.exports = async ({ github, context, core }) => {
     }
 
     if (authorAssigned) {
-      await github.rest.pulls.requestReviewers({
-        owner,
-        repo,
-        pull_number: number,
-        reviewers: [RTIBBLESBOT_USERNAME],
-      });
-      await github.rest.issues.addLabels({
-        owner,
-        repo,
-        issue_number: number,
-        labels: [LABEL_COMMUNITY_REVIEW],
-      });
+      try {
+        await github.rest.pulls.requestReviewers({
+          owner,
+          repo,
+          pull_number: number,
+          reviewers: [RTIBBLESBOT_USERNAME],
+        });
+        await github.rest.issues.addLabels({
+          owner,
+          repo,
+          issue_number: number,
+          labels: [LABEL_COMMUNITY_REVIEW],
+        });
+      } catch (error) {
+        core.setFailed(`Failed to request review or add the label: ${error.message}`);
+      }
     }
   } catch (error) {
     core.setOutput('slack_notification', '');

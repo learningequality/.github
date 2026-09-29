@@ -143,6 +143,7 @@ test('a failed review request still leaves the reply in place', async () => {
 
   assert.equal(github.calls.comments.length, 1);
   assert.equal(core.failures.length, 1);
+  assert.match(core.outputs.slack_notification, /Reply sent/);
 });
 
 test('the standard reply carries the review language', async () => {
