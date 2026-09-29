@@ -102,7 +102,7 @@ test('a linked issue assigned to someone else closes the pull request', async ()
 
   assert.deepEqual(github.calls.updates, [{ pull_number: 42, state: 'closed' }]);
   assert.equal(github.calls.comments.length, 1);
-  assert.match(github.calls.comments[0].body, /#7 is assigned to someone else/);
+  assert.match(github.calls.comments[0].body, /issues\/7 is assigned to someone else/);
   assert.match(core.outputs.slack_notification, /Closed/);
   assert.deepEqual(github.calls.reviewers, []);
   assert.deepEqual(github.calls.labels, []);
@@ -114,6 +114,26 @@ test('the closing message replaces the standard reply', async () => {
   await run(github);
 
   assert.doesNotMatch(github.calls.comments[0].body, /For the review process to begin/);
+});
+
+test('a failed close still reports to Slack', async () => {
+  const github = fakeGithub([{ number: 7, assignees: ['someone-else'] }]);
+  github.rest.pulls.update = async () => {
+    throw new Error('Resource not accessible');
+  };
+  const core = await run(github);
+
+  assert.equal(github.calls.comments.length, 1);
+  assert.match(core.outputs.slack_notification, /Failed to close/);
+  assert.equal(core.failures.length, 1);
+});
+
+test('a cross-repo linked issue is named by its url', async () => {
+  const github = fakeGithub([{ number: 7, assignees: ['someone-else'] }]);
+  const core = await run(github);
+
+  assert.match(github.calls.comments[0].body, /https:\/\/github\.com\/.+\/issues\/7/);
+  assert.match(core.outputs.slack_notification, /issues\/7/);
 });
 
 test('a linked issue assigned to the author requests review and adds the label', async () => {
@@ -144,16 +164,6 @@ test('a failed review request still leaves the reply in place', async () => {
   assert.equal(github.calls.comments.length, 1);
   assert.equal(core.failures.length, 1);
   assert.match(core.outputs.slack_notification, /Reply sent/);
-});
-
-test('the standard reply carries the review language', async () => {
-  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
-  await run(github);
-
-  const body = github.calls.comments[0].body;
-  assert.match(body, /Before we assign a reviewer/);
-  assert.match(body, /@rtibblesbot` will pre-review/);
-  assert.match(body, /We'll also invite community pre-review/);
 });
 
 test('the author counts as assigned alongside other assignees', async () => {

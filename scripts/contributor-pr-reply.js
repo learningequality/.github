@@ -26,19 +26,27 @@ module.exports = async ({ github, context, core }) => {
     if (!authorAssigned && assignedElsewhere) {
       const botMessageUrl = await sendBotMessage(
         number,
-        BOT_MESSAGE_PULL_REQUEST_CLOSED(author, assignedElsewhere.number),
+        BOT_MESSAGE_PULL_REQUEST_CLOSED(author, assignedElsewhere.url),
         { github, context, core },
       );
-      await github.rest.pulls.update({
-        owner,
-        repo,
-        pull_number: number,
-        state: 'closed',
-      });
-      core.setOutput(
-        'slack_notification',
-        `*[${repo}] <${botMessageUrl}|Closed> pull request on assigned issue #${assignedElsewhere.number}: <${url}|${title}>*`,
-      );
+      try {
+        await github.rest.pulls.update({
+          owner,
+          repo,
+          pull_number: number,
+          state: 'closed',
+        });
+        core.setOutput(
+          'slack_notification',
+          `*[${repo}] <${botMessageUrl}|Closed> pull request on assigned issue <${assignedElsewhere.url}|#${assignedElsewhere.number}>: <${url}|${title}>*`,
+        );
+      } catch (error) {
+        core.setOutput(
+          'slack_notification',
+          `*[${repo}] Failed to close pull request <${url}|${title}>, but the closing message was posted*`,
+        );
+        core.setFailed(`Failed to close the pull request: ${error.message}`);
+      }
       return;
     }
 

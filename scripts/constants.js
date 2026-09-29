@@ -145,8 +145,8 @@ const BOT_MESSAGE_PULL_REQUEST = author =>
 
 const BOT_MESSAGE_LINK_ISSUE = `**📎 We couldn't find an issue linked to this pull request.** Please edit the description and link one under **References**, for example \`Fixes #123\` or \`Closes #123\`. A plain \`#123\` mention doesn't link the PR to the issue.`;
 
-const BOT_MESSAGE_PULL_REQUEST_CLOSED = (author, issueNumber) =>
-  `👋 Hi @${author}, thanks for your interest! \n\n **We're closing this pull request because #${issueNumber} is assigned to someone else.** Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues. If there are no unassigned 'help wanted' issues available, please wait until new ones are added. \n\n We really appreciate your willingness to help. 😊${GSOC_NOTE}`;
+const BOT_MESSAGE_PULL_REQUEST_CLOSED = (author, issueUrl) =>
+  `👋 Hi @${author}, thanks for your interest! \n\n **We're closing this pull request because ${issueUrl} is assigned to someone else.** Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process and how to find suitable issues. If there are no unassigned 'help wanted' issues available, please wait until new ones are added. \n\n We really appreciate your willingness to help. 😊${GSOC_NOTE}`;
 
 const HOLIDAY_MESSAGE = `Season's greetings! 👋 \n\n We'd like to thank everyone for another year of fruitful collaborations, engaging discussions, and for the continued support of our work. **Learning Equality will be on holidays from December 22 to January 5.** We look forward to much more in the new year and wish you a very happy holiday season!${GSOC_NOTE}`;
 

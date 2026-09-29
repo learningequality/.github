@@ -71,7 +71,7 @@ What happens depends on who the linked issue is assigned to:
 
 An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
 
-If a pull request links more than one issue, only the one assigned to the author is considered, so the pull request is not closed.
+If the author is assigned to any linked issue, the pull request is not closed.
 
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
