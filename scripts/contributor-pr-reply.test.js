@@ -42,7 +42,7 @@ function fakeCore() {
 }
 
 function fakeGithub(linkedIssues = [], { graphqlError } = {}) {
-  const calls = { comments: [], updates: [], reviewers: [], labels: [] };
+  const calls = { comments: [], updates: [], reviewers: [], labels: [], order: [] };
   return {
     calls,
     graphql: async () => {
@@ -68,18 +68,22 @@ function fakeGithub(linkedIssues = [], { graphqlError } = {}) {
       issues: {
         createComment: async ({ issue_number, body }) => {
           calls.comments.push({ issue_number, body });
+          calls.order.push('comment');
           return { data: { html_url: 'https://github.com/learningequality/kolibri/pull/42#c1' } };
         },
         addLabels: async ({ labels }) => {
           calls.labels.push(...labels);
+          calls.order.push('label');
         },
       },
       pulls: {
         update: async ({ pull_number, state }) => {
           calls.updates.push({ pull_number, state });
+          calls.order.push('close');
         },
         requestReviewers: async ({ reviewers }) => {
           calls.reviewers.push(...reviewers);
+          calls.order.push('review');
         },
       },
     },
@@ -121,6 +125,24 @@ test('a linked issue assigned to the author requests review and adds the label',
   assert.deepEqual(github.calls.updates, []);
   assert.match(github.calls.comments[0].body, /For the review process to begin/);
   assert.match(core.outputs.slack_notification, /Reply sent/);
+});
+
+test('the reply is sent before the review request and the label', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
+  await run(github);
+
+  assert.deepEqual(github.calls.order, ['comment', 'review', 'label']);
+});
+
+test('a failed review request still leaves the reply in place', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
+  github.rest.pulls.requestReviewers = async () => {
+    throw new Error('Reviewer cannot be requested');
+  };
+  const core = await run(github);
+
+  assert.equal(github.calls.comments.length, 1);
+  assert.equal(core.failures.length, 1);
 });
 
 test('the standard reply carries the review language', async () => {
@@ -196,4 +218,11 @@ test('a failed lookup falls back to the standard reply', async () => {
   assert.equal(core.warnings.length, 1);
   assert.match(core.warnings[0], /API down/);
   assert.deepEqual(core.failures, []);
+});
+
+test('a failed lookup does not ask the author to link an issue', async () => {
+  const github = fakeGithub([], { graphqlError: 'API down' });
+  await run(github);
+
+  assert.doesNotMatch(github.calls.comments[0].body, /link one under/);
 });

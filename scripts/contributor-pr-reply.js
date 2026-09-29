@@ -16,7 +16,8 @@ module.exports = async ({ github, context, core }) => {
     const title = context.payload.pull_request.title;
     const author = context.payload.pull_request.user.login;
 
-    const linkedIssues = await getLinkedIssues(number, { github, context, core });
+    const lookup = await getLinkedIssues(number, { github, context, core });
+    const linkedIssues = lookup || [];
     const authorAssigned = linkedIssues.some(issue => issue.assignees.includes(author));
     const assignedElsewhere = linkedIssues.find(
       issue => issue.assignees.length > 0 && !issue.assignees.includes(author),
@@ -41,6 +42,23 @@ module.exports = async ({ github, context, core }) => {
       return;
     }
 
+    const reply =
+      lookup && linkedIssues.length === 0
+        ? `${BOT_MESSAGE_PULL_REQUEST(author)}\n\n${BOT_MESSAGE_LINK_ISSUE}`
+        : BOT_MESSAGE_PULL_REQUEST(author);
+    const botMessageUrl = await sendBotMessage(number, reply, {
+      github,
+      context,
+      core,
+    });
+
+    if (botMessageUrl) {
+      const slackMessage = `*[${repo}] <${botMessageUrl}|Reply sent> on pull request: <${url}|${title}>*`;
+      core.setOutput('slack_notification', slackMessage);
+    } else {
+      core.setOutput('slack_notification', '');
+    }
+
     if (authorAssigned) {
       await github.rest.pulls.requestReviewers({
         owner,
@@ -54,22 +72,6 @@ module.exports = async ({ github, context, core }) => {
         issue_number: number,
         labels: [LABEL_COMMUNITY_REVIEW],
       });
-    }
-
-    const reply = linkedIssues.length
-      ? BOT_MESSAGE_PULL_REQUEST(author)
-      : `${BOT_MESSAGE_PULL_REQUEST(author)}\n\n${BOT_MESSAGE_LINK_ISSUE}`;
-    const botMessageUrl = await sendBotMessage(number, reply, {
-      github,
-      context,
-      core,
-    });
-
-    if (botMessageUrl) {
-      const slackMessage = `*[${repo}] <${botMessageUrl}|Reply sent> on pull request: <${url}|${title}>*`;
-      core.setOutput('slack_notification', slackMessage);
-    } else {
-      core.setOutput('slack_notification', '');
     }
   } catch (error) {
     core.setOutput('slack_notification', '');

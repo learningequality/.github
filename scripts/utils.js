@@ -196,8 +196,9 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
 }
 
 /**
- * Fetches the issues a pull request is linked to. GitHub only records a link here
- * when the description uses a closing keyword, so a bare '#123' returns nothing.
+ * Fetches the issues a pull request is linked to, or null when the lookup fails.
+ * GitHub only records a link here when the description uses a closing keyword,
+ * so a bare '#123' returns nothing.
  */
 async function getLinkedIssues(prNumber, { github, context, core }) {
   const query = `
@@ -207,8 +208,6 @@ async function getLinkedIssues(prNumber, { github, context, core }) {
           closingIssuesReferences(first: 10) {
             nodes {
               number
-              title
-              url
               assignees(first: 10) {
                 nodes {
                   login
@@ -229,13 +228,11 @@ async function getLinkedIssues(prNumber, { github, context, core }) {
     const nodes = repository?.pullRequest?.closingIssuesReferences?.nodes || [];
     return nodes.map(issue => ({
       number: issue.number,
-      title: issue.title,
-      url: issue.url,
       assignees: (issue.assignees?.nodes || []).map(assignee => assignee.login),
     }));
   } catch (error) {
     core.warning(`Failed to fetch linked issues for #${prNumber}: ${error.message}`);
-    return [];
+    return null;
   }
 }
 
