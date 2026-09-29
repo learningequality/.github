@@ -54,7 +54,7 @@ jobs:
             const script = require('./scripts/contributor-pr-reply.js');
             return await script({ github, context, core });
       - name: Send Slack notification
-        if: ${{ steps.script.outputs.slack_notification != ''}}
+        if: ${{ !cancelled() && steps.script.outputs.slack_notification != '' }}
         uses: slackapi/slack-github-action@v4.0.0
         with:
           webhook-type: incoming-webhook

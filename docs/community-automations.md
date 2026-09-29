@@ -61,10 +61,22 @@ In `scripts/constants.js` set:
 
 # `contributor-pr-reply`
 
-Sends reply to a community pull requests.
+Sends reply to a community pull request, and acts on the issue that pull request closes.
 
-In `scripts/contants.js` set:
+What happens depends on who the linked issue is assigned to:
+
+- assigned to someone else: posts a closing message instead of the reply, closes the pull request, and notifies Slack
+- assigned to the author: sends the reply, then requests `rtibblesbot` for review and adds the `community-review` label
+- not assigned, or no issue linked: sends the reply
+
+An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
+
+If the author is assigned to any linked issue, the pull request is not closed.
+
+In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
+- `BOT_MESSAGE_LINK_ISSUE`: Text added when no issue is linked
+- `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message text
 
 # `holiday-message`
 
