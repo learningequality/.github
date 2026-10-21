@@ -1,5 +1,5 @@
 <!--
- 1. REQUIRED: Always fill in the AI usage section at the bottom
+ 1. REQUIRED: Fill in every section marked REQUIRED, including AI usage at the bottom
  2. Following guidance below, replace …'s with your own words
  3. After saving the PR, tick of completed checklist items
  4. Skip checklist items that are not applicable or not necessary
@@ -7,6 +7,7 @@
 -->
 
 ## Summary
+<!-- REQUIRED -->
 <!--
  * headline description of the change
  * motivation for the change
@@ -16,6 +17,7 @@
 …
 
 ## References
+<!-- REQUIRED -->
 <!--
  * references to related issues and PRs
 -->
@@ -23,6 +25,7 @@
 …
 
 ## Reviewer guidance
+<!-- REQUIRED -->
 <!--
  * manual verification steps you have performed
  * anything additional a reviewer can do to test these changes?
@@ -33,9 +36,9 @@
 
 …
 
+## AI usage
+<!-- REQUIRED -->
 <!--
-AI USAGE - REQUIRED
-
 State explicitly whether you didn't use or used AI & how.
 
 If you used it, ensure that the PR is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai as well) as well as our DEEP framework. DEEP asks you:
@@ -57,5 +60,3 @@ Examples of good disclosures:
   verbosity and ran the full test suite."
 
 -->
-
-## AI usage

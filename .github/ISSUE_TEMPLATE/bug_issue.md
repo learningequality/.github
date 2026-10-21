@@ -69,9 +69,9 @@ Tell us about your environment, including:
 
 …
 
+## AI usage
+<!-- REQUIRED -->
 <!--
-AI USAGE - REQUIRED
-
 State explicitly whether you didn't use or used AI & how.
 
 If you used it, ensure that the issue is aligned with [Using AI](https://learningequality.org/contributing-to-our-open-code-base/#using-generative-ai as well) as well as our DEEP framework. DEEP asks you:
@@ -92,5 +92,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage
