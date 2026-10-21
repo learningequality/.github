@@ -1,3 +1,4 @@
+<!-- learningequality/.github shared pull request template. Edit it there, not in a copy. -->
 <!--
  1. REQUIRED: Always fill in the AI usage section at the bottom
  2. Following guidance below, replace …'s with your own words
