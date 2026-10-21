@@ -7,6 +7,7 @@
 -->
 
 ## Summary
+<!-- REQUIRED -->
 <!--
  * headline description of the change
  * motivation for the change
@@ -16,6 +17,7 @@
 …
 
 ## References
+<!-- REQUIRED -->
 <!--
  * references to related issues and PRs
 -->
@@ -23,6 +25,7 @@
 …
 
 ## Reviewer guidance
+<!-- REQUIRED -->
 <!--
  * manual verification steps you have performed
  * anything additional a reviewer can do to test these changes?
@@ -59,3 +62,4 @@ Examples of good disclosures:
 -->
 
 ## AI usage
+<!-- REQUIRED -->
