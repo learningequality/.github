@@ -5,14 +5,14 @@ contributor replies, issue header management, etc.) copies a single file: `autom
 There is nothing else to maintain per repo — no per-automation caller, no hand-written `on:` block
 to keep in sync.
 
+The community-contribution spreadsheet is not one of those automations. `update-pr-spreadsheet.yml`
+runs daily in this repo and upserts every public contributor PR in the org updated in the last two
+days. Run it by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
+
 The sync workflow also manages `.github/PULL_REQUEST_TEMPLATE.md`. GitHub applies the org-level default
 template only in the web form, so pull requests created via `gh pr create`, the API, or coding agents
 don't automatically use it. Keeping a copy in the consumer repository ensures these tools can find it
 locally. Repositories with their own pull request template retain it and don't receive the synced copy.
-
-The community-contribution spreadsheet is not synced this way. `update-pr-spreadsheet.yml` runs daily
-in this repo and upserts every public contributor PR in the org updated in the last two days. Run it
-by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
 
 ## How it fits together
 
