@@ -93,11 +93,12 @@ A section is required when its heading carries a `<!-- REQUIRED -->` comment in 
 
 A template that marks no section requires every level-two heading, so a repo is strict rather than silently unchecked. To change what a repo requires, edit the markers in that repo's template. No change here is needed.
 
-Three states fail, and the log names every one of them rather than stopping at the first:
+Four states fail, and the log names every one of them rather than stopping at the first:
 
 - the heading is missing from the description
 - the section holds no text, once HTML comments are stripped
 - the section still holds the `…` placeholder
+- the section still reads word for word as the template wrote it
 
 The failed check is the only report. Nothing is posted on the pull request.
 

@@ -32,10 +32,10 @@ function isMarked(section) {
 
 // A template that marks nothing requires every section, so a repo whose template
 // has no markers is strict rather than unchecked.
-function requiredHeadings(template) {
+function requiredSections(template) {
   const all = sections(template);
   const marked = all.filter(isMarked);
-  return (marked.length ? marked : all).map(section => section.heading);
+  return marked.length ? marked : all;
 }
 
 function content(section) {
@@ -45,7 +45,7 @@ function content(section) {
 function failures(body, required) {
   const found = new Map(sections(body).map(section => [section.heading.toLowerCase(), section]));
   const problems = [];
-  for (const heading of required) {
+  for (const { heading, lines } of required) {
     const section = found.get(heading.toLowerCase());
     if (!section) {
       problems.push(`\`${heading}\` is missing.`);
@@ -58,6 +58,8 @@ function failures(body, required) {
       // The template puts the placeholder on a line of its own, so an ellipsis
       // inside a sentence is prose rather than an unfilled section.
       problems.push(`\`${heading}\` still holds the \`${PLACEHOLDER}\` placeholder.`);
+    } else if (text === content({ lines })) {
+      problems.push(`\`${heading}\` still holds the text from the template.`);
     }
   }
   return problems;
@@ -112,7 +114,7 @@ module.exports = async ({ github, context, core }) => {
       core.info('No template in this repo, so the shared template applies.');
     }
 
-    const required = requiredHeadings(template);
+    const required = requiredSections(template);
     if (!required.length) {
       core.warning('The template holds no sections, so there is nothing to check.');
       return;
@@ -130,7 +132,8 @@ module.exports = async ({ github, context, core }) => {
     core.setFailed(
       `The description does not follow the pull request template:\n` +
         problems.map(problem => `- ${problem}`).join('\n') +
-        `\n\nRequired: ${required.join(', ')}. Edit the description and the check runs again.`,
+        `\n\nRequired: ${required.map(section => section.heading).join(', ')}. ` +
+        `Edit the description and the check runs again.`,
     );
   } catch (error) {
     core.setFailed(`Action failed with error: ${error.message}`);

@@ -19,6 +19,20 @@ const MARKED = [
 
 const UNMARKED = ['## Summary', '', '…', '', '## Notes', '', 'anything', ''].join('\n');
 
+// Shaped like morango's template, which fills the section with prose rather than
+// with the placeholder.
+const PROSE_PLACEHOLDER = [
+  '## Summary',
+  '<!-- REQUIRED -->',
+  '',
+  '*Short description*',
+  '',
+  '## Notes',
+  '',
+  'anything',
+  '',
+].join('\n');
+
 const GOOD_BODY = ['## Summary', '', 'What this does.', '', '## Notes', '', 'A note.'].join('\n');
 
 // Satisfies the shared template, for the cases that fall back to it.
@@ -247,6 +261,29 @@ test('an unreadable candidate path skips the check rather than falling back', as
   assert.equal(core.warnings.length, 1);
   assert.match(core.warnings[0], /Could not read/);
   assert.deepEqual(core.failures, [], 'a body may follow a template this run could not read');
+});
+
+test('a section left as the template wrote it fails, placeholder or not', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(PROSE_PLACEHOLDER) }),
+    context: fakeContext({ body: '## Summary\n\n*Short description*\n' }),
+    core,
+  });
+
+  assert.equal(core.failures.length, 1);
+  assert.match(core.failures[0], /`## Summary` still holds the text from the template/);
+});
+
+test('rewriting that text passes', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(PROSE_PLACEHOLDER) }),
+    context: fakeContext({ body: '## Summary\n\nRetries the push on a timeout.\n' }),
+    core,
+  });
+
+  assert.deepEqual(core.failures, []);
 });
 
 test('an ellipsis inside a sentence is prose, not the placeholder', async () => {
