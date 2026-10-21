@@ -69,6 +69,7 @@ Tell us about your environment, including:
 
 …
 
+## AI usage
 <!--
 AI USAGE - REQUIRED
 
@@ -92,5 +93,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage

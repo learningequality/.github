@@ -13,6 +13,7 @@ about: For issues that don't fit any other category
 
 
 
+## AI usage
 <!--
 AI USAGE - REQUIRED
 
@@ -36,5 +37,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage

@@ -31,6 +31,7 @@ Instructions:
 <!-- (Optional) Explain possible issues/costs that could arise - if any - from implementing this enhancement -->
 
 
+## AI usage
 <!--
 AI USAGE - REQUIRED
 
@@ -54,5 +55,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage

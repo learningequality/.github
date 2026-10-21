@@ -28,6 +28,7 @@ _[Then, more detail. Provide a short summary and/or list key outcomes that the u
 ### Accessibility Requirements
 
 
+## AI usage
 <!--
 AI USAGE - REQUIRED
 
@@ -51,5 +52,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage

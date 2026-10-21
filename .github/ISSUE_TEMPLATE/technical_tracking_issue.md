@@ -53,6 +53,7 @@ Only include if there's a unifying test strategy across sub-tasks.
 Otherwise, leave testing guidance to individual task issues.
 -->
 
+## AI usage
 <!--
 AI USAGE - REQUIRED
 
@@ -76,5 +77,3 @@ Examples of good disclosures:
   the requirements in my own words."
 
 -->
-
-## AI usage
