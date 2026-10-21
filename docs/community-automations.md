@@ -82,7 +82,7 @@ In `scripts/constants.js` set:
 
 Fails the run when a pull request description does not carry the sections its template requires. It runs on `opened`, `edited` and `reopened`, so a corrected description clears the check. Bot authors are exempt.
 
-The template is resolved the way GitHub resolves it: the repo's own copy first, in all six places GitHub reads one from, and this repo's `.github/PULL_REQUEST_TEMPLATE.md` second. It is read from the pull request's base branch, so a pull request cannot relax the rules it is judged by.
+The template is resolved the way GitHub resolves it: the repo's own copy first, in all six places GitHub reads them from, and this repo's `.github/PULL_REQUEST_TEMPLATE.md` next. It is read from the pull request's base branch, so a pull request cannot relax the rules it is judged by.
 
 A section is required when its heading carries a `<!-- REQUIRED -->` comment in the template:
 
@@ -91,7 +91,7 @@ A section is required when its heading carries a `<!-- REQUIRED -->` comment in 
 <!-- REQUIRED -->
 ```
 
-A template that marks no section requires every level-two heading, so a repo is strict rather than silently unchecked. To change what a repo requires, edit the markers in that repo's template. No change here is needed.
+A template that marks no section requires every level-two heading, so that a repo is strict rather than silently unchecked. To change what a repo requires, edit the markers in that repo's template. No change is required here.
 
 Four states fail, and the log names every one of them rather than stopping at the first:
 

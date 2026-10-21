@@ -5,12 +5,12 @@ contributor replies, issue header management, etc.) copies a single file: `autom
 There is nothing else to maintain per repo — no per-automation caller, no hand-written `on:` block
 to keep in sync.
 
-The sync workflow carries one more file: `.github/PULL_REQUEST_TEMPLATE.md`. GitHub applies an org
-default template in the web form only, so a pull request opened with `gh pr create`, the API, or a
-coding agent never sees it. A copy in the consumer's checkout is where every tool looks. A repo
-holding a pull request template of its own keeps it and takes no copy.
+The sync workflow also manages `.github/PULL_REQUEST_TEMPLATE.md`. GitHub applies the org-level default
+template only in the web form, so pull requests created via `gh pr create`, the API, or coding agents
+don't automatically use it. Keeping a copy in the consumer repository ensures these tools can find it
+locally. Repositories with their own pull request template retain it and don't receive the synced copy.
 
-The community-contribution spreadsheet is not one of them. `update-pr-spreadsheet.yml` runs daily
+The community-contribution spreadsheet is not synced this way. `update-pr-spreadsheet.yml` runs daily
 in this repo and upserts every public contributor PR in the org updated in the last two days. Run it
 by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
 
@@ -100,21 +100,20 @@ every repo whose `.github/workflows/automation.yml` calls this repo's `automatio
 request targets that repo's default branch, which is the only branch GitHub evaluates workflow
 triggers from.
 
-For each consumer it compares each shared file with the copy and opens a pull request when any of
-them differ. A repo whose every file matches gets nothing, while a repo with an existing sync pull
-request has that pull request updated rather than a second one opened. One pull request carries
-every file that drifted.
+For each consumer, the workflow compares every shared file with its local copy and opens a pull
+request if any differ. Repositories with no drift are left unchanged, and existing sync pull
+requests are updated rather than duplicated. All changed files are included in a single pull request.
 
-A consumer that keeps a pull request template of its own is left alone for that file. The check
-covers all six places GitHub reads a template from, in both spellings, and a path it cannot read
-counts as a template of its own, so a failed read never overwrites a file this run could not see.
+A consumer's own pull request template is preserved. The workflow checks all six locations GitHub
+supports, in both filename spellings. If a path cannot be read, it is treated as an existing
+template to avoid overwriting a file the workflow could not inspect.
 
-`morango` keeps its own template at `.github/PULL_REQUEST_TEMPLATE.md`, which is the path the sync
-writes to, so existence alone cannot tell a copy of ours from a template of theirs. Our template
-opens with a marker comment naming this repo, and at that one path a file without the marker is
-treated as the consumer's own. Keep that line when editing
-[the template](../.github/PULL_REQUEST_TEMPLATE.md): without it the sync stops refreshing every
-copy it has already placed.
+`morango` keeps its own template at `.github/PULL_REQUEST_TEMPLATE.md`, the same path used for
+syncing ours. To distinguish them, our template starts with a marker comment identifying this
+repository. At this path, files without that marker are treated as consumer-owned.
+
+Keep the marker when editing [this repo's template](../.github/PULL_REQUEST_TEMPLATE.md). Without
+it, the workflow stops refreshing copies it previously synced.
 
 The workflow only proposes changes. It opens pull requests on a branch, never commits to a default
 branch, and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo
