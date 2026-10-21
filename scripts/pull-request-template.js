@@ -7,28 +7,15 @@ const fs = require('fs');
 const path = require('path');
 
 const { isBot } = require('./utils');
+const { PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
 
-const ORG_TEMPLATE_PATH = path.join(__dirname, '..', '.github', 'PULL_REQUEST_TEMPLATE.md');
-
-// The contents API is case sensitive, so both spellings are tried in each of the
-// three places GitHub reads a template from.
-const REPO_TEMPLATE_PATHS = [
-  '.github/pull_request_template.md',
-  '.github/PULL_REQUEST_TEMPLATE.md',
-  'pull_request_template.md',
-  'PULL_REQUEST_TEMPLATE.md',
-  'docs/pull_request_template.md',
-  'docs/PULL_REQUEST_TEMPLATE.md',
-];
+const ORG_TEMPLATE_PATH = path.join(__dirname, '..', PR_TEMPLATE_TARGET);
 
 const HEADING = /^## [^#]/;
 const REQUIRED_MARKER = /^\s*<!--\s*REQUIRED\s*-->\s*$/;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
 const PLACEHOLDER = '…';
 
-/**
- * Splits markdown on level-two headings, so a deeper heading stays in its section.
- */
 function sections(markdown) {
   const out = [];
   for (const line of (markdown || '').split('\n')) {
@@ -43,10 +30,8 @@ function isMarked(section) {
   return first !== undefined && REQUIRED_MARKER.test(first);
 }
 
-/**
- * The headings a body must carry. A template that marks none requires them all,
- * so a repo whose template has no markers is strict rather than unchecked.
- */
+// A template that marks nothing requires every section, so a repo whose template
+// has no markers is strict rather than unchecked.
 function requiredHeadings(template) {
   const all = sections(template);
   const marked = all.filter(isMarked);
@@ -57,9 +42,6 @@ function content(section) {
   return section.lines.join('\n').replace(HTML_COMMENT, '').trim();
 }
 
-/**
- * One message per required section the body does not satisfy.
- */
 function failures(body, required) {
   const found = new Map(sections(body).map(section => [section.heading.toLowerCase(), section]));
   const problems = [];
@@ -72,15 +54,23 @@ function failures(body, required) {
     const text = content(section);
     if (text === '') {
       problems.push(`\`${heading}\` is empty.`);
-    } else if (text.includes(PLACEHOLDER)) {
+    } else if (text.split('\n').some(line => line.trim() === PLACEHOLDER)) {
+      // The template puts the placeholder on a line of its own, so an ellipsis
+      // inside a sentence is prose rather than an unfilled section.
       problems.push(`\`${heading}\` still holds the \`${PLACEHOLDER}\` placeholder.`);
     }
   }
   return problems;
 }
 
+/**
+ * The repo's own template, `null` when it holds none, or `{ unreadable }` when a
+ * candidate path answered with anything but a 404. The repo may hold a template
+ * there, and judging the body against the shared one instead would fail a body
+ * that follows the template the author was given.
+ */
 async function readRepoTemplate({ github, context, core }, ref) {
-  for (const templatePath of REPO_TEMPLATE_PATHS) {
+  for (const templatePath of PR_TEMPLATE_PATHS) {
     try {
       const response = await github.rest.repos.getContent({
         owner: context.repo.owner,
@@ -90,15 +80,15 @@ async function readRepoTemplate({ github, context, core }, ref) {
       });
       if (response.data?.content) {
         core.info(`Checking against ${templatePath} on ${ref}.`);
-        return Buffer.from(response.data.content, 'base64').toString('utf8');
+        return { template: Buffer.from(response.data.content, 'base64').toString('utf8') };
       }
     } catch (error) {
       if (error.status !== 404) {
-        core.warning(`Could not read ${templatePath}: ${error.message}`);
+        return { unreadable: `${templatePath}: ${error.message}` };
       }
     }
   }
-  return null;
+  return { template: null };
 }
 
 module.exports = async ({ github, context, core }) => {
@@ -111,12 +101,14 @@ module.exports = async ({ github, context, core }) => {
       return;
     }
 
-    const repoTemplate = await readRepoTemplate(
-      { github, context, core },
-      pullRequest.base.ref,
-    );
-    const template = repoTemplate ?? fs.readFileSync(ORG_TEMPLATE_PATH, 'utf8');
-    if (!repoTemplate) {
+    const found = await readRepoTemplate({ github, context, core }, pullRequest.base.ref);
+    if (found.unreadable) {
+      core.warning(`Could not read ${found.unreadable}, so the template is not checked.`);
+      return;
+    }
+
+    const template = found.template ?? fs.readFileSync(ORG_TEMPLATE_PATH, 'utf8');
+    if (!found.template) {
       core.info('No template in this repo, so the shared template applies.');
     }
 

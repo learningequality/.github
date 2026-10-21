@@ -16,6 +16,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET, PR_TEMPLATE_MARKER } = require('./constants');
+
 const ROOT = path.join(__dirname, '..');
 
 // SYNC_ORG points the whole run at another org, so the write path can be
@@ -23,7 +25,6 @@ const ROOT = path.join(__dirname, '..');
 const ORG = process.env.SYNC_ORG || 'learningequality';
 const TARGET_PATH = '.github/workflows/automation.yml';
 const BRANCH = 'automation-template-sync';
-const TITLE = 'Refresh automation.yml from the shared template';
 const API = 'https://api.github.com';
 const CONSUMER_MARKER = 'workflows/automation.yml@';
 
@@ -53,17 +54,30 @@ function httpApi(token) {
   };
 }
 
-const EXPLANATION = [
-  `This replaces \`${TARGET_PATH}\` with the current \`automation-template.yml\` from`,
-  `[${ORG}/.github](https://github.com/${ORG}/.github).`,
-  '',
-  'The file is generated. Do not edit this copy: edit `automation-registry.yml` upstream',
-  'and regenerate, or the next sync will overwrite the change.',
-  '',
-  'Opened automatically. A core maintainer reviews and merges it.',
-].join('\n');
+const UPSTREAM_NOTE = {
+  [TARGET_PATH]: 'edit `automation-registry.yml` upstream and regenerate `automation-template.yml`',
+  [PR_TEMPLATE_TARGET]: 'edit the shared template upstream',
+};
 
-const SUMMARY = 'Internal: refresh the copied automation.yml so it matches the current shared template';
+function explanation(targets) {
+  const named = targets.map(target => `\`${target}\``).join(' and ');
+  return [
+    `This replaces ${named} with the current copy from`,
+    `[${ORG}/.github](https://github.com/${ORG}/.github).`,
+    '',
+    ...targets.map(
+      target => `Do not edit \`${target}\` here: ${UPSTREAM_NOTE[target]}, or the next sync will overwrite the change.`
+    ),
+    '',
+    'Opened automatically. A core maintainer reviews and merges it.',
+  ].join('\n');
+}
+
+function title(targets) {
+  return `Refresh ${targets.map((target) => path.basename(target)).join(' and ')} from the shared template`;
+}
+
+const SUMMARY = 'Internal: refresh the copied files so they match the current shared ones';
 const FIELD = /^([ \t]*-[ \t]*\*\*([^*]+?):\*\*).*$/gm;
 
 // Splits on level-two headings only, so a deeper heading stays inside its section.
@@ -76,7 +90,8 @@ function sections(markdown) {
   return out;
 }
 
-function prBody(prTemplate, { keep, describe, answers }) {
+function prBody(prTemplate, { keep, describe, answers }, targets) {
+  const EXPLANATION = explanation(targets);
   if (!prTemplate) return `${EXPLANATION}\n`;
   const kept = sections(prTemplate).filter((s) => keep.includes(s.heading));
   const parts = kept.map((s) => {
@@ -115,23 +130,6 @@ const KDS_TEMPLATE = {
   },
 };
 
-// The contents API is case sensitive, so both spellings are tried in each of the
-// three places GitHub reads a pull request template from.
-const PR_TEMPLATE_PATHS = [
-  '.github/pull_request_template.md',
-  '.github/PULL_REQUEST_TEMPLATE.md',
-  'pull_request_template.md',
-  'PULL_REQUEST_TEMPLATE.md',
-  'docs/pull_request_template.md',
-  'docs/PULL_REQUEST_TEMPLATE.md',
-];
-
-const PR_TEMPLATE_TARGET = '.github/PULL_REQUEST_TEMPLATE.md';
-
-// morango's own template sits at PR_TEMPLATE_TARGET, the path the sync writes to,
-// so existence alone cannot tell a copy of ours from a template of their own.
-const PR_TEMPLATE_MARKER = 'shared pull request template';
-
 /**
  * The files carried to a consumer. `mustExist` says the consumer already holds
  * one, so a missing file is a fault rather than work to do. `ownStops` says a
@@ -154,8 +152,11 @@ async function readPrTemplate(api, repo, ref) {
 /**
  * Whether the consumer keeps a pull request template of its own, in any of the
  * places GitHub reads one from. An unreadable path counts as one, so a failed
- * read never overwrites a template this run could not see. At the path the sync
- * writes to, a copy of ours carries PR_TEMPLATE_MARKER and their own does not.
+ * read never overwrites a template this run could not see.
+ *
+ * morango's own template sits at PR_TEMPLATE_TARGET, the path the sync writes
+ * to, so at that one path existence cannot tell a copy of ours from theirs. A
+ * copy of ours carries PR_TEMPLATE_MARKER.
  */
 async function keepsOwnPrTemplate(api, repo, ref) {
   for (const p of PR_TEMPLATE_PATHS) {
@@ -266,9 +267,10 @@ function classifyDrift(closedPr, proposed, template) {
   return closedPr.merged_at ? 'toolchain-conflict' : 'declined';
 }
 
-/**
- * The files this consumer takes, and the content each one must end up holding.
- */
+// Reported when no file is left to propose. A toolchain conflict needs
+// attention, while a decline is the maintainer's answer and needs none.
+const SETTLED_STATES = ['toolchain-conflict', 'declined'];
+
 async function applicableFiles(api, repo, base, sources) {
   const files = [];
   for (const file of SYNCED_FILES) {
@@ -303,27 +305,39 @@ async function syncRepo(api, consumer, sources, { dryRun }) {
   const open = await openSyncPr(api, repo);
   if (open.error) return { repo, state: 'error', detail: open.error };
 
+  const settled = [];
+  let drifted = pending;
   if (!open.pr) {
     const closed = await lastClosedSyncPr(api, repo);
     if (closed.error) return { repo, state: 'error', detail: closed.error };
     if (closed.pr) {
       const ref = closedPrRef(closed.pr);
       if (!ref) return { repo, state: 'error', detail: 'no reference on the closed pull request' };
-      const verdicts = [];
+      // Per file, because a file a maintainer declined must not be offered again
+      // every time another file drifts.
+      drifted = [];
       for (const file of pending) {
         const proposed = await readFile(api, repo, file.target, ref);
         if (proposed.error) return { repo, state: 'error', detail: proposed.error };
-        verdicts.push(classifyDrift(closed.pr, proposed.content, file.content));
+        const verdict = classifyDrift(closed.pr, proposed.content, file.content);
+        if (verdict === 'drift') drifted.push(file);
+        else settled.push({ target: file.target, verdict, pr: closed.pr.number });
       }
-      // Every pending file has to agree. One file the template has moved on for
-      // is work to do, whatever the others say.
-      const verdict = verdicts.every(v => v === verdicts[0]) ? verdicts[0] : 'drift';
-      if (verdict !== 'drift') return { repo, state: verdict, pr: closed.pr.number };
     }
   }
 
+  if (!drifted.length) {
+    const worst = SETTLED_STATES.find(state => settled.some(s => s.verdict === state));
+    return { repo, state: worst, pr: settled[0].pr, files: settled.map(s => s.target) };
+  }
+
   if (dryRun) {
-    return { repo, state: open.pr ? 'would-update' : 'would-open', pr: open.pr && open.pr.number };
+    return {
+      repo,
+      state: open.pr ? 'would-update' : 'would-open',
+      pr: open.pr && open.pr.number,
+      files: drifted.map(file => file.target),
+    };
   }
 
   const baseRef = await api('GET', `/repos/${ORG}/${repo}/git/ref/heads/${base}`);
@@ -342,12 +356,14 @@ async function syncRepo(api, consumer, sources, { dryRun }) {
     }
   }
 
-  for (const file of pending) {
+  const targets = drifted.map(file => file.target);
+
+  for (const file of drifted) {
     const onBranch = await readFile(api, repo, file.target, BRANCH);
     if (onBranch.error) return { repo, state: 'error', detail: onBranch.error };
 
     const put = await api('PUT', `/repos/${ORG}/${repo}/contents/${file.target}`, {
-      message: TITLE,
+      message: title([file.target]),
       content: Buffer.from(file.content, 'utf8').toString('base64'),
       branch: BRANCH,
       ...(onBranch.sha ? { sha: onBranch.sha } : {}),
@@ -355,16 +371,18 @@ async function syncRepo(api, consumer, sources, { dryRun }) {
     if (!put.ok) return { repo, state: 'error', detail: `write failed (${detail(put)})` };
   }
 
-  if (open.pr) return { repo, state: 'updated', pr: open.pr.number, url: open.pr.html_url };
+  if (open.pr) {
+    return { repo, state: 'updated', pr: open.pr.number, url: open.pr.html_url, files: targets };
+  }
 
   const pr = await api('POST', `/repos/${ORG}/${repo}/pulls`, {
-    title: TITLE,
+    title: title(targets),
     head: BRANCH,
     base,
-    body: prBody(await readPrTemplate(api, repo, base), KDS_TEMPLATE),
+    body: prBody(await readPrTemplate(api, repo, base), KDS_TEMPLATE, targets),
   });
   if (!pr.ok) return { repo, state: 'error', detail: `pull request failed (${detail(pr)})` };
-  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url };
+  return { repo, state: 'opened', pr: pr.data.number, url: pr.data.html_url, files: targets };
 }
 
 async function run(api, sources, options) {
@@ -384,7 +402,8 @@ async function run(api, sources, options) {
 function report(results) {
   for (const r of results) {
     const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
-    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}`);
+    const files = r.files ? ` (${r.files.join(', ')})` : '';
+    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}${files}`);
   }
   const problems = results.filter((r) => PROBLEM_STATES.includes(r.state));
   const drifted = results.filter((r) => r.state !== 'in-sync');

@@ -1,5 +1,9 @@
+const fs = require('fs');
+const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+
+const { PR_TEMPLATE_MARKER } = require('./constants');
 
 const {
   run,
@@ -144,7 +148,7 @@ test('a repo that checks the description gets its own template, with every field
   const body = bodyOf(calls);
   assert.ok(body.startsWith('## Description'), 'the repo template decides the shape');
   assert.ok(!body.includes('Summary of change(s)'), 'the placeholder fails check-description');
-  assert.match(body, /- \*\*Description:\*\* Internal: refresh the copied automation\.yml/);
+  assert.match(body, /- \*\*Description:\*\* Internal: refresh the copied files/);
   assert.ok(body.includes('- **Breaking:** -'), 'a field we have no answer for gets a dash');
   assert.ok(!body.includes('yes / no'), 'instructions for a human author do not survive');
   assert.ok(body.includes('automation-template.yml'), 'our explanation is still there');
@@ -445,6 +449,74 @@ test('a closed unmerged pull request is read at its head', async () => {
     calls.some((c) => c.url.includes('ref=h1')),
     'the head stays readable after the branch is reset'
   );
+});
+
+// The copy of the shared template at a given ref.
+const prAtRef = (sha, content) => [
+  `GET contents/.github/PULL_REQUEST_TEMPLATE.md?ref=${sha}`,
+  ok({ sha: 'x', content: encode(content) }),
+];
+
+test('a declined template is not offered again when automation.yml drifts', async () => {
+  const calls = [];
+  const routes = [
+    ...baseRoutes(STALE),
+    noSharedTemplate(),
+    ['GET /repos/learningequality/demo/pulls?state=closed', ok([{ number: 9, merged_at: null, head: { sha: 'h1' } }])],
+    atRef('h1', STALE),
+    prAtRef('h1', PR_SHARED),
+  ];
+  const results = await run(makeApi(routes, calls), SOURCES, {});
+
+  assert.equal(results[0].state, 'opened', 'automation.yml still moved on');
+  assert.deepEqual(results[0].files, [TARGET_PATH]);
+  assert.equal(putsTo(calls, PR_TEMPLATE_TARGET).length, 0, 'the maintainer already said no to this one');
+});
+
+test('a template deleted after the merge is left alone rather than failing every run', async () => {
+  const calls = [];
+  const routes = [
+    ...baseRoutes(TEMPLATE),
+    noSharedTemplate(),
+    mergedSync('m1'),
+    prAtRef('m1', PR_SHARED),
+  ];
+  const results = await run(makeApi(routes, calls), SOURCES, {});
+
+  assert.equal(results[0].state, 'toolchain-conflict');
+  assert.deepEqual(results[0].files, [PR_TEMPLATE_TARGET]);
+  assert.equal(calls.filter((c) => c.method !== 'GET').length, 0);
+});
+
+test('the first run after a merge offers a template the closed pull request never held', async () => {
+  const calls = [];
+  const routes = [...baseRoutes(STALE), noSharedTemplate(), mergedSync('m1'), atRef('m1', STALE)];
+  const results = await run(makeApi(routes, calls), SOURCES, {});
+
+  assert.equal(results[0].state, 'opened');
+  assert.deepEqual(results[0].files, [TARGET_PATH, PR_TEMPLATE_TARGET]);
+});
+
+test('the shared template carries the marker the sync recognises its own copies by', () => {
+  const real = fs.readFileSync(path.join(__dirname, '..', PR_TEMPLATE_TARGET), 'utf8');
+  assert.ok(
+    real.includes(PR_TEMPLATE_MARKER),
+    'without it the sync reads every copy it placed as the consumer\'s own and stops refreshing them'
+  );
+});
+
+test('report names the files a pull request carries', () => {
+  const quiet = console.log;
+  const lines = [];
+  console.log = (line) => lines.push(line);
+  try {
+    report([{ repo: 'demo', state: 'would-open', files: [TARGET_PATH, PR_TEMPLATE_TARGET] }]);
+  } finally {
+    console.log = quiet;
+  }
+
+  assert.match(lines[0], /automation\.yml/);
+  assert.match(lines[0], /PULL_REQUEST_TEMPLATE\.md/);
 });
 
 test('report counts only the states that stop a merge', () => {

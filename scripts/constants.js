@@ -167,6 +167,22 @@ const PR_STATS_REPOS = [
 // Repositories in which we accept open-source contributions
 const COMMUNITY_REPOS = [...PR_STATS_REPOS];
 
+// Every place GitHub reads a pull request template from. The contents API is
+// case sensitive, so both spellings are needed.
+const PR_TEMPLATE_PATHS = [
+  '.github/pull_request_template.md',
+  '.github/PULL_REQUEST_TEMPLATE.md',
+  'pull_request_template.md',
+  'PULL_REQUEST_TEMPLATE.md',
+  'docs/pull_request_template.md',
+  'docs/PULL_REQUEST_TEMPLATE.md',
+];
+
+// The path the template sync writes to, and the marker that tells a copy it
+// placed from a template the consumer wrote itself.
+const PR_TEMPLATE_TARGET = '.github/PULL_REQUEST_TEMPLATE.md';
+const PR_TEMPLATE_MARKER = 'shared pull request template';
+
 module.exports = {
   LE_BOT_USERNAME,
   BOT_USERNAMES,
@@ -195,4 +211,7 @@ module.exports = {
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,
   COMMUNITY_REPOS,
+  PR_TEMPLATE_PATHS,
+  PR_TEMPLATE_TARGET,
+  PR_TEMPLATE_MARKER,
 };

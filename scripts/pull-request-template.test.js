@@ -209,11 +209,15 @@ test('the template is read from the base branch, never the head', async () => {
 
 test('an uppercase template in the repo is found', async () => {
   const core = fakeCore();
-  const github = fakeGithub({ templates: { '.github/PULL_REQUEST_TEMPLATE.md': MARKED } });
+  // A marked heading the shared template does not carry, so falling back to the
+  // shared one could not produce this failure.
+  const own = ['## Evidence', '<!-- REQUIRED -->', '', 'what to paste', ''].join('\n');
+  const github = fakeGithub({ templates: { '.github/PULL_REQUEST_TEMPLATE.md': own } });
   await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core });
 
   assert.equal(core.failures.length, 1);
-  assert.match(core.failures[0], /## Summary/);
+  assert.match(core.failures[0], /## Evidence/);
+  assert.ok(!core.failures[0].includes('## AI usage'), 'the shared template must not be reached');
 });
 
 test('a repo holding no template falls back to the shared one', async () => {
@@ -229,7 +233,7 @@ test('a repo holding no template falls back to the shared one', async () => {
   assert.match(core.failures[0], /## AI usage/);
 });
 
-test('a read failure other than 404 is reported and does not fail the run', async () => {
+test('an unreadable candidate path skips the check rather than falling back', async () => {
   const core = fakeCore();
   const github = fakeGithub();
   github.rest.repos.getContent = async () => {
@@ -237,8 +241,21 @@ test('a read failure other than 404 is reported and does not fail the run', asyn
     error.status = 500;
     throw error;
   };
-  await pullRequestTemplate({ github, context: fakeContext({ body: SHARED_BODY }), core });
+  // An empty body: falling back to the shared template would fail it.
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core });
 
-  assert.equal(core.warnings.length, 6);
+  assert.equal(core.warnings.length, 1);
+  assert.match(core.warnings[0], /Could not read/);
+  assert.deepEqual(core.failures, [], 'a body may follow a template this run could not read');
+});
+
+test('an ellipsis inside a sentence is prose, not the placeholder', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(MARKED) }),
+    context: fakeContext({ body: '## Summary\n\nAdds a Loading… spinner.\n' }),
+    core,
+  });
+
   assert.deepEqual(core.failures, []);
 });
