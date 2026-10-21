@@ -1,5 +1,5 @@
 <!--
- 1. REQUIRED: Always fill in the AI usage section at the bottom
+ 1. REQUIRED: Fill in every section marked REQUIRED, including AI usage at the bottom
  2. Following guidance below, replace …'s with your own words
  3. After saving the PR, tick of completed checklist items
  4. Skip checklist items that are not applicable or not necessary
