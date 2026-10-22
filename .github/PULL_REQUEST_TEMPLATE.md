@@ -1,4 +1,3 @@
-<!-- Shared pull request template from learningequality/.github. Edit the source at .github/PULL_REQUEST_TEMPLATE.md, not a copy. -->
 <!--
  1. REQUIRED: Always fill in the AI usage section at the bottom
  2. Following guidance below, replace …'s with your own words

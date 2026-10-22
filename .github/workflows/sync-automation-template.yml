@@ -18,7 +18,6 @@ on:
       - main
     paths:
       - automation-template.yml
-      - .github/PULL_REQUEST_TEMPLATE.md
 permissions:
   contents: read
 concurrency:
