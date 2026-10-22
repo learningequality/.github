@@ -33,6 +33,17 @@ const PROSE_PLACEHOLDER = [
   '',
 ].join('\n');
 
+// A required section of more than one line, as kolibri-design-system's Changelog
+// is. The GitHub web form returns the body with CRLF line endings.
+const MULTILINE = [
+  '## Changelog',
+  '<!-- REQUIRED -->',
+  '',
+  '- **Description:** Summary of change(s)',
+  '- **Breaking:** yes / no',
+  '',
+].join('\n');
+
 const GOOD_BODY = ['## Summary', '', 'What this does.', '', '## Notes', '', 'A note.'].join('\n');
 
 // Satisfies the shared template, for the cases that fall back to it.
@@ -284,6 +295,25 @@ test('rewriting that text passes', async () => {
   });
 
   assert.deepEqual(core.failures, []);
+});
+
+test('a CRLF body left as the template wrote it fails too', async () => {
+  const core = fakeCore();
+  const body = [
+    '## Changelog',
+    '',
+    '- **Description:** Summary of change(s)',
+    '- **Breaking:** yes / no',
+    '',
+  ].join('\r\n');
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(MULTILINE) }),
+    context: fakeContext({ body }),
+    core,
+  });
+
+  assert.equal(core.failures.length, 1);
+  assert.match(core.failures[0], /`## Changelog` still holds the text from the template/);
 });
 
 test('an ellipsis inside a sentence is prose, not the placeholder', async () => {

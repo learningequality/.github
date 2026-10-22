@@ -18,7 +18,7 @@ const PLACEHOLDER = '…';
 
 function sections(markdown) {
   const out = [];
-  for (const line of (markdown || '').split('\n')) {
+  for (const line of (markdown || '').split(/\r?\n/)) {
     if (HEADING.test(line)) out.push({ heading: line.trim(), lines: [] });
     else if (out.length) out[out.length - 1].lines.push(line);
   }
