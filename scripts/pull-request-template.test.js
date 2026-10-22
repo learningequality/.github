@@ -166,6 +166,30 @@ test('a template marking nothing requires every section', async () => {
   assert.match(core.failures[0], /`## Notes` is missing/);
 });
 
+test('a template holding no sections warns and fails nothing', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate('Open a pull request and describe it.\n') }),
+    context: fakeContext({ body: '' }),
+    core,
+  });
+
+  assert.deepEqual(core.failures, []);
+  assert.equal(core.warnings.length, 1);
+  assert.match(core.warnings[0], /holds no sections/);
+});
+
+test('a heading matches whatever case the body writes it in', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(MARKED) }),
+    context: fakeContext({ body: '## summary\n\nWhat this does.' }),
+    core,
+  });
+
+  assert.deepEqual(core.failures, []);
+});
+
 test('every failure is named, not only the first', async () => {
   const core = fakeCore();
   await pullRequestTemplate({
