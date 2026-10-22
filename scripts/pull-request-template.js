@@ -66,10 +66,10 @@ function failures(body, required) {
 }
 
 /**
- * The repo's own template, `null` when it holds none, or `{ unreadable }` when a
- * candidate path answered with anything but a 404. The repo may hold a template
- * there, and judging the body against the shared one instead would fail a body
- * that follows the template the author was given.
+ * The repo's own template, `null` if none exists, or `{ unreadable }` if a
+ * candidate path returns anything other than a 404. An unreadable path may
+ * contain a repo-owned template, so validating against the shared template
+ * could reject a body that follows the template the author was given.
  */
 async function readRepoTemplate({ github, context, core }, ref) {
   for (const templatePath of PR_TEMPLATE_PATHS) {
