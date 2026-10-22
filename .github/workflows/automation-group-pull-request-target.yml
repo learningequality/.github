@@ -8,10 +8,10 @@ on:
   workflow_call:
     secrets:
       LE_BOT_APP_ID:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, pull-request-template"
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply"
+        description: "Forwarded to: review-requested, pull-request-label, dependabot-reviewer, contributor-pr-reply, pull-request-template"
         required: true
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL:
         description: "Forwarded to: contributor-pr-reply"
@@ -54,3 +54,12 @@ jobs:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL }}
+  pull-request-template:
+    name: Pull Request Template
+    if: ${{ github.event_name == 'pull_request_target' && contains(fromJSON('["opened","edited","reopened"]'), github.event.action) }}
+    uses: learningequality/.github/.github/workflows/pull-request-template.yml@main
+    permissions:
+      contents: read
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}

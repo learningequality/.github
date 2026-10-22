@@ -64,6 +64,16 @@ automations:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
       SLACK_COMMUNITY_NOTIFICATIONS_WEBHOOK_URL: optional
+  - name: pull-request-template
+    enabled: true
+    leaf: pull-request-template.yml
+    on:
+      pull_request_target:
+        types: [opened, edited, reopened]
+    if: "github.event_name == 'pull_request_target' && contains(fromJSON('[\"opened\",\"edited\",\"reopened\"]'), github.event.action)"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
   - name: holiday-message
     # Seasonal. The leaf has no date guard, so this must be flipped on before
     # the holidays and off after them.
