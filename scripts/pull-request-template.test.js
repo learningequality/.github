@@ -46,25 +46,6 @@ const MULTILINE = [
 
 const GOOD_BODY = ['## Summary', '', 'What this does.', '', '## Notes', '', 'A note.'].join('\n');
 
-// Satisfies the shared template, for the cases that fall back to it.
-const SHARED_BODY = [
-  '## Summary',
-  '',
-  'What this does.',
-  '',
-  '## References',
-  '',
-  'Closes #1.',
-  '',
-  '## Reviewer guidance',
-  '',
-  'Read the diff.',
-  '',
-  '## AI usage',
-  '',
-  'None.',
-].join('\n');
-
 function fakeGithub({ templates = {} } = {}) {
   const reads = [];
   return {
