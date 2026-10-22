@@ -181,7 +181,7 @@ const PR_TEMPLATE_PATHS = [
 // The path the template sync writes to, and the marker that tells a copy it
 // placed from a template the consumer wrote itself.
 const PR_TEMPLATE_TARGET = '.github/PULL_REQUEST_TEMPLATE.md';
-const PR_TEMPLATE_MARKER = 'shared pull request template';
+const PR_TEMPLATE_MARKER = 'pull request template from learningequality/.github';
 
 module.exports = {
   LE_BOT_USERNAME,

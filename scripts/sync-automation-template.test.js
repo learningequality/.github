@@ -48,7 +48,7 @@ const PR_TEMPLATE = [
 // The shared pull request template, which a consumer keeping none of its own takes.
 // The first line is the marker that tells a copy of ours from a template of theirs.
 const PR_SHARED = [
-  '<!-- learningequality/.github shared pull request template. Edit it there, not in a copy. -->',
+  '<!-- Shared pull request template from learningequality/.github. Edit the source at .github/PULL_REQUEST_TEMPLATE.md, not a copy. -->',
   '## Summary',
   '<!-- REQUIRED -->',
   '',
