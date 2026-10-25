@@ -2,7 +2,7 @@
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "node --test scripts/"
+    "test": "node --test 'scripts/**/*.test.js'"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

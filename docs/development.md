@@ -1,6 +1,6 @@
 # Setting up a development environment
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/), Node.js 20 and
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), Node.js 22 and
 [Yarn 1](https://classic.yarnpkg.com/en/docs/install). The `actionlint` hook also needs
 [shellcheck](https://github.com/koalaman/shellcheck#installing) on your `PATH`.
 
