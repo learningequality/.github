@@ -17,7 +17,6 @@
 # Run `node scripts/generate-automation.js` after editing this file to regenerate
 # automation.yml and automation-template.yml. `node scripts/generate-automation.js --check`
 # fails if the generated files are out of date (enforced by pre-commit + CI).
-
 retired_secrets:
   - CONTRIBUTIONS_SHEET_NAME
   - CONTRIBUTIONS_SPREADSHEET_ID

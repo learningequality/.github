@@ -1,0 +1,26 @@
+[project]
+name = "learningequality-github"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = ["requests"]
+
+[dependency-groups]
+dev = ["prek>=0.3.6"]
+
+[tool.uv]
+exclude-newer = "7 days"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "T10", "T20", "C90"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-single-line = true
+order-by-type = false
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10

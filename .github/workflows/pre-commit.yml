@@ -18,9 +18,18 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '20'
+          cache: yarn
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-      - name: Install prek
-        run: pipx install prek
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+          cache-python: true
+      - name: Install and verify lock
+        run: uv sync --group dev --locked
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/prek
+          key: prek-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run prek
-        run: prek run --all-files
+        run: uv run prek run --all-files --show-diff-on-failure

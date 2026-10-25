@@ -229,7 +229,11 @@ test('a bot author passes without a template read', async () => {
 
 test('the template is read from the base branch, never the head', async () => {
   const github = fakeGithub({ templates: repoTemplate(MARKED) });
-  await pullRequestTemplate({ github, context: fakeContext({ base: 'release-v1' }), core: fakeCore() });
+  await pullRequestTemplate({
+    github,
+    context: fakeContext({ base: 'release-v1' }),
+    core: fakeCore(),
+  });
 
   assert.ok(github.reads.length);
   for (const read of github.reads) {

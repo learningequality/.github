@@ -23,6 +23,7 @@ jobs:
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+          permission-pull-requests: read
       - name: Checkout .github repository
         uses: actions/checkout@v7
         with:

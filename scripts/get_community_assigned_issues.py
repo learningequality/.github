@@ -4,21 +4,26 @@
 # whenever need arises. The script requires `GITHUB_TOKEN`
 # environment variable with 'repo' and 'read:org' permissions.
 
+import logging
 import os
+import sys
+
 import requests
 
+logger = logging.getLogger(__name__)
+
 ORG = "learningequality"
-REPOS = ["kolibri", "studio", "kolibri-design-system", "le-utils", ".github","ricecooker"]
+REPOS = ["kolibri", "studio", "kolibri-design-system", "le-utils", ".github", "ricecooker"]
 
 TOKEN = os.getenv("GITHUB_TOKEN")
 if not TOKEN:
-    raise EnvironmentError("Please set the GITHUB_TOKEN environment variable with 'repo' and 'read:org' permissions.")
+    raise EnvironmentError(
+        "Please set the GITHUB_TOKEN environment variable with 'repo' and 'read:org' permissions."
+    )
 
 BASE_URL = "https://api.github.com"
-HEADERS = {
-    "Authorization": f"token {TOKEN}",
-    "Accept": "application/vnd.github+json"
-}
+HEADERS = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github+json"}
+
 
 def fetch_paginated_results(url):
     results = []
@@ -29,41 +34,45 @@ def fetch_paginated_results(url):
         url = response.links.get("next", {}).get("url")
     return results
 
+
 def get_team_members(org):
     """Fetch all team members for the organization."""
     results = fetch_paginated_results(f"{BASE_URL}/orgs/{org}/members")
     team_members = [member["login"] for member in results]
     return team_members
 
+
 def get_issues_for_repo(org, repo):
     """Fetch all issues for a specific repository."""
     return fetch_paginated_results(f"{BASE_URL}/repos/{org}/{repo}/issues?state=open")
 
+
 def filter_issues(issues, team_members):
     """Filter issues assigned to external contributors"""
     return [
-        issue for issue in issues
+        issue
+        for issue in issues
         if issue.get("assignee") and issue["assignee"]["login"] not in team_members
     ]
 
+
 def main():
     team_members = get_team_members(ORG)
-    print(f"Found {len(team_members)} team members in {ORG}.")
+    logger.info("Found %d team members in %s.", len(team_members), ORG)
 
     all_filtered_issues = []
-    print(f"Processing {len(REPOS)} repositories in {ORG}...")
+    logger.info("Processing %d repositories in %s...", len(REPOS), ORG)
 
     for repo in REPOS:
-        print(f"Processing repository: {repo}")
+        logger.info("Processing repository: %s", repo)
         issues = get_issues_for_repo(ORG, repo)
         filtered_issues = filter_issues(issues, team_members)
-        all_filtered_issues.extend(
-            issue["html_url"]
-            for issue in filtered_issues
-        )
+        all_filtered_issues.extend(issue["html_url"] for issue in filtered_issues)
 
     for url in all_filtered_issues:
-        print(url)
+        sys.stdout.write(f"{url}\n")
+
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     main()

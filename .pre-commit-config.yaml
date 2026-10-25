@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-yaml
@@ -9,19 +9,44 @@ repos:
       - id: debug-statements
       - id: end-of-file-fixer
         exclude: '^.+?\.json$'
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.13.5
+    hooks:
+      - id: uv-lock
   - repo: https://github.com/google/yamlfmt
-    rev: v0.14.0
+    rev: v0.21.0
     hooks:
       - id: yamlfmt
         exclude: '^tests/cassettes|^\.github/workflows/automation(-caller|-group-.+)?\.yml$|^automation-template\.yml$'
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.7
+    rev: v1.7.12
     hooks:
       - id: actionlint
         # Expects shellcheck to be installed on the system
         # https://github.com/koalaman/shellcheck#installing
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.31.1
+    hooks:
+      - id: zizmor
+        args: [--no-progress, --offline, --min-confidence, medium]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
   - repo: local
     hooks:
+      - id: eslint
+        name: ESLint
+        entry: yarn eslint --fix
+        language: system
+        files: \.js$
+      - id: prettier
+        name: Prettier
+        entry: yarn prettier --write
+        language: system
+        files: \.js$
       - id: generate-automation
         name: Check automation.yml / automation-template.yml are up to date
         entry: node scripts/generate-automation.js --check
