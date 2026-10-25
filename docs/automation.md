@@ -5,9 +5,9 @@ contributor replies, issue header management, etc.) copies a single file: `autom
 There is nothing else to maintain per repo — no per-automation caller, no hand-written `on:` block
 to keep in sync.
 
-The community-contribution spreadsheet is not one of them. `update-pr-spreadsheet.yml` runs daily
-in this repo and upserts every public contributor PR in the org updated in the last two days. Run it
-by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
+The community-contribution spreadsheet is not one of those automations. `update-pr-spreadsheet.yml`
+runs daily in this repo and upserts every public contributor PR in the org updated in the last two
+days. Run it by hand with `dry_run` to log the rows without writing, or a larger `days` to backfill.
 
 ## How it fits together
 
@@ -95,9 +95,9 @@ every repo whose `.github/workflows/automation.yml` calls this repo's `automatio
 request targets that repo's default branch, which is the only branch GitHub evaluates workflow
 triggers from.
 
-For each consumer it compares the copy with the template and opens a pull request when they differ.
-A repo that is already in sync gets nothing, while a repo with an existing sync pull request has
-that pull request updated rather than a second one opened.
+For each consumer, the workflow compares its copy of `automation.yml` with the template and opens a
+pull request if they differ. Repositories with no drift are left unchanged, and existing sync pull
+requests are updated rather than duplicated.
 
 The workflow only proposes changes. It opens pull requests on a branch, never commits to a default
 branch, and never merges, approves, or enables auto-merge. A core maintainer in each consumer repo
