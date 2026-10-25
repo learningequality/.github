@@ -24,8 +24,11 @@ jobs:
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+          permission-pull-requests: write
       - name: Request review
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh pr edit ${{ github.event.pull_request.number }} --add-reviewer ${{ inputs.reviewer }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEWER: ${{ inputs.reviewer }}
+        run: gh pr edit "$PR_NUMBER" --add-reviewer "$REVIEWER"

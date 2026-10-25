@@ -34,7 +34,10 @@ jobs:
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-          owner: learningequality
+          owner: learningequality # zizmor: ignore[github-app]
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
       - name: Checkout
         uses: actions/checkout@v7
       - name: Setup Node.js

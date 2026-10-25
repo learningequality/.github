@@ -13,8 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check event context
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
         run: |
-          if [[ "${{ github.event_name }}" != "issues" ]] || [[ "${{ github.event.action }}" != "assigned" && "${{ github.event.action }}" != "unassigned" ]]; then
+          if [[ "$EVENT_NAME" != "issues" ]] || [[ "$EVENT_ACTION" != "assigned" && "$EVENT_ACTION" != "unassigned" ]]; then
           echo "This workflow should only run on issue assigned/unassigned events"
           exit 1
           fi
@@ -29,6 +32,7 @@ jobs:
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+          permission-issues: write
       - uses: astral-sh/setup-uv@v10.3.2
         with:
           enable-cache: false
