@@ -62,7 +62,8 @@ const EXPLANATION = [
   'Opened automatically. A core maintainer reviews and merges it.',
 ].join('\n');
 
-const SUMMARY = 'Internal: refresh the copied automation.yml so it matches the current shared template';
+const SUMMARY =
+  'Internal: refresh the copied automation.yml so it matches the current shared template';
 const FIELD = /^([ \t]*-[ \t]*\*\*([^*]+?):\*\*).*$/gm;
 
 // Splits on level-two headings only, so a deeper heading stays inside its section.
@@ -77,8 +78,8 @@ function sections(markdown) {
 
 function prBody(prTemplate, { keep, describe, answers }) {
   if (!prTemplate) return `${EXPLANATION}\n`;
-  const kept = sections(prTemplate).filter((s) => keep.includes(s.heading));
-  const parts = kept.map((s) => {
+  const kept = sections(prTemplate).filter(s => keep.includes(s.heading));
+  const parts = kept.map(s => {
     if (s.heading === describe) return `${s.heading}\n\n${EXPLANATION}`;
     const filled = s.lines.join('\n').replace(FIELD, (line, prefix, field) => {
       const answer = answers[field.trim().toLowerCase()];
@@ -87,7 +88,7 @@ function prBody(prTemplate, { keep, describe, answers }) {
     return `${s.heading}\n${filled.trimEnd()}`;
   });
   // A renamed heading would otherwise leave the pull request unexplained, or empty.
-  if (!kept.some((s) => s.heading === describe)) parts.unshift(EXPLANATION);
+  if (!kept.some(s => s.heading === describe)) parts.unshift(EXPLANATION);
   return `${parts.join('\n\n').trimEnd()}\n`;
 }
 
@@ -127,7 +128,8 @@ async function readPrTemplate(api, repo, ref) {
 
 async function readCopy(api, repo, ref) {
   const r = await api('GET', `/repos/${ORG}/${repo}/contents/${TARGET_PATH}?ref=${ref}`);
-  if (r.ok) return { sha: r.data.sha, content: Buffer.from(r.data.content, 'base64').toString('utf8') };
+  if (r.ok)
+    return { sha: r.data.sha, content: Buffer.from(r.data.content, 'base64').toString('utf8') };
   if (r.status === 404) return { missing: true };
   return { error: `read failed (${detail(r)})` };
 }
@@ -197,7 +199,7 @@ async function openSyncPr(api, repo) {
 async function lastClosedSyncPr(api, repo) {
   const r = await api(
     'GET',
-    `/repos/${ORG}/${repo}/pulls?state=closed&head=${ORG}:${BRANCH}&sort=updated&direction=desc&per_page=1`
+    `/repos/${ORG}/${repo}/pulls?state=closed&head=${ORG}:${BRANCH}&sort=updated&direction=desc&per_page=1`,
   );
   if (!r.ok) return { error: `could not list closed pull requests (${detail(r)})` };
   return { pr: r.data.length ? r.data[0] : null };
@@ -242,7 +244,9 @@ async function syncRepo(api, consumer, template, { dryRun }) {
     if (closed.error) return { repo, state: 'error', detail: closed.error };
     if (closed.pr) {
       const ref = closedPrRef(closed.pr);
-      const proposed = ref ? await readCopy(api, repo, ref) : { error: 'no reference on the closed pull request' };
+      const proposed = ref
+        ? await readCopy(api, repo, ref)
+        : { error: 'no reference on the closed pull request' };
       if (proposed.error) return { repo, state: 'error', detail: proposed.error };
       const verdict = classifyDrift(closed.pr, proposed.content, template);
       if (verdict !== 'drift') return { repo, state: verdict, pr: closed.pr.number };
@@ -254,16 +258,24 @@ async function syncRepo(api, consumer, template, { dryRun }) {
   }
 
   const baseRef = await api('GET', `/repos/${ORG}/${repo}/git/ref/heads/${base}`);
-  if (!baseRef.ok) return { repo, state: 'error', detail: `base ${base} not found (${detail(baseRef)})` };
+  if (!baseRef.ok)
+    return { repo, state: 'error', detail: `base ${base} not found (${detail(baseRef)})` };
   const baseSha = baseRef.data.object.sha;
 
   if (!open.pr) {
-    const made = await api('POST', `/repos/${ORG}/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: baseSha });
+    const made = await api('POST', `/repos/${ORG}/${repo}/git/refs`, {
+      ref: `refs/heads/${BRANCH}`,
+      sha: baseSha,
+    });
     if (!made.ok && made.status === 422) {
       // The branch outlives a closed pull request, so start it again from base
       // rather than carrying commits a maintainer already saw.
-      const reset = await api('PATCH', `/repos/${ORG}/${repo}/git/refs/heads/${BRANCH}`, { sha: baseSha, force: true });
-      if (!reset.ok) return { repo, state: 'error', detail: `branch reset failed (${detail(reset)})` };
+      const reset = await api('PATCH', `/repos/${ORG}/${repo}/git/refs/heads/${BRANCH}`, {
+        sha: baseSha,
+        force: true,
+      });
+      if (!reset.ok)
+        return { repo, state: 'error', detail: `branch reset failed (${detail(reset)})` };
     } else if (!made.ok) {
       return { repo, state: 'error', detail: `branch failed (${detail(made)})` };
     }
@@ -309,13 +321,15 @@ async function run(api, template, options) {
 function report(results) {
   for (const r of results) {
     const extra = r.url || r.detail || (r.pr ? `#${r.pr}` : '');
-    console.log(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}`);
+    process.stdout.write(`${r.repo.padEnd(26)} ${r.state.padEnd(20)} ${extra}\n`);
   }
-  const problems = results.filter((r) => PROBLEM_STATES.includes(r.state));
-  const drifted = results.filter((r) => r.state !== 'in-sync');
-  console.log(`\n${results.length} consumers, ${drifted.length} not in sync, ${problems.length} needing attention.`);
+  const problems = results.filter(r => PROBLEM_STATES.includes(r.state));
+  const drifted = results.filter(r => r.state !== 'in-sync');
+  process.stdout.write(
+    `\n${results.length} consumers, ${drifted.length} not in sync, ${problems.length} needing attention.\n`,
+  );
   for (const p of problems) {
-    console.log(`::error title=${p.repo}::${p.state}${p.detail ? `: ${p.detail}` : ''}`);
+    process.stdout.write(`::error title=${p.repo}::${p.state}${p.detail ? `: ${p.detail}` : ''}\n`);
   }
   return problems.length;
 }
@@ -323,7 +337,7 @@ function report(results) {
 // Both spellings, because an --only nobody parses is a full run against every
 // consumer, which is the opposite of what it asks for.
 function parseArgs(argv) {
-  const i = argv.findIndex((a) => a === '--only' || a.startsWith('--only='));
+  const i = argv.findIndex(a => a === '--only' || a.startsWith('--only='));
   let only;
   if (i !== -1) {
     only = argv[i] === '--only' ? argv[i + 1] : argv[i].slice('--only='.length);
@@ -335,7 +349,7 @@ function parseArgs(argv) {
 async function main() {
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
-    console.error('GITHUB_TOKEN is not set.');
+    process.stderr.write('GITHUB_TOKEN is not set.\n');
     process.exit(1);
   }
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
@@ -344,8 +358,8 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
-    console.error(err.message);
+  main().catch(err => {
+    process.stderr.write(`${err.message}\n`);
     process.exit(1);
   });
 }
