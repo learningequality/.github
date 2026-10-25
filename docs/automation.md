@@ -40,7 +40,8 @@ reads the registry and writes:
 
 A pre-commit hook (`generate-automation`, run via `prek`) regenerates and fails the commit if the
 checked-in files don't match what the registry produces - so the generated files can never drift
-from the registry.
+from the registry. To install the hook, see
+[Setting up a development environment](development.md).
 
 ## Onboarding a new repo
 
