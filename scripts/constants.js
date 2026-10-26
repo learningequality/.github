@@ -87,6 +87,11 @@ const MAX_ASSIGNED_ISSUES = 2;
 const ASSIGN_COOLDOWN_DAYS = 7;
 const ASSIGN_GUIDANCE_MARKER = '<!-- ASSIGN_GUIDANCE -->';
 const LABEL_COMMUNITY_REVIEW = 'community-review';
+const LABEL_COMMUNITY_ISSUE_REVIEW = 'community-issue-review';
+// rtibblesbot opens its validation comment with this marker. The contract is
+// stated from the agent's side in learningequality/coding-agent#1229.
+const ISSUE_VALIDATION_MARKER = '<!-- ISSUE_VALIDATION -->';
+const ISSUE_REVIEW_MAX_DAYS = 3;
 
 // Will be attached to bot messages when not empty
 // const GSOC_NOTE = '';
@@ -154,6 +159,18 @@ const BOT_MESSAGE_RTIBBLESBOT_REVIEW = `📢✨ **Before we assign a reviewer, w
 
 const BOT_MESSAGE_COMMUNITY_REVIEW = `📢✨ **Before we assign a reviewer, we'll invite community pre-review. See the [community review guidance](https://github.com/learningequality/.github/blob/main/docs/community-review.md) for both authors and reviewers.**`;
 
+const BOT_MESSAGE_ISSUE_VALIDATION =
+  `🔍 **Thanks for opening this issue!** @rtibblesbot will check it against the code ` +
+  `and comment with its findings.\n\n` +
+  `**What happens next:**\n\n` +
+  `- The \`${LABEL_COMMUNITY_ISSUE_REVIEW}\` label stays on until the review comment is posted.\n` +
+  `- The comment identifies the files, lines, or commits examined so you can follow the ` +
+  `reasoning and respond if you disagree.\n` +
+  `- If the check confirms the issue, @rtibblesbot may also correct the title and ` +
+  `description. GitHub preserves the edit history, so the original text remains available.\n` +
+  `- @rtibblesbot's comments are LLM-generated, so please evaluate them critically.\n\n` +
+  `A maintainer decides what happens next. This check does not close the issue.`;
+
 // Repositories to include in PR statistics reports
 const PR_STATS_REPOS = [
   'kolibri',
@@ -205,6 +222,10 @@ module.exports = {
   RTIBBLESBOT_USERNAME,
   LABEL_COMMUNITY_REVIEW,
   BOT_MESSAGE_COMMUNITY_REVIEW,
+  LABEL_COMMUNITY_ISSUE_REVIEW,
+  ISSUE_VALIDATION_MARKER,
+  ISSUE_REVIEW_MAX_DAYS,
+  BOT_MESSAGE_ISSUE_VALIDATION,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,

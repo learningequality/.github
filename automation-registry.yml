@@ -128,6 +128,26 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
+  - name: issue-validation
+    enabled: true
+    leaf: issue-validation.yml
+    on:
+      issues:
+        types: [opened]
+    if: "github.event_name == 'issues' && github.event.action == 'opened'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
+  - name: issue-validation-done
+    enabled: true
+    leaf: issue-validation-done.yml
+    on:
+      issue_comment:
+        types: [created]
+    if: "github.event_name == 'issue_comment' && github.event.action == 'created'"
+    secrets:
+      LE_BOT_APP_ID: required
+      LE_BOT_PRIVATE_KEY: required
   - name: contributor-issue-comment
     enabled: true
     leaf: contributor-issue-comment.yml

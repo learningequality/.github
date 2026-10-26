@@ -196,6 +196,48 @@ async function hasLabel(name, owner, repo, issueNumber, github, core) {
 }
 
 /**
+ * Adds a label to an issue, and returns whether the call succeeded. The call
+ * creates the label in a repository that does not define it.
+ */
+async function addLabel(name, owner, repo, issueNumber, github, core) {
+  try {
+    await github.rest.issues.addLabels({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      labels: [name],
+    });
+    return true;
+  } catch (error) {
+    core.warning(`Failed to add ${name} to issue #${issueNumber}: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Removes a label from an issue, and returns whether the call succeeded. GitHub
+ * answers 404 when the label is not on the issue, which counts as removed.
+ */
+async function removeLabel(name, owner, repo, issueNumber, github, core) {
+  try {
+    await github.rest.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name,
+    });
+    return true;
+  } catch (error) {
+    if (error.status === 404) {
+      core.info(`${name} is not on issue #${issueNumber}.`);
+      return true;
+    }
+    core.warning(`Failed to remove ${name} from issue #${issueNumber}: ${error.message}`);
+    return false;
+  }
+}
+
+/**
  * Fetches the issues a pull request is linked to, or null when the lookup fails.
  * GitHub records a link from a closing keyword in the description, or from the
  * Development sidebar. A bare '#123' is not one.
@@ -386,6 +428,8 @@ module.exports = {
   hasRecentBotComment,
   getLabels,
   hasLabel,
+  addLabel,
+  removeLabel,
   getLinkedIssues,
   getIssues,
   getPullRequests,
