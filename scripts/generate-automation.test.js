@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const yaml = require('js-yaml');
 
-const { buildReusableWorkflows } = require('./generate-automation');
+const { buildReusableWorkflows, parseRegistry } = require('./generate-automation');
 
 const WORKFLOWS = 'learningequality/.github/.github/workflows';
 const GROUP_FILE = 'automation-group-pull-request-target.yml';
@@ -86,4 +86,21 @@ test('retired secrets are still accepted by automation.yml but forwarded nowhere
 test('a group whose job id collides with an automation name is rejected', () => {
   const clash = { ...sweep, name: 'pull-request-target' };
   assert.throws(() => buildReusableWorkflows([prLabel, prOpened, clash]), /pull-request-target/);
+});
+
+test('registry merge keys expand into the mapping that uses them', () => {
+  const { automations } = parseRegistry(`
+x-bot: &bot
+  LE_BOT_APP_ID: required
+  LE_BOT_PRIVATE_KEY: required
+automations:
+  - name: review-requested
+    enabled: true
+    secrets:
+      <<: *bot
+`);
+  assert.deepEqual(automations[0].secrets, {
+    LE_BOT_APP_ID: 'required',
+    LE_BOT_PRIVATE_KEY: 'required',
+  });
 });
