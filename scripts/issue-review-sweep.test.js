@@ -69,10 +69,15 @@ test('a label older than the limit comes off', async () => {
     issues: [7],
     timelines: { 7: [labeled(daysAgo(ISSUE_REVIEW_MAX_DAYS + 1))] },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, [7]);
   assert.deepEqual(github.removed, [{ name: LABEL_COMMUNITY_ISSUE_REVIEW, issue_number: 7 }]);
@@ -83,10 +88,15 @@ test('a label younger than the limit stays on', async () => {
     issues: [7],
     timelines: { 7: [labeled(daysAgo(ISSUE_REVIEW_MAX_DAYS - 1))] },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
   assert.deepEqual(github.removed, []);
@@ -97,10 +107,15 @@ test('a label at exactly the limit stays on', async () => {
     issues: [7],
     timelines: { 7: [labeled(daysAgo(ISSUE_REVIEW_MAX_DAYS))] },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
 });
@@ -113,10 +128,15 @@ test('the most recent application decides', async () => {
       7: [labeled(daysAgo(30)), unlabeled(daysAgo(29)), labeled(daysAgo(0))],
     },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
 });
@@ -126,10 +146,15 @@ test('a labeled event for another label is not read as this one', async () => {
     issues: [7],
     timelines: { 7: [labeled(daysAgo(30), 'help wanted')] },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
 });
@@ -142,10 +167,15 @@ test('each issue is judged on its own age', async () => {
       8: [labeled(daysAgo(1))],
     },
   });
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', {
-    github,
-    core: fakeCore(),
-  }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    {
+      github,
+      core: fakeCore(),
+    },
+    NOW,
+  );
 
   assert.deepEqual(cleared, [7]);
 });
@@ -153,7 +183,12 @@ test('each issue is judged on its own age', async () => {
 test('a timeline this run cannot read leaves the label on', async () => {
   const github = fakeGithub({ issues: [7], timelineFails: true });
   const core = fakeCore();
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', { github, core }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    { github, core },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
   assert.equal(core.warnings.length, 1);
@@ -163,7 +198,12 @@ test('a timeline this run cannot read leaves the label on', async () => {
 test('a listing this run cannot read sweeps nothing', async () => {
   const github = fakeGithub({ listFails: true });
   const core = fakeCore();
-  const cleared = await sweepIssueReviewLabels('learningequality', 'kolibri', { github, core }, NOW);
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    { github, core },
+    NOW,
+  );
 
   assert.deepEqual(cleared, []);
   assert.equal(core.warnings.length, 1);

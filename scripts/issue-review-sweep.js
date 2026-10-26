@@ -19,8 +19,7 @@ async function labeledAt(name, owner, repo, issueNumber, github, core) {
       per_page: 100,
     });
     const applied = events.filter(
-      event =>
-        event.event === 'labeled' && event.label?.name?.toLowerCase() === name.toLowerCase(),
+      event => event.event === 'labeled' && event.label?.name?.toLowerCase() === name.toLowerCase(),
     );
     if (!applied.length) {
       return null;
