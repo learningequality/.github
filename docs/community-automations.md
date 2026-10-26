@@ -104,24 +104,43 @@ The failed check is the only report. Nothing is posted on the pull request.
 
 # `issue-validation` and `issue-validation-done`
 
-A pair of automations that asks `rtibblesbot` to check the claim in a contributor's issue, and that marks the issue while the check runs.
+These two automations ask `rtibblesbot` to validate claims in contributor-submitted issues and track the review while it is in progress.
 
-`issue-validation` runs on `issues: [opened]`. It acts when the repo is in `COMMUNITY_REPOS`, the opener is a contributor, and the issue does not already carry `community-issue-review`. It posts one comment and adds that label. The add call creates the label in a repo that does not define it.
+## `issue-validation`
 
-The comment mentions `@rtibblesbot` outside backticks. The mention is load-bearing: the agent polls its GitHub notifications and holds no inbound endpoint, so a mention is the only way to reach it. A label creates no notification. A backticked handle, as in `BOT_MESSAGE_RTIBBLESBOT_REVIEW`, sends none either.
+Runs on `issues: [opened]`. It proceeds only if the repository is in `COMMUNITY_REPOS`, the issue opener is a contributor, and the issue does not already have the `community-issue-review` label.
 
-`issue-validation-done` runs on `issue_comment: [created]`. It removes the label when the comment carries the marker `<!-- ISSUE_VALIDATION -->` and comes from `rtibblesbot`. Both conditions are needed. The marker is plain text that anyone can paste, and `rtibblesbot` comments on issues for other reasons. This cannot live in `contributor-issue-comment`, because that automation drops a bot comment by design.
+It posts a comment mentioning `@rtibblesbot` and adds the label. If the label does not exist in the repository, the add-label call creates it.
 
-The weekly `unassign-inactive-issues` run sweeps the stuck case through `scripts/issue-review-sweep.js`. If the agent never answers, because the service is stopped or every token is capped, the label stays on and tells a maintainer nothing. The sweep removes it once the `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
+**The mention is essential.** The agent polls its GitHub notifications and has no inbound endpoint, so a mention is the only way to reach it. Adding a label does not generate a notification, and a handle inside backticks, as in `BOT_MESSAGE_RTIBBLESBOT_REVIEW`, does not trigger one either.
 
-Neither automation closes the issue, and neither acts on what the check finds. The agent's comment names the close it recommends, and a maintainer asks for it in a reply.
+## `issue-validation-done`
 
-In `scripts/constants.js` set:
+Runs on `issue_comment: [created]`. It removes the `community-issue-review` label only when both conditions are met:
 
-- `LABEL_COMMUNITY_ISSUE_REVIEW`: the label applied while the check runs
-- `ISSUE_VALIDATION_MARKER`: the marker that ends the check, shared with learningequality/coding-agent
-- `ISSUE_REVIEW_MAX_DAYS`: how long the label may stay on before the sweep clears it
-- `BOT_MESSAGE_ISSUE_VALIDATION`: the comment text
+- The comment contains the `<!-- ISSUE_VALIDATION -->` marker.
+- The comment author is `rtibblesbot`.
+
+Both checks are necessary. Anyone can include the marker in a comment, and `rtibblesbot` also comments on issues for other reasons.
+
+This logic cannot live in `contributor-issue-comment`, because that automation deliberately ignores bot comments.
+
+## Handling stalled reviews
+
+The weekly `unassign-inactive-issues` run also sweeps stalled validations through `scripts/issue-review-sweep.js`.
+
+If the agent never responds, for example, because the service is down or all available tokens have reached their limits, the label would otherwise remain indefinitely. The sweep removes it when the issue's `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
+
+## Scope and configuration
+
+Neither automation closes issues or acts on the validation findings. The agent's comment recommends whether the issue should be closed; a maintainer must request that action in a reply.
+
+Configure the following constants in `scripts/constants.js`:
+
+- `LABEL_COMMUNITY_ISSUE_REVIEW`: The label applied while validation is in progress.
+- `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
+- `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.
+- `BOT_MESSAGE_ISSUE_VALIDATION`: The comment text posted to request validation.
 
 # `holiday-message`
 
