@@ -179,10 +179,15 @@ const PR_STATS_REPOS = [
   'le-utils',
   '.github',
   'ricecooker',
+  'morango',
 ];
 
 // Repositories in which we accept open-source contributions
 const COMMUNITY_REPOS = [...PR_STATS_REPOS];
+
+// No other automation gates on the repo, so all of them already run in the
+// sandbox. See docs/testing-automations.md.
+const ISSUE_VALIDATION_REPOS = [...COMMUNITY_REPOS, 'test-actions'];
 
 // Every place GitHub reads a pull request template from. The contents API is
 // case sensitive, so both spellings are needed.
@@ -223,6 +228,7 @@ module.exports = {
   LABEL_COMMUNITY_REVIEW,
   BOT_MESSAGE_COMMUNITY_REVIEW,
   LABEL_COMMUNITY_ISSUE_REVIEW,
+  ISSUE_VALIDATION_REPOS,
   ISSUE_VALIDATION_MARKER,
   ISSUE_REVIEW_MAX_DAYS,
   BOT_MESSAGE_ISSUE_VALIDATION,

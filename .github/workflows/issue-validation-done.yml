@@ -11,6 +11,9 @@ on:
 jobs:
   clear-review-label:
     name: Clear review label
+    if: >
+      github.event.comment.user.login == 'rtibblesbot' && contains(github.event.comment.body, '<!-- ISSUE_VALIDATION -->')
+
     runs-on: ubuntu-latest
     steps:
       - name: Generate App Token

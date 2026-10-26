@@ -108,7 +108,7 @@ These two automations ask `rtibblesbot` to validate claims in contributor-submit
 
 ## `issue-validation`
 
-Runs on `issues: [opened]`. It proceeds only if the repository is in `COMMUNITY_REPOS`, the issue opener is a contributor, and the issue does not already have the `community-issue-review` label.
+Runs on `issues: [opened]`. It proceeds only if the repository is in `ISSUE_VALIDATION_REPOS`, the issue opener is a contributor, and the issue does not already have the `community-issue-review` label.
 
 It posts a comment mentioning `@rtibblesbot` and adds the label. If the label does not exist in the repository, the add-label call creates it.
 
@@ -122,6 +122,8 @@ Runs on `issue_comment: [created]`. It removes the `community-issue-review` labe
 - The comment author is `rtibblesbot`.
 
 Both checks are necessary. Anyone can include the marker in a comment, and `rtibblesbot` also comments on issues for other reasons.
+
+The leaf workflow tests both conditions in its job `if:`, as `resolve-bot-pr-threads` does, so an ordinary comment starts no runner. The script tests them again.
 
 This logic cannot live in `contributor-issue-comment`, because that automation deliberately ignores bot comments.
 
@@ -137,6 +139,7 @@ Neither automation closes issues or acts on the validation findings. The agent's
 
 Configure the following constants in `scripts/constants.js`:
 
+- `ISSUE_VALIDATION_REPOS`: The repositories where validation runs, which are the community repositories plus the sandbox the automations are tested in.
 - `LABEL_COMMUNITY_ISSUE_REVIEW`: The label applied while validation is in progress.
 - `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
 - `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.

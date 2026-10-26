@@ -1,7 +1,7 @@
 // See docs/community-automations.md
 
 const {
-  COMMUNITY_REPOS,
+  ISSUE_VALIDATION_REPOS,
   LABEL_COMMUNITY_ISSUE_REVIEW,
   BOT_MESSAGE_ISSUE_VALIDATION,
 } = require('./constants');
@@ -13,8 +13,8 @@ module.exports = async ({ github, context, core }) => {
     const repo = context.repo.repo;
     const issueNumber = context.payload.issue.number;
 
-    if (!COMMUNITY_REPOS.includes(repo)) {
-      core.info(`${repo} is not a community repo, so no validation is requested.`);
+    if (!ISSUE_VALIDATION_REPOS.includes(repo)) {
+      core.info(`Issue validation does not run in ${repo}, so none is requested.`);
       return;
     }
 

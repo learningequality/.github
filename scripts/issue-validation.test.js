@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const issueValidation = require('./issue-validation');
 const { LABEL_COMMUNITY_ISSUE_REVIEW, COMMUNITY_REPOS } = require('./constants');
 
+const SANDBOX = 'test-actions';
+
 function fakeGithub({ labels = [], addFails = false } = {}) {
   const comments = [];
   const added = [];
@@ -80,6 +82,14 @@ test('a repo outside the community list gets neither', async () => {
   assert.deepEqual(github.comments, []);
   assert.deepEqual(github.added, []);
   assert.deepEqual(core.failures, []);
+});
+
+test('the sandbox is in scope, so the automation can be tested there', async () => {
+  const github = fakeGithub();
+  await issueValidation({ github, context: fakeContext({ repo: SANDBOX }), core: fakeCore() });
+
+  assert.equal(github.comments.length, 1);
+  assert.deepEqual(github.added, [LABEL_COMMUNITY_ISSUE_REVIEW]);
 });
 
 test('an issue already under review gets no second comment', async () => {
