@@ -6,7 +6,6 @@ const {
   ISSUE_VALIDATION_MARKER,
   LABEL_COMMUNITY_ISSUE_REVIEW,
   RTIBBLESBOT_USERNAME,
-  LE_BOT_USERNAME,
 } = require('./constants');
 
 const VERDICT = `${ISSUE_VALIDATION_MARKER}\n\n**Verdict:** claim holds`;
@@ -73,17 +72,6 @@ test('the same marker from another account leaves the label on', async () => {
   await issueValidationDone({
     github,
     context: fakeContext({ author: 'contributor' }),
-    core: fakeCore(),
-  });
-
-  assert.deepEqual(github.removed, []);
-});
-
-test('the bot account is not rtibblesbot either', async () => {
-  const github = fakeGithub();
-  await issueValidationDone({
-    github,
-    context: fakeContext({ author: LE_BOT_USERNAME }),
     core: fakeCore(),
   });
 

@@ -26,18 +26,25 @@ function fakeGithub({
   timelines = {},
   listFails = false,
   timelineFails = false,
+  removeFails = false,
 } = {}) {
   const removed = [];
+  // An entry is a number, which carries the review label, or { number, labels }
+  // to model an issue carrying other labels.
+  const all = issues.map(issue =>
+    typeof issue === 'number' ? { number: issue, labels: [LABEL_COMMUNITY_ISSUE_REVIEW] } : issue,
+  );
   return {
     removed,
     paginate: async (fn, params) => fn(params),
     rest: {
       issues: {
-        listForRepo: async () => {
+        listForRepo: async ({ labels }) => {
           if (listFails) {
             throw new Error('server error');
           }
-          return issues.map(number => ({ number }));
+          const wanted = (labels || '').split(',').filter(Boolean);
+          return all.filter(issue => wanted.every(name => issue.labels.includes(name)));
         },
         listEventsForTimeline: async ({ issue_number }) => {
           if (timelineFails) {
@@ -46,6 +53,11 @@ function fakeGithub({
           return timelines[issue_number] || [];
         },
         removeLabel: async ({ name, issue_number }) => {
+          if (removeFails) {
+            const error = new Error('server error');
+            error.status = 500;
+            throw error;
+          }
           removed.push({ name, issue_number });
         },
       },
@@ -178,6 +190,43 @@ test('each issue is judged on its own age', async () => {
   );
 
   assert.deepEqual(cleared, [7]);
+});
+
+test('an issue that no longer carries the label is left alone', async () => {
+  // The timeline keeps the old `labeled` event, so only the label filter on the
+  // listing keeps this issue out of the sweep.
+  const github = fakeGithub({
+    issues: [{ number: 7, labels: ['help wanted'] }],
+    timelines: { 7: [labeled(daysAgo(30)), unlabeled(daysAgo(29))] },
+  });
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    { github, core: fakeCore() },
+    NOW,
+  );
+
+  assert.deepEqual(cleared, []);
+  assert.deepEqual(github.removed, []);
+});
+
+test('a removal this run cannot make is not counted as cleared', async () => {
+  const github = fakeGithub({
+    issues: [7],
+    timelines: { 7: [labeled(daysAgo(ISSUE_REVIEW_MAX_DAYS + 1))] },
+    removeFails: true,
+  });
+  const core = fakeCore();
+  const cleared = await sweepIssueReviewLabels(
+    'learningequality',
+    'kolibri',
+    { github, core },
+    NOW,
+  );
+
+  assert.deepEqual(cleared, []);
+  assert.equal(core.warnings.length, 1);
+  assert.match(core.warnings[0], /Failed to remove/);
 });
 
 test('a timeline this run cannot read leaves the label on', async () => {
