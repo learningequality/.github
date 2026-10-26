@@ -2,11 +2,11 @@
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "node --test scripts/"
+    "test": "node --test 'scripts/**/*.test.js'"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
-    "googleapis": "^142.0.0",
+    "googleapis": "^186.0.0",
     "node-fetch-native": "^1.6.7",
     "path": "^0.12.7"
   },
