@@ -102,6 +102,27 @@ Four states fail, and the log names every one of them rather than stopping at th
 
 The failed check is the only report. Nothing is posted on the pull request.
 
+# `issue-validation` and `issue-validation-done`
+
+A pair of automations that asks `rtibblesbot` to check the claim in a contributor's issue, and that marks the issue while the check runs.
+
+`issue-validation` runs on `issues: [opened]`. It acts when the repo is in `COMMUNITY_REPOS`, the opener is a contributor, and the issue does not already carry `community-issue-review`. It posts one comment and adds that label. The add call creates the label in a repo that does not define it.
+
+The comment mentions `@rtibblesbot` outside backticks. The mention is load-bearing: the agent polls its GitHub notifications and holds no inbound endpoint, so a mention is the only way to reach it. A label creates no notification. A backticked handle, as in `BOT_MESSAGE_RTIBBLESBOT_REVIEW`, sends none either.
+
+`issue-validation-done` runs on `issue_comment: [created]`. It removes the label when the comment carries the marker `<!-- ISSUE_VALIDATION -->` and comes from `rtibblesbot`. Both conditions are needed. The marker is plain text that anyone can paste, and `rtibblesbot` comments on issues for other reasons. This cannot live in `contributor-issue-comment`, because that automation drops a bot comment by design.
+
+The weekly `unassign-inactive-issues` run sweeps the stuck case through `scripts/issue-review-sweep.js`. If the agent never answers, because the service is stopped or every token is capped, the label stays on and tells a maintainer nothing. The sweep removes it once the `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
+
+Neither automation closes the issue, and neither acts on what the check finds. The agent's comment names the close it recommends, and a maintainer asks for it in a reply.
+
+In `scripts/constants.js` set:
+
+- `LABEL_COMMUNITY_ISSUE_REVIEW`: the label applied while the check runs
+- `ISSUE_VALIDATION_MARKER`: the marker that ends the check, shared with learningequality/coding-agent
+- `ISSUE_REVIEW_MAX_DAYS`: how long the label may stay on before the sweep clears it
+- `BOT_MESSAGE_ISSUE_VALIDATION`: the comment text
+
 # `holiday-message`
 
 Sends a holiday message to community pull requests and issue comments.
