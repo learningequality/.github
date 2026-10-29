@@ -181,6 +181,48 @@ test('a comment with no verdict line still notifies', async () => {
   assert.match(core.outputs.support_dev_message, /_\(check the agent run\)_$/);
 });
 
+// The agent's LLM session writes the verdict line, so its shape varies. Each of
+// these is accepted by the reader in learningequality/coding-agent, so it must
+// be accepted here too.
+for (const [line, shape] of [
+  ['**Verdict:** claim holds', 'the shape seen live'],
+  ['**Verdict**: claim holds', 'the colon outside the bold'],
+  ['Verdict: claim holds', 'no bold'],
+  ['**verdict:** claim holds', 'a lowercase label'],
+  ['- **Verdict:** claim holds', 'a list item'],
+  ['1. **Verdict:** claim holds', 'a numbered list item'],
+  ['> **Verdict:** claim holds', 'a quote'],
+  ['**Verdict:** Claim holds.', 'a capital and a full stop'],
+  ['**Verdict:** `claim holds`', 'the value in backticks'],
+]) {
+  test(`a verdict stated with ${shape} is read`, async () => {
+    const core = fakeCore();
+    await issueValidationDone({
+      github: fakeGithub(),
+      context: fakeContext({
+        commentBody: `${ISSUE_VALIDATION_MARKER}\n\n${line}\n**Evidence:** \`a.py:1\``,
+      }),
+      core,
+    });
+
+    assert.match(core.outputs.support_dev_message, /Validation: claim holds>/);
+    assert.match(core.outputs.support_dev_message, /_\(ready for triage\)_$/);
+  });
+}
+
+test('a duplicate verdict is read with the colon outside the bold', async () => {
+  const core = fakeCore();
+  await issueValidationDone({
+    github: fakeGithub(),
+    context: fakeContext({
+      commentBody: `${ISSUE_VALIDATION_MARKER}\n\n**Verdict**: duplicate of #15001\n**Evidence:** x`,
+    }),
+    core,
+  });
+
+  assert.match(core.outputs.support_dev_message, /Validation: duplicate of #15001>/);
+});
+
 test('a body with CRLF line endings reads the same verdict', async () => {
   const core = fakeCore();
   await issueValidationDone({

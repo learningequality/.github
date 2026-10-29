@@ -11,16 +11,23 @@ const {
 } = require('./constants');
 const { removeLabel, escapeIssueTitleForSlackMessage } = require('./utils');
 
-const VERDICT_PREFIX = '**Verdict:**';
+// The verdict line is written by the agent's LLM session, not by a template, so
+// its shape varies. These three mirror the agent's own reader, which has to
+// tolerate that: _LIST_NUMBER_RE, _VERDICT_RE and the strips in parse_verdict
+// and classify_verdict, all in learningequality/coding-agent. Anything stricter
+// here reports a healthy run as broken.
+const LIST_NUMBER = /^(\s*)\d+[.)][ \t]+/gm;
+const VERDICT_LINE = /^[\s>*_-]*verdict[*_\s]*:\s*(.+?)\s*$/im;
+const VERDICT_TRIM = /^[`*_\s.!;]+|[`*_\s.!;]+$/g;
 const DUPLICATE_VERDICT = /^duplicate of #\d+$/;
 
 function readVerdict(body) {
-  const line = (body || '').split(/\r?\n/).find(candidate => candidate.startsWith(VERDICT_PREFIX));
-  if (!line) {
+  const match = VERDICT_LINE.exec((body || '').replace(LIST_NUMBER, '$1'));
+  if (!match) {
     return null;
   }
 
-  const verdict = line.slice(VERDICT_PREFIX.length).trim();
+  const verdict = match[1].toLowerCase().replace(VERDICT_TRIM, '');
   if (DUPLICATE_VERDICT.test(verdict)) {
     return { verdict, followUp: ISSUE_VALIDATION_FOLLOW_UPS[ISSUE_VALIDATION_DUPLICATE_VERDICT] };
   }

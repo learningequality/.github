@@ -93,10 +93,7 @@ const LABEL_COMMUNITY_ISSUE_REVIEW = 'community-issue-review';
 const ISSUE_VALIDATION_MARKER = '<!-- ISSUE_VALIDATION -->';
 const ISSUE_REVIEW_MAX_DAYS = 3;
 
-// The same contract fixes these six verdicts, one per validation comment. Each
-// value is the follow-up the Slack notification asks a maintainer for. The
-// `duplicate of #N` key carries an issue number, so the script matches it on
-// its own.
+// The same contract fixes these six verdicts, one per validation comment.
 const ISSUE_VALIDATION_DUPLICATE_VERDICT = 'duplicate of #N';
 const ISSUE_VALIDATION_FOLLOW_UPS = {
   'claim holds': 'ready for triage',

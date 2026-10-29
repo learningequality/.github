@@ -133,7 +133,11 @@ It also posts one line to Slack `#support-dev` for every validation comment, so 
 *[kolibri] <comment-url|Validation: duplicate of #15001> on issue: <issue-url|Title> reported by _octocat_* _(consider closing as duplicate)_
 ```
 
-`ISSUE_VALIDATION_FOLLOW_UPS` holds the six verdicts and their follow-ups. `learningequality/coding-agent#1229` fixes the vocabulary from the agent's side. A comment that states no verdict, or one outside the six, reads `Validation: no verdict read` and asks a maintainer to check the agent run, because under that contract such a comment means something broke.
+`ISSUE_VALIDATION_FOLLOW_UPS` holds the six verdicts and their follow-ups. `learningequality/coding-agent#1229` fixes the vocabulary from the agent's side.
+
+The agent's LLM session writes the verdict line, so its shape varies. `readVerdict` therefore mirrors the agent's own reader, which tolerates a missing bold, a colon on either side of it, a lowercase label, a list or quote prefix, backticks, and trailing punctuation. Keep the two readers in step. A stricter reader here reports a healthy run as broken.
+
+A comment outside all of that reads `Validation: no verdict read` and asks a maintainer to check the agent run. The agent posts no comment at all when it states no verdict, so this line means the rendering drifted, not that a verdict is missing.
 
 ## Handling stalled reviews
 
