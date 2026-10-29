@@ -138,7 +138,6 @@ async function sendBotMessage(issueNumber, message, { github, context }) {
 /**
  * Every caller's message is interpolated into a JSON string literal in the
  * leaf's Slack payload, so a backslash has to be escaped before the quote.
- * The angle brackets are Slack's own link syntax.
  */
 function escapeIssueTitleForSlackMessage(issueTitle) {
   return issueTitle

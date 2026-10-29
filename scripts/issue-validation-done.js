@@ -14,8 +14,7 @@ const { removeLabel, escapeIssueTitleForSlackMessage } = require('./utils');
 // The verdict line is written by the agent's LLM session, not by a template, so
 // its shape varies. These three mirror the agent's own reader, which has to
 // tolerate that: _LIST_NUMBER_RE, _VERDICT_RE and the strips in parse_verdict
-// and classify_verdict, all in learningequality/coding-agent. Anything stricter
-// here reports a healthy run as broken.
+// and classify_verdict, all in learningequality/coding-agent.
 const LIST_NUMBER = /^(\s*)\d+[.)][ \t]+/gm;
 const VERDICT_LINE = /^[\s>*_-]*verdict[*_\s]*:\s*(.+?)\s*$/im;
 const VERDICT_TRIM = /^[`*_\s.!;]+|[`*_\s.!;]+$/g;

@@ -13,8 +13,6 @@ module.exports = async ({ github, context, core }) => {
     const repo = context.repo.repo;
     const number = context.payload.pull_request.number;
     const url = context.payload.pull_request.html_url;
-    // Only the Slack lines below read this, and each one interpolates it into a
-    // JSON string literal in the leaf's payload.
     const title = escapeIssueTitleForSlackMessage(context.payload.pull_request.title);
     const author = context.payload.pull_request.user.login;
 

@@ -231,8 +231,6 @@ test('a failed lookup falls back to the standard reply', async () => {
   assert.deepEqual(core.failures, []);
 });
 
-// The leaf interpolates the Slack line into a JSON string literal, so a quote or
-// a backslash in the title breaks the payload and fails the step.
 test('a title holding a quote and a backslash reaches Slack escaped', async () => {
   const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
   const core = await run(github, fakeContext(AUTHOR, 'Treat "done" as C:\\full'));

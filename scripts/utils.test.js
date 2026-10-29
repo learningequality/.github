@@ -3,8 +3,6 @@ const assert = require('node:assert/strict');
 
 const { escapeIssueTitleForSlackMessage } = require('./utils');
 
-// Every caller interpolates the result into a JSON string literal in its leaf's
-// Slack payload, so the test parses that payload rather than the string alone.
 function payload(title) {
   return `{\n  "text": "on issue: <url|${escapeIssueTitleForSlackMessage(title)}>"\n}`;
 }
