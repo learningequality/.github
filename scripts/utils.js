@@ -135,8 +135,16 @@ async function sendBotMessage(issueNumber, message, { github, context }) {
   }
 }
 
+/**
+ * Every caller's message is interpolated into a JSON string literal in the
+ * leaf's Slack payload, so a backslash has to be escaped before the quote.
+ */
 function escapeIssueTitleForSlackMessage(issueTitle) {
-  return issueTitle.replace(/"/g, '\\"').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return issueTitle
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /**
@@ -193,6 +201,48 @@ async function getLabels(owner, repo, issueNumber, github, core) {
 async function hasLabel(name, owner, repo, issueNumber, github, core) {
   const labels = await getLabels(owner, repo, issueNumber, github, core);
   return labels.includes(name.toLowerCase());
+}
+
+/**
+ * Adds a label to an issue, and returns whether the call succeeded. The call
+ * creates the label in a repository that does not define it.
+ */
+async function addLabel(name, owner, repo, issueNumber, github, core) {
+  try {
+    await github.rest.issues.addLabels({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      labels: [name],
+    });
+    return true;
+  } catch (error) {
+    core.warning(`Failed to add ${name} to issue #${issueNumber}: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Removes a label from an issue, and returns whether the call succeeded. GitHub
+ * answers 404 when the label is not on the issue, which counts as removed.
+ */
+async function removeLabel(name, owner, repo, issueNumber, github, core) {
+  try {
+    await github.rest.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name,
+    });
+    return true;
+  } catch (error) {
+    if (error.status === 404) {
+      core.info(`${name} is not on issue #${issueNumber}.`);
+      return true;
+    }
+    core.warning(`Failed to remove ${name} from issue #${issueNumber}: ${error.message}`);
+    return false;
+  }
 }
 
 /**
@@ -386,6 +436,8 @@ module.exports = {
   hasRecentBotComment,
   getLabels,
   hasLabel,
+  addLabel,
+  removeLabel,
   getLinkedIssues,
   getIssues,
   getPullRequests,

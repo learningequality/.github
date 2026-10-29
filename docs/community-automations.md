@@ -102,6 +102,62 @@ Four states fail, and the log names every one of them rather than stopping at th
 
 The failed check is the only report. Nothing is posted on the pull request.
 
+# `issue-validation` and `issue-validation-done`
+
+These two automations ask `rtibblesbot` to validate claims in contributor-submitted issues and track the review while it is in progress.
+
+## `issue-validation`
+
+Runs on `issues: [opened]`. It proceeds only if the repository is in `ISSUE_VALIDATION_REPOS`, the issue opener is a contributor, and the issue does not already have the `community-issue-review` label.
+
+It posts a comment mentioning `@rtibblesbot` and adds the label. If the label does not exist in the repository, the add-label call creates it.
+
+**The mention is essential.** The agent polls its GitHub notifications and has no inbound endpoint, so a mention is the only way to reach it. Adding a label does not generate a notification, and a handle inside backticks, as in `BOT_MESSAGE_RTIBBLESBOT_REVIEW`, does not trigger one either.
+
+## `issue-validation-done`
+
+Runs on `issue_comment: [created]`. It removes the `community-issue-review` label only when both conditions are met:
+
+- The comment contains the `<!-- ISSUE_VALIDATION -->` marker.
+- The comment author is `rtibblesbot`.
+
+Both checks are necessary. Anyone can include the marker in a comment, and `rtibblesbot` also comments on issues for other reasons.
+
+The leaf workflow tests both conditions in its job `if:`, as `resolve-bot-pr-threads` does, so an ordinary comment starts no runner. The script tests them again.
+
+This logic cannot live in `contributor-issue-comment`, because that automation deliberately ignores bot comments.
+
+It also posts one line to Slack `#support-dev` for every validation comment, so a maintainer knows to follow up. The line carries the verdict, a link to the comment, a link to the issue, the reporter's handle, and the follow-up the verdict calls for:
+
+```
+*[kolibri] <comment-url|Validation: duplicate of #15001> on issue: <issue-url|Title> reported by _octocat_* _(consider closing as duplicate)_
+```
+
+`ISSUE_VALIDATION_FOLLOW_UPS` holds the six verdicts and their follow-ups. `learningequality/coding-agent#1229` fixes the vocabulary from the agent's side.
+
+The agent's LLM session writes the verdict line, so its shape varies. `readVerdict` therefore mirrors the agent's own reader, which tolerates a missing bold, a colon on either side of it, a lowercase label, a list or quote prefix, backticks, and trailing punctuation. Keep the two readers in step. A stricter reader here reports a healthy run as broken.
+
+A comment outside all of that reads `Validation: no verdict read` and asks a maintainer to check the agent run. The agent posts no comment at all when it states no verdict, so this line means the rendering drifted, not that a verdict is missing.
+
+## Handling stalled reviews
+
+The weekly `unassign-inactive-issues` run also sweeps stalled validations through `scripts/issue-review-sweep.js`.
+
+If the agent never responds, for example, because the service is down or all available tokens have reached their limits, the label would otherwise remain indefinitely. The sweep removes it when the issue's `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
+
+## Scope and configuration
+
+Neither automation closes issues or acts on the validation findings. The agent's comment recommends whether the issue should be closed; a maintainer must request that action in a reply.
+
+Configure the following constants in `scripts/constants.js`:
+
+- `ISSUE_VALIDATION_REPOS`: The repositories where validation runs, which are the community repositories plus the sandbox the automations are tested in.
+- `LABEL_COMMUNITY_ISSUE_REVIEW`: The label applied while validation is in progress.
+- `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
+- `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.
+- `BOT_MESSAGE_ISSUE_VALIDATION`: The comment text posted to request validation.
+- `ISSUE_VALIDATION_FOLLOW_UPS`: The six verdicts and the follow-up each one asks a maintainer for, used in the Slack line.
+
 # `holiday-message`
 
 Sends a holiday message to community pull requests and issue comments.

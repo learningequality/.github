@@ -87,6 +87,24 @@ const MAX_ASSIGNED_ISSUES = 2;
 const ASSIGN_COOLDOWN_DAYS = 7;
 const ASSIGN_GUIDANCE_MARKER = '<!-- ASSIGN_GUIDANCE -->';
 const LABEL_COMMUNITY_REVIEW = 'community-review';
+const LABEL_COMMUNITY_ISSUE_REVIEW = 'community-issue-review';
+// rtibblesbot opens its validation comment with this marker. The contract is
+// stated from the agent's side in learningequality/coding-agent#1229.
+const ISSUE_VALIDATION_MARKER = '<!-- ISSUE_VALIDATION -->';
+const ISSUE_REVIEW_MAX_DAYS = 3;
+
+// The same contract fixes these six verdicts, one per validation comment.
+const ISSUE_VALIDATION_DUPLICATE_VERDICT = 'duplicate of #N';
+const ISSUE_VALIDATION_FOLLOW_UPS = {
+  'claim holds': 'ready for triage',
+  'claim does not hold': 'consider closing',
+  [ISSUE_VALIDATION_DUPLICATE_VERDICT]: 'consider closing as duplicate',
+  'already fixed': 'consider closing as fixed',
+  'not enough information': 'needs more from the reporter',
+  'out of scope': 'consider closing',
+};
+const ISSUE_VALIDATION_NO_VERDICT = 'no verdict read';
+const ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP = 'check the agent run';
 
 // Will be attached to bot messages when not empty
 // const GSOC_NOTE = '';
@@ -154,6 +172,18 @@ const BOT_MESSAGE_RTIBBLESBOT_REVIEW = `📢✨ **Before we assign a reviewer, w
 
 const BOT_MESSAGE_COMMUNITY_REVIEW = `📢✨ **Before we assign a reviewer, we'll invite community pre-review. See the [community review guidance](https://github.com/learningequality/.github/blob/main/docs/community-review.md) for both authors and reviewers.**`;
 
+const BOT_MESSAGE_ISSUE_VALIDATION =
+  `🔍 **Thanks for opening this issue!** @rtibblesbot will check it against the code ` +
+  `and comment with its findings.\n\n` +
+  `**What happens next:**\n\n` +
+  `- The \`${LABEL_COMMUNITY_ISSUE_REVIEW}\` label stays on until the review comment is posted.\n` +
+  `- The comment identifies the files, lines, or commits examined so you can follow the ` +
+  `reasoning and respond if you disagree.\n` +
+  `- If the check confirms the issue, @rtibblesbot may also correct the title and ` +
+  `description. GitHub preserves the edit history, so the original text remains available.\n` +
+  `- @rtibblesbot's comments are LLM-generated, so please evaluate them critically.\n\n` +
+  `A maintainer decides what happens next. This check does not close the issue.`;
+
 // Repositories to include in PR statistics reports
 const PR_STATS_REPOS = [
   'kolibri',
@@ -162,10 +192,15 @@ const PR_STATS_REPOS = [
   'le-utils',
   '.github',
   'ricecooker',
+  'morango',
 ];
 
 // Repositories in which we accept open-source contributions
 const COMMUNITY_REPOS = [...PR_STATS_REPOS];
+
+// No other automation gates on the repo, so all of them already run in the
+// sandbox. See docs/testing-automations.md.
+const ISSUE_VALIDATION_REPOS = [...COMMUNITY_REPOS, 'test-actions'];
 
 // Every place GitHub reads a pull request template from. The contents API is
 // case sensitive, so both spellings are needed.
@@ -205,6 +240,15 @@ module.exports = {
   RTIBBLESBOT_USERNAME,
   LABEL_COMMUNITY_REVIEW,
   BOT_MESSAGE_COMMUNITY_REVIEW,
+  LABEL_COMMUNITY_ISSUE_REVIEW,
+  ISSUE_VALIDATION_REPOS,
+  ISSUE_VALIDATION_MARKER,
+  ISSUE_VALIDATION_DUPLICATE_VERDICT,
+  ISSUE_VALIDATION_FOLLOW_UPS,
+  ISSUE_VALIDATION_NO_VERDICT,
+  ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP,
+  ISSUE_REVIEW_MAX_DAYS,
+  BOT_MESSAGE_ISSUE_VALIDATION,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,

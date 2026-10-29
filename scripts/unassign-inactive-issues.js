@@ -1,3 +1,5 @@
+const { sweepIssueReviewLabels } = require('./issue-review-sweep');
+
 const formatUnassignments = unassignments => {
   if (unassignments.length === 0) return '';
 
@@ -255,6 +257,8 @@ module.exports = async ({ github, context, core }) => {
         `Repository access failed. Please check your GitHub App permissions for repository access. Error: ${authError.message}`,
       );
     }
+
+    await sweepIssueReviewLabels(owner, repo, { github, core });
 
     const issues = await getAllIssues(github, owner, repo);
     //console.log(`Processing ${issues.length} open issues`);

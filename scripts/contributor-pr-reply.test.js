@@ -6,14 +6,14 @@ const { LABEL_COMMUNITY_REVIEW, RTIBBLESBOT_USERNAME } = require('./constants');
 
 const AUTHOR = 'outsider';
 
-function fakeContext(author = AUTHOR) {
+function fakeContext(author = AUTHOR, title = 'Fix it') {
   return {
     repo: { owner: 'learningequality', repo: 'kolibri' },
     payload: {
       pull_request: {
         number: 42,
         html_url: 'https://github.com/learningequality/kolibri/pull/42',
-        title: 'Fix it',
+        title,
         user: { login: author },
       },
     },
@@ -229,6 +229,22 @@ test('a failed lookup falls back to the standard reply', async () => {
   assert.equal(core.warnings.length, 1);
   assert.match(core.warnings[0], /API down/);
   assert.deepEqual(core.failures, []);
+});
+
+test('a title holding a quote and a backslash reaches Slack escaped', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
+  const core = await run(github, fakeContext(AUTHOR, 'Treat "done" as C:\\full'));
+
+  const line = core.outputs.slack_notification;
+  assert.match(line, /Treat \\"done\\" as C:\\\\full/);
+  assert.doesNotThrow(() => JSON.parse(`{"text": "${line}"}`));
+});
+
+test('a title holding angle brackets cannot end the Slack link early', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }]);
+  const core = await run(github, fakeContext(AUTHOR, 'Remove <KButton>'));
+
+  assert.match(core.outputs.slack_notification, /Remove &lt;KButton&gt;/);
 });
 
 test('a failed lookup does not ask the author to link an issue', async () => {
