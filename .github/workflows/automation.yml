@@ -27,7 +27,7 @@ on:
         description: "Forwarded to: contributor-pr-reply, contributor-issue-comment, unassign-inactive-issues"
         required: false
       SLACK_WEBHOOK_URL:
-        description: "Forwarded to: contributor-issue-comment"
+        description: "Forwarded to: issue-validation-done, contributor-issue-comment"
         required: false
 jobs:
   pull-request-target:

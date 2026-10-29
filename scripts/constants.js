@@ -93,6 +93,22 @@ const LABEL_COMMUNITY_ISSUE_REVIEW = 'community-issue-review';
 const ISSUE_VALIDATION_MARKER = '<!-- ISSUE_VALIDATION -->';
 const ISSUE_REVIEW_MAX_DAYS = 3;
 
+// The same contract fixes these six verdicts, one per validation comment. Each
+// value is the follow-up the Slack notification asks a maintainer for. The
+// `duplicate of #N` key carries an issue number, so the script matches it on
+// its own.
+const ISSUE_VALIDATION_DUPLICATE_VERDICT = 'duplicate of #N';
+const ISSUE_VALIDATION_FOLLOW_UPS = {
+  'claim holds': 'ready for triage',
+  'claim does not hold': 'consider closing',
+  [ISSUE_VALIDATION_DUPLICATE_VERDICT]: 'consider closing as duplicate',
+  'already fixed': 'consider closing as fixed',
+  'not enough information': 'needs more from the reporter',
+  'out of scope': 'consider closing',
+};
+const ISSUE_VALIDATION_NO_VERDICT = 'no verdict read';
+const ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP = 'check the agent run';
+
 // Will be attached to bot messages when not empty
 // const GSOC_NOTE = '';
 const GSOC_NOTE = `\n\n**Are you preparing for Google Summer of Code? See our [GSoC guidelines.](https://learningequality.org/contributing-to-our-open-code-base/#google-summer-of-code)**`;
@@ -230,6 +246,10 @@ module.exports = {
   LABEL_COMMUNITY_ISSUE_REVIEW,
   ISSUE_VALIDATION_REPOS,
   ISSUE_VALIDATION_MARKER,
+  ISSUE_VALIDATION_DUPLICATE_VERDICT,
+  ISSUE_VALIDATION_FOLLOW_UPS,
+  ISSUE_VALIDATION_NO_VERDICT,
+  ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP,
   ISSUE_REVIEW_MAX_DAYS,
   BOT_MESSAGE_ISSUE_VALIDATION,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,

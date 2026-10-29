@@ -17,7 +17,7 @@ on:
         description: "Forwarded to: contributor-issue-comment"
         required: false
       SLACK_WEBHOOK_URL:
-        description: "Forwarded to: contributor-issue-comment"
+        description: "Forwarded to: issue-validation-done, contributor-issue-comment"
         required: false
 jobs:
   issue-validation-done:
@@ -29,6 +29,7 @@ jobs:
     secrets:
       LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   contributor-issue-comment:
     name: Contributor Issue Comment
     if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' }}

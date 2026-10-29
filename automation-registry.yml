@@ -148,6 +148,7 @@ automations:
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
+      SLACK_WEBHOOK_URL: optional
   - name: contributor-issue-comment
     enabled: true
     leaf: contributor-issue-comment.yml

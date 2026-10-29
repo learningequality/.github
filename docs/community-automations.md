@@ -127,6 +127,14 @@ The leaf workflow tests both conditions in its job `if:`, as `resolve-bot-pr-thr
 
 This logic cannot live in `contributor-issue-comment`, because that automation deliberately ignores bot comments.
 
+It also posts one line to Slack `#support-dev` for every validation comment, so a maintainer knows to follow up. The line carries the verdict, a link to the comment, a link to the issue, the reporter's handle, and the follow-up the verdict calls for:
+
+```
+*[kolibri] <comment-url|Validation: duplicate of #15001> on issue: <issue-url|Title> reported by _octocat_* _(consider closing as duplicate)_
+```
+
+`ISSUE_VALIDATION_FOLLOW_UPS` holds the six verdicts and their follow-ups. `learningequality/coding-agent#1229` fixes the vocabulary from the agent's side. A comment that states no verdict, or one outside the six, reads `Validation: no verdict read` and asks a maintainer to check the agent run, because under that contract such a comment means something broke.
+
 ## Handling stalled reviews
 
 The weekly `unassign-inactive-issues` run also sweeps stalled validations through `scripts/issue-review-sweep.js`.
@@ -144,6 +152,7 @@ Configure the following constants in `scripts/constants.js`:
 - `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
 - `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.
 - `BOT_MESSAGE_ISSUE_VALIDATION`: The comment text posted to request validation.
+- `ISSUE_VALIDATION_FOLLOW_UPS`: The six verdicts and the follow-up each one asks a maintainer for, used in the Slack line.
 
 # `holiday-message`
 
