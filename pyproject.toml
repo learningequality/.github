@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 dependencies = ["requests"]
 
 [dependency-groups]
-dev = ["prek>=0.3.6"]
+dev = ["prek>=0.5.7"]
 
 [tool.uv]
 exclude-newer = "7 days"
