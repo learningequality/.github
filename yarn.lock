@@ -544,10 +544,10 @@ googleapis-common@^9.0.0:
     qs "^6.7.0"
     url-template "^2.0.8"
 
-googleapis@^186.0.0:
-  version "186.0.0"
-  resolved "https://registry.yarnpkg.com/googleapis/-/googleapis-186.0.0.tgz#e171ec1805587651b9c4def8733a6b1e2afb4ea0"
-  integrity sha512-ljnYwbM1IX6xM0q5tQHqAtnFdHBC9rPa5jidpoQB7wRiqBYOs5hOQPUPidF454tNLO5LCwB06EvkPg/93E1OJw==
+googleapis@^188.0.0:
+  version "188.0.0"
+  resolved "https://registry.yarnpkg.com/googleapis/-/googleapis-188.0.0.tgz#e150d5025bb4d0137c0fe55d293a4b48ab77d402"
+  integrity sha512-dLGvMAlYOiemwYnhFoy1bDd+dnB6o8mGxnXhLCirAjAww8F/Qs59XY3EHm7p7RGENtDRTqyM7oV7DQ22V4BaOA==
   dependencies:
     google-auth-library "^11.0.0"
     googleapis-common "^9.0.0"
