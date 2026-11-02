@@ -8,10 +8,10 @@ on:
   workflow_call:
     secrets:
       LE_BOT_APP_ID:
-        description: "Forwarded to: issue-open, issue-label-header, good-first-issue-comment, community-contribution-label"
+        description: "Forwarded to: issue-open, issue-label-header, good-first-issue-comment, community-contribution-label, issue-validation"
         required: true
       LE_BOT_PRIVATE_KEY:
-        description: "Forwarded to: issue-open, issue-label-header, good-first-issue-comment, community-contribution-label"
+        description: "Forwarded to: issue-open, issue-label-header, good-first-issue-comment, community-contribution-label, issue-validation"
         required: true
 jobs:
   issue-open:
@@ -45,6 +45,15 @@ jobs:
     name: Community Contribution Label
     if: ${{ github.event_name == 'issues' && contains(fromJSON('["assigned","unassigned"]'), github.event.action) }}
     uses: learningequality/.github/.github/workflows/community-contribution-label.yml@main
+    permissions:
+      contents: read
+    secrets:
+      LE_BOT_APP_ID: ${{ secrets.LE_BOT_APP_ID }}
+      LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
+  issue-validation:
+    name: Issue Validation
+    if: ${{ github.event_name == 'issues' && github.event.action == 'opened' }}
+    uses: learningequality/.github/.github/workflows/issue-validation.yml@main
     permissions:
       contents: read
     secrets:

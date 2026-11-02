@@ -5,7 +5,7 @@ const {
   LABEL_COMMUNITY_REVIEW,
   RTIBBLESBOT_USERNAME,
 } = require('./constants');
-const { sendBotMessage, getLinkedIssues } = require('./utils');
+const { sendBotMessage, getLinkedIssues, escapeIssueTitleForSlackMessage } = require('./utils');
 
 module.exports = async ({ github, context, core }) => {
   try {
@@ -13,7 +13,7 @@ module.exports = async ({ github, context, core }) => {
     const repo = context.repo.repo;
     const number = context.payload.pull_request.number;
     const url = context.payload.pull_request.html_url;
-    const title = context.payload.pull_request.title;
+    const title = escapeIssueTitleForSlackMessage(context.payload.pull_request.title);
     const author = context.payload.pull_request.user.login;
 
     const lookup = await getLinkedIssues(number, { github, context, core });
