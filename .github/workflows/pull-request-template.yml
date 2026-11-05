@@ -12,6 +12,9 @@ jobs:
   check-template:
     name: Check template
     runs-on: ubuntu-latest
+    concurrency:
+      group: pull-request-template-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     steps:
       - name: Generate App Token
         id: generate-token
@@ -21,6 +24,7 @@ jobs:
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
           permission-contents: read
           permission-members: read
+          permission-pull-requests: write
       - name: Checkout .github repository
         uses: actions/checkout@v7
         with:
