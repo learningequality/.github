@@ -80,7 +80,7 @@ In `scripts/constants.js` set:
 
 # `pull-request-template`
 
-Fails the run when a pull request description does not carry the sections its template requires. It runs on `opened`, `edited` and `reopened`, so a corrected description clears the check. Bot authors are exempt.
+Fails the run when a pull request description does not carry the sections its template requires. It runs on `opened`, `edited` and `reopened`, so a corrected description clears the check. Maintainers and bots are exempt.
 
 The template is resolved the way GitHub resolves it: the repo's own copy first, in all six places GitHub reads them from, and this repo's `.github/PULL_REQUEST_TEMPLATE.md` next. It is read from the pull request's base branch, so a pull request cannot relax the rules it is judged by.
 

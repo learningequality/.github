@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { isBot } = require('./utils');
+const { isContributor } = require('./utils');
 const { PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
 
 const ORG_TEMPLATE_PATH = path.join(__dirname, '..', PR_TEMPLATE_TARGET);
@@ -98,8 +98,8 @@ module.exports = async ({ github, context, core }) => {
     const pullRequest = context.payload.pull_request;
     const author = pullRequest.user.login;
 
-    if (await isBot(author, { core })) {
-      core.info(`${author} is a bot, so the template is not checked.`);
+    if (!(await isContributor(author, pullRequest.author_association, { github, context, core }))) {
+      core.info(`${author} is a maintainer or bot, so the template is not checked.`);
       return;
     }
 

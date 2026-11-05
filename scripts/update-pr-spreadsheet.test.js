@@ -38,6 +38,16 @@ function fakeGithub(prs) {
   return {
     queries,
     rest: {
+      teams: {
+        getMembershipForUserInOrg: async ({ username }) => {
+          if (['core-dev', 'private-member'].includes(username)) {
+            return { data: { state: 'active' } };
+          }
+          const error = new Error('Not Found');
+          error.status = 404;
+          throw error;
+        },
+      },
       search: { issuesAndPullRequests: search },
       pulls: {
         get: async ({ repo, pull_number }) => ({
@@ -59,6 +69,7 @@ test('only contributor PRs updated since the cutoff become rows', async () => {
     pr({ number: 2, user: { login: 'core-dev' }, author_association: 'MEMBER' }),
     pr({ number: 3, user: { login: 'dependabot[bot]' }, author_association: 'NONE' }),
     pr({ number: 4, user: { login: 'boss' }, author_association: 'OWNER' }),
+    pr({ number: 5, user: { login: 'private-member' }, author_association: 'CONTRIBUTOR' }),
   ]);
 
   const rows = await collectRows({ github, context, core }, '2026-09-23');

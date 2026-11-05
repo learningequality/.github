@@ -46,11 +46,19 @@ const MULTILINE = [
 
 const GOOD_BODY = ['## Summary', '', 'What this does.', '', '## Notes', '', 'A note.'].join('\n');
 
-function fakeGithub({ templates = {} } = {}) {
+function fakeGithub({ templates = {}, maintainers = [] } = {}) {
   const reads = [];
   return {
     reads,
     rest: {
+      teams: {
+        getMembershipForUserInOrg: async ({ username }) => {
+          if (maintainers.includes(username)) return { data: { state: 'active' } };
+          const error = new Error('Not Found');
+          error.status = 404;
+          throw error;
+        },
+      },
       repos: {
         getContent: async ({ path, ref }) => {
           reads.push({ path, ref });
@@ -66,11 +74,22 @@ function fakeGithub({ templates = {} } = {}) {
   };
 }
 
-function fakeContext({ body = GOOD_BODY, author = 'contributor', base = 'develop' } = {}) {
+function fakeContext({
+  body = GOOD_BODY,
+  author = 'contributor',
+  association = 'CONTRIBUTOR',
+  base = 'develop',
+} = {}) {
   return {
     repo: { owner: 'learningequality', repo: 'kolibri' },
     payload: {
-      pull_request: { number: 42, body, user: { login: author }, base: { ref: base } },
+      pull_request: {
+        number: 42,
+        body,
+        user: { login: author },
+        author_association: association,
+        base: { ref: base },
+      },
     },
   };
 }
@@ -225,6 +244,30 @@ test('a bot author passes without a template read', async () => {
 
   assert.deepEqual(core.failures, []);
   assert.deepEqual(github.reads, []);
+});
+
+test('a maintainer passes without a template read', async () => {
+  const core = fakeCore();
+  const github = fakeGithub({ templates: repoTemplate(MARKED), maintainers: ['bjesterbot'] });
+  await pullRequestTemplate({
+    github,
+    context: fakeContext({ body: '', author: 'bjesterbot', association: 'CONTRIBUTOR' }),
+    core,
+  });
+
+  assert.deepEqual(core.failures, []);
+  assert.deepEqual(github.reads, []);
+});
+
+test('an org member outside the maintainer teams is checked', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(MARKED) }),
+    context: fakeContext({ body: '', author: 'community-guide', association: 'MEMBER' }),
+    core,
+  });
+
+  assert.equal(core.failures.length, 1);
 });
 
 test('the template is read from the base branch, never the head', async () => {
