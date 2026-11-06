@@ -110,7 +110,7 @@ These two automations ask `rtibblesbot` to validate claims in contributor-submit
 
 ## `issue-validation`
 
-Runs on `issues: [opened, edited, reopened]` for open issues whose opener is a contributor, in repositories listed in `ISSUE_VALIDATION_REPOS`. `edited` and `reopened` only run while the issue carries `needs-template`, so issues opened before the check existed are never flagged.
+Runs on `issues: [opened, edited, reopened]` for open issues whose opener is a contributor, in public repositories. `edited` and `reopened` only run while the issue carries `needs-template`, so issues opened before the check existed are never flagged.
 
 It first checks the description against this repo's `.github/ISSUE_TEMPLATE/*.md`, using the `<!-- REQUIRED -->` rules of `pull-request-template`. The issue does not record which template it came from, so it passes if it satisfies any one of them.
 
@@ -152,7 +152,7 @@ The weekly `unassign-inactive-issues` run also sweeps stalled validations throug
 
 If the agent never responds, for example, because the service is down or all available tokens have reached their limits, the label would otherwise remain indefinitely. The sweep removes it when the issue's `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
 
-In repositories listed in `ISSUE_VALIDATION_REPOS`, the same run closes, as not planned, every open issue labelled `needs-template` for longer than `ISSUE_TEMPLATE_MAX_DAYS` days, with `BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED`. To keep an issue open, a maintainer fixes its description or removes the label. Reopening a closed issue reruns the check and restarts the clock.
+The same run closes, as not planned, every open issue labelled `needs-template` for longer than `ISSUE_TEMPLATE_MAX_DAYS` days, with `BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED`. To keep an issue open, a maintainer fixes its description or removes the label. Reopening a closed issue reruns the check and restarts the clock.
 
 ## Scope and configuration
 
@@ -160,7 +160,6 @@ Neither automation acts on the validation findings. The agent's comment recommen
 
 Configure the following constants in `scripts/constants.js`:
 
-- `ISSUE_VALIDATION_REPOS`: The repositories where validation runs, which are the community repositories plus the sandbox the automations are tested in.
 - `LABEL_COMMUNITY_ISSUE_REVIEW`: The label applied while validation is in progress.
 - `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
 - `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.

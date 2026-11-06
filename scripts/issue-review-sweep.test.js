@@ -387,18 +387,3 @@ test('a pull request carrying the template label is not closed', async () => {
 
   assert.deepEqual(closed, []);
 });
-
-test('a repo outside issue validation has nothing closed', async () => {
-  const github = closingGithub({
-    issues: [templateIssue(7)],
-    timelines: { 7: [labeled(daysAgo(30), LABEL_NEEDS_TEMPLATE)] },
-  });
-  const closed = await closeIssuesMissingTemplate(
-    'learningequality',
-    'internal-tooling',
-    { github, core: fakeCore() },
-    NOW,
-  );
-
-  assert.deepEqual(closed, []);
-});
