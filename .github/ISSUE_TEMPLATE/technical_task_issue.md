@@ -13,6 +13,7 @@ Instructions:
 -->
 
 ## Overview
+<!-- REQUIRED -->
 
 <!--
 Describe what needs to be done and why.
@@ -36,6 +37,7 @@ Do NOT provide the solution - equip the developer to find it.
 -->
 
 ### The Change
+<!-- REQUIRED -->
 
 <!--
 Describe what needs to change and the general direction, using "should" or similar language to express an expected change.
@@ -68,6 +70,7 @@ Helps prevent scope creep and keeps PRs focused.
 -->
 
 ### Acceptance Criteria
+<!-- REQUIRED -->
 
 <!--
 Checklist of requirements for the task to be considered complete.

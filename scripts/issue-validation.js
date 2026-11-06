@@ -1,11 +1,12 @@
 // See docs/community-automations.md
 
 const {
-  ISSUE_VALIDATION_REPOS,
   LABEL_COMMUNITY_ISSUE_REVIEW,
+  LABEL_NEEDS_TEMPLATE,
   BOT_MESSAGE_ISSUE_VALIDATION,
 } = require('./constants');
-const { sendBotMessage, hasLabel, addLabel } = require('./utils');
+const { sendBotMessage, addLabel, removeLabel } = require('./utils');
+const { checkIssueTemplate } = require('./issue-template');
 
 module.exports = async ({ github, context, core }) => {
   try {
@@ -13,12 +14,41 @@ module.exports = async ({ github, context, core }) => {
     const repo = context.repo.repo;
     const issueNumber = context.payload.issue.number;
 
-    if (!ISSUE_VALIDATION_REPOS.includes(repo)) {
-      core.info(`Issue validation does not run in ${repo}, so none is requested.`);
+    if (context.payload.repository?.private) {
+      core.info(`Issue validation does not run in private repo ${repo}.`);
       return;
     }
 
-    if (await hasLabel(LABEL_COMMUNITY_ISSUE_REVIEW, owner, repo, issueNumber, github, core)) {
+    const { data: issue } = await github.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    if (issue.state !== 'open') {
+      core.info(`Issue #${issueNumber} is ${issue.state}.`);
+      return;
+    }
+
+    const labels = (issue.labels || []).map(label =>
+      (typeof label === 'string' ? label : label.name).toLowerCase(),
+    );
+    const flagged = labels.includes(LABEL_NEEDS_TEMPLATE);
+    if (context.payload.action !== 'opened' && !flagged) {
+      core.info(`Issue #${issueNumber} is not waiting on the template.`);
+      return;
+    }
+
+    if (!(await checkIssueTemplate({ github, context, core }, issue))) {
+      return;
+    }
+    if (
+      flagged &&
+      !(await removeLabel(LABEL_NEEDS_TEMPLATE, owner, repo, issueNumber, github, core))
+    ) {
+      return;
+    }
+
+    if (labels.includes(LABEL_COMMUNITY_ISSUE_REVIEW)) {
       core.info(`Issue #${issueNumber} already carries ${LABEL_COMMUNITY_ISSUE_REVIEW}.`);
       return;
     }

@@ -186,6 +186,15 @@ const BOT_MESSAGE_ISSUE_VALIDATION =
   `- @rtibblesbot's comments are LLM-generated, so please evaluate them critically.\n\n` +
   `A maintainer decides what happens next. This check does not close the issue.`;
 
+const LABEL_NEEDS_TEMPLATE = 'needs-template';
+const ISSUE_TEMPLATE_MAX_DAYS = 7;
+const ISSUE_TEMPLATE_MARKER = '<!-- issue-template-check -->';
+
+const BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED =
+  `**Closing this issue because its description still doesn't follow an issue template ` +
+  `after ${ISSUE_TEMPLATE_MAX_DAYS} days.** Once you've edited it to follow one, ` +
+  `comment here and a maintainer can reopen it.`;
+
 // Repositories to include in PR statistics reports
 const PR_STATS_REPOS = [
   'kolibri',
@@ -199,10 +208,6 @@ const PR_STATS_REPOS = [
 
 // Repositories in which we accept open-source contributions
 const COMMUNITY_REPOS = [...PR_STATS_REPOS];
-
-// No other automation gates on the repo, so all of them already run in the
-// sandbox. See docs/testing-automations.md.
-const ISSUE_VALIDATION_REPOS = [...COMMUNITY_REPOS, 'test-actions'];
 
 // Every place GitHub reads a pull request template from. The contents API is
 // case sensitive, so both spellings are needed.
@@ -244,7 +249,6 @@ module.exports = {
   LABEL_COMMUNITY_REVIEW,
   BOT_MESSAGE_COMMUNITY_REVIEW,
   LABEL_COMMUNITY_ISSUE_REVIEW,
-  ISSUE_VALIDATION_REPOS,
   ISSUE_VALIDATION_MARKER,
   ISSUE_VALIDATION_DUPLICATE_VERDICT,
   ISSUE_VALIDATION_FOLLOW_UPS,
@@ -252,6 +256,10 @@ module.exports = {
   ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP,
   ISSUE_REVIEW_MAX_DAYS,
   BOT_MESSAGE_ISSUE_VALIDATION,
+  LABEL_NEEDS_TEMPLATE,
+  ISSUE_TEMPLATE_MAX_DAYS,
+  ISSUE_TEMPLATE_MARKER,
+  BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,
