@@ -91,6 +91,8 @@ A section is required when its heading carries a `<!-- REQUIRED -->` comment in 
 <!-- REQUIRED -->
 ```
 
+A `###` heading can be marked too. A section runs to the next heading of the same or higher level, so a `##` section includes its `###` subsections. A body's heading matches the template's at either level and in any case.
+
 A template that marks no section requires every level-two heading, so that a repo is strict rather than silently unchecked. To change what a repo requires, edit the markers in that repo's template. No change is required here.
 
 Four states fail, and the log and comment name every one of them rather than stopping at the first:
