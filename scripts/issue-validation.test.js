@@ -5,13 +5,10 @@ const issueValidation = require('./issue-validation');
 const {
   LABEL_COMMUNITY_ISSUE_REVIEW,
   LABEL_NEEDS_TEMPLATE,
-  COMMUNITY_REPOS,
   BOT_MESSAGE_ISSUE_VALIDATION,
   ISSUE_TEMPLATE_MARKER,
   LE_BOT_USERNAME,
 } = require('./constants');
-
-const SANDBOX = 'test-actions';
 
 const FOLLOWS_TEMPLATE = '## Description\n\nThe sync fails.\n\n## AI usage\n\nI used no AI.\n';
 // Shaped like kolibri#15779, which an agent wrote without a template.
@@ -85,10 +82,10 @@ function fakeGithub({
   };
 }
 
-function fakeContext({ repo = COMMUNITY_REPOS[0], action = 'opened' } = {}) {
+function fakeContext({ action = 'opened', isPrivate = false } = {}) {
   return {
-    repo: { owner: 'learningequality', repo },
-    payload: { action, issue: { number: 7 } },
+    repo: { owner: 'learningequality', repo: 'kolibri' },
+    payload: { action, issue: { number: 7 }, repository: { private: isPrivate } },
   };
 }
 
@@ -204,22 +201,14 @@ test('an edit to a closed issue does nothing until it is reopened', async () => 
   assert.deepEqual(github.removed, []);
 });
 
-test('a repo outside the community list gets neither', async () => {
+test('an issue in a private repo gets neither', async () => {
   const github = fakeGithub({ body: FREESTYLED });
   const core = fakeCore();
-  await issueValidation({ github, context: fakeContext({ repo: 'internal-tooling' }), core });
+  await issueValidation({ github, context: fakeContext({ isPrivate: true }), core });
 
   assert.deepEqual(github.created, []);
   assert.deepEqual(github.added, []);
   assert.deepEqual(core.failures, []);
-});
-
-test('the sandbox is in scope, so the automation can be tested there', async () => {
-  const github = fakeGithub();
-  await issueValidation({ github, context: fakeContext({ repo: SANDBOX }), core: fakeCore() });
-
-  assert.equal(github.created.length, 1);
-  assert.deepEqual(github.added, [LABEL_COMMUNITY_ISSUE_REVIEW]);
 });
 
 test('an issue already under review gets no second request', async () => {

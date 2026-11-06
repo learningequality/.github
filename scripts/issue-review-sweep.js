@@ -1,7 +1,6 @@
 // See docs/community-automations.md
 
 const {
-  ISSUE_VALIDATION_REPOS,
   LABEL_COMMUNITY_ISSUE_REVIEW,
   ISSUE_REVIEW_MAX_DAYS,
   LABEL_NEEDS_TEMPLATE,
@@ -100,9 +99,6 @@ async function sweepIssueReviewLabels(owner, repo, { github, core }, now = Date.
 }
 
 async function closeIssuesMissingTemplate(owner, repo, { github, core }, now = Date.now()) {
-  if (!ISSUE_VALIDATION_REPOS.includes(repo)) {
-    return [];
-  }
   const stale = await staleIssues(
     LABEL_NEEDS_TEMPLATE,
     ISSUE_TEMPLATE_MAX_DAYS,
