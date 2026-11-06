@@ -133,8 +133,8 @@ automations:
     leaf: issue-validation.yml
     on:
       issues:
-        types: [opened]
-    if: "github.event_name == 'issues' && github.event.action == 'opened'"
+        types: [opened, edited, reopened]
+    if: "github.event_name == 'issues' && (github.event.action == 'opened' || (contains(fromJSON('[\"edited\",\"reopened\"]'), github.event.action) && contains(github.event.issue.labels.*.name, 'needs-template')))"
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
