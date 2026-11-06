@@ -1,13 +1,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { sweepIssueReviewLabels, closeIssuesMissingTemplate } = require('./issue-review-sweep');
+const {
+  sweepIssueReviewLabels,
+  closeIssuesMissingTemplate,
+  closeUnlinkedPullRequests,
+} = require('./issue-review-sweep');
 const {
   LABEL_COMMUNITY_ISSUE_REVIEW,
   ISSUE_REVIEW_MAX_DAYS,
   LABEL_NEEDS_TEMPLATE,
   ISSUE_TEMPLATE_MAX_DAYS,
   BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED,
+  LABEL_UNLINKED,
+  PR_UNLINKED_MAX_DAYS,
+  BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED,
+  LABEL_COMMUNITY_REVIEW,
+  RTIBBLESBOT_USERNAME,
+  CLOSE_CONTRIBUTORS,
 } = require('./constants');
 
 const NOW = Date.parse('2026-10-26T12:00:00Z');
@@ -386,4 +396,148 @@ test('a pull request carrying the template label is not closed', async () => {
   );
 
   assert.deepEqual(closed, []);
+});
+
+const AUTHOR = 'outsider';
+const prContext = { repo: { owner: 'learningequality', repo: 'kolibri' } };
+const unlinkedPr = number => ({
+  number,
+  labels: [LABEL_UNLINKED],
+  pull_request: {},
+  user: { login: AUTHOR },
+});
+
+function prGithub({ issues, linked = {}, graphqlFails = false }) {
+  const github = fakeGithub({
+    issues,
+    timelines: Object.fromEntries(
+      issues.map(({ number }) => [
+        number,
+        [labeled(daysAgo(PR_UNLINKED_MAX_DAYS + 1), LABEL_UNLINKED)],
+      ]),
+    ),
+  });
+  github.commented = [];
+  github.closed = [];
+  github.reviewers = [];
+  github.labelled = [];
+  github.graphql = async (query, { number }) => {
+    if (graphqlFails) throw new Error('API down');
+    const nodes = (linked[number] || []).map(issue => ({
+      number: issue.number,
+      url: `https://github.com/learningequality/kolibri/issues/${issue.number}`,
+      assignees: { nodes: issue.assignees.map(login => ({ login })) },
+    }));
+    return { repository: { pullRequest: { closingIssuesReferences: { nodes } } } };
+  };
+  github.rest.issues.createComment = async ({ issue_number, body }) => {
+    github.commented.push({ issue_number, body });
+    return {
+      data: { html_url: `https://github.com/learningequality/kolibri/pull/${issue_number}` },
+    };
+  };
+  github.rest.issues.addLabels = async ({ labels }) => {
+    github.labelled.push(...labels);
+  };
+  github.rest.issues.listLabelsOnIssue = async ({ issue_number }) =>
+    issues.find(({ number }) => number === issue_number).labels.map(name => ({ name }));
+  github.rest.pulls = {
+    update: async ({ pull_number, state }) => {
+      github.closed.push({ pull_number, state });
+    },
+    requestReviewers: async ({ reviewers }) => {
+      github.reviewers.push(...reviewers);
+    },
+  };
+  return github;
+}
+
+const sweepPrs = (github, core = fakeCore()) =>
+  closeUnlinkedPullRequests(
+    'learningequality',
+    'kolibri',
+    { github, context: prContext, core },
+    NOW,
+  );
+
+test('a pull request unlinked past the limit is closed with a comment', async () => {
+  const github = prGithub({ issues: [unlinkedPr(42)] });
+
+  assert.deepEqual(await sweepPrs(github), [42]);
+  assert.deepEqual(github.commented, [
+    { issue_number: 42, body: BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED },
+  ]);
+  assert.deepEqual(github.closed, [{ pull_number: 42, state: 'closed' }]);
+});
+
+test('a pull request since linked to the issue assigned to its author starts review', async () => {
+  const github = prGithub({
+    issues: [unlinkedPr(42)],
+    linked: { 42: [{ number: 7, assignees: [AUTHOR] }] },
+  });
+
+  assert.deepEqual(await sweepPrs(github), []);
+  assert.deepEqual(github.removed, [{ name: LABEL_UNLINKED, issue_number: 42 }]);
+  assert.deepEqual(github.reviewers, [RTIBBLESBOT_USERNAME]);
+  assert.deepEqual(github.labelled, [LABEL_COMMUNITY_REVIEW]);
+});
+
+test('a linked pull request already under review gets no second request', async () => {
+  const github = prGithub({
+    issues: [{ ...unlinkedPr(42), labels: [LABEL_UNLINKED, LABEL_COMMUNITY_REVIEW] }],
+    linked: { 42: [{ number: 7, assignees: [AUTHOR] }] },
+  });
+
+  assert.deepEqual(await sweepPrs(github), []);
+  assert.deepEqual(github.reviewers, []);
+});
+
+test('a failed review request leaves the unlinked label for the next sweep', async () => {
+  const github = prGithub({
+    issues: [unlinkedPr(42)],
+    linked: { 42: [{ number: 7, assignees: [AUTHOR] }] },
+  });
+  github.rest.pulls.requestReviewers = async () => {
+    throw new Error('Reviewer cannot be requested');
+  };
+  const core = fakeCore();
+
+  assert.deepEqual(await sweepPrs(github, core), []);
+  assert.deepEqual(github.removed, []);
+  assert.match(core.warnings[0], /Reviewer cannot be requested/);
+});
+
+test('a close contributor carrying the unlinked label is not closed', async () => {
+  const github = prGithub({
+    issues: [{ ...unlinkedPr(42), user: { login: CLOSE_CONTRIBUTORS[0] } }],
+  });
+
+  assert.deepEqual(await sweepPrs(github), []);
+  assert.deepEqual(github.commented, []);
+  assert.deepEqual(github.closed, []);
+});
+
+test('a pull request since linked to an unassigned issue is closed for that', async () => {
+  const github = prGithub({
+    issues: [unlinkedPr(42)],
+    linked: { 42: [{ number: 7, assignees: [] }] },
+  });
+
+  assert.deepEqual(await sweepPrs(github), [42]);
+  assert.match(github.commented[0].body, /isn't assigned to you/);
+});
+
+test('an issue carrying the unlinked label is not swept', async () => {
+  const github = prGithub({ issues: [{ number: 7, labels: [LABEL_UNLINKED] }] });
+
+  assert.deepEqual(await sweepPrs(github), []);
+  assert.deepEqual(github.commented, []);
+});
+
+test('a pull request whose links cannot be read is left open', async () => {
+  const github = prGithub({ issues: [unlinkedPr(42)], graphqlFails: true });
+
+  assert.deepEqual(await sweepPrs(github), []);
+  assert.deepEqual(github.commented, []);
+  assert.deepEqual(github.closed, []);
 });

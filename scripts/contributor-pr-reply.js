@@ -1,88 +1,85 @@
-const {
-  BOT_MESSAGE_PULL_REQUEST,
-  BOT_MESSAGE_LINK_ISSUE,
-  BOT_MESSAGE_PULL_REQUEST_CLOSED,
-  LABEL_COMMUNITY_REVIEW,
-  RTIBBLESBOT_USERNAME,
-} = require('./constants');
+const { BOT_MESSAGE_PULL_REQUEST, BOT_MESSAGE_LINK_ISSUE } = require('./constants');
 const { sendBotMessage, getLinkedIssues, escapeIssueTitleForSlackMessage } = require('./utils');
+const { linkStatus, planLink, applyLink } = require('./pull-request-link');
+
+function slackLine(context, text) {
+  const { repo } = context.repo;
+  const { html_url: url, title } = context.payload.pull_request;
+  return `*[${repo}] ${text}: <${url}|${escapeIssueTitleForSlackMessage(title)}>*`;
+}
+
+async function sendReply({ github, context, core }, unlinked) {
+  const { number, user } = context.payload.pull_request;
+  const body = unlinked
+    ? `${BOT_MESSAGE_PULL_REQUEST(user.login)}\n\n${BOT_MESSAGE_LINK_ISSUE}`
+    : BOT_MESSAGE_PULL_REQUEST(user.login);
+  const botMessageUrl = await sendBotMessage(number, body, { github, context, core });
+  core.setOutput(
+    'slack_notification',
+    slackLine(context, `<${botMessageUrl}|Reply sent> on pull request`),
+  );
+}
+
+async function act({ github, context, core }, plan, link) {
+  const { owner, repo } = context.repo;
+  const { number } = context.payload.pull_request;
+  try {
+    const closingUrl = await applyLink(owner, repo, number, plan, { github, core });
+    if (plan.action === 'close') {
+      const reason = link.status === 'unassigned' ? 'unassigned' : 'assigned';
+      core.setOutput(
+        'slack_notification',
+        slackLine(
+          context,
+          `<${closingUrl}|Closed> pull request on ${reason} issue <${link.issue.url}|#${link.issue.number}>`,
+        ),
+      );
+    }
+  } catch (error) {
+    if (plan.action === 'close') {
+      core.setOutput('slack_notification', slackLine(context, 'Failed to close pull request'));
+    }
+    core.setFailed(`Failed to ${plan.action} the pull request: ${error.message}`);
+  }
+}
 
 module.exports = async ({ github, context, core }) => {
   try {
-    const owner = context.repo.owner;
-    const repo = context.repo.repo;
-    const number = context.payload.pull_request.number;
-    const url = context.payload.pull_request.html_url;
-    const title = escapeIssueTitleForSlackMessage(context.payload.pull_request.title);
-    const author = context.payload.pull_request.user.login;
+    const { owner, repo } = context.repo;
+    const pullRequest = context.payload.pull_request;
+    const { number } = pullRequest;
+    const author = pullRequest.user.login;
+    const opening = context.payload.action !== 'edited';
+    core.setOutput('slack_notification', '');
+
+    if (!opening && pullRequest.state !== 'open') {
+      core.info(`Pull request #${number} is ${pullRequest.state}.`);
+      return;
+    }
+
+    const plan = async link =>
+      planLink(owner, repo, pullRequest, link, { github, core }, { opening });
 
     const lookup = await getLinkedIssues(number, { github, context, core });
-    const linkedIssues = lookup || [];
-    const authorAssigned = linkedIssues.some(issue => issue.assignees.includes(author));
-    const assignedElsewhere = linkedIssues.find(
-      issue => issue.assignees.length > 0 && !issue.assignees.includes(author),
-    );
-
-    if (!authorAssigned && assignedElsewhere) {
-      const botMessageUrl = await sendBotMessage(
-        number,
-        BOT_MESSAGE_PULL_REQUEST_CLOSED(author, assignedElsewhere.url),
-        { github, context, core },
-      );
-      try {
-        await github.rest.pulls.update({
-          owner,
-          repo,
-          pull_number: number,
-          state: 'closed',
-        });
-        core.setOutput(
-          'slack_notification',
-          `*[${repo}] <${botMessageUrl}|Closed> pull request on assigned issue <${assignedElsewhere.url}|#${assignedElsewhere.number}>: <${url}|${title}>*`,
-        );
-      } catch (error) {
-        core.setOutput(
-          'slack_notification',
-          `*[${repo}] Failed to close pull request <${url}|${title}>, but the closing message was posted*`,
-        );
-        core.setFailed(`Failed to close the pull request: ${error.message}`);
+    if (lookup === null) {
+      if (opening) {
+        await sendReply({ github, context, core }, false);
       }
       return;
     }
 
-    const reply =
-      lookup !== null && lookup.length === 0
-        ? `${BOT_MESSAGE_PULL_REQUEST(author)}\n\n${BOT_MESSAGE_LINK_ISSUE}`
-        : BOT_MESSAGE_PULL_REQUEST(author);
-    const botMessageUrl = await sendBotMessage(number, reply, {
-      github,
-      context,
-      core,
-    });
-
-    if (botMessageUrl) {
-      const slackMessage = `*[${repo}] <${botMessageUrl}|Reply sent> on pull request: <${url}|${title}>*`;
-      core.setOutput('slack_notification', slackMessage);
-    } else {
-      core.setOutput('slack_notification', '');
+    const link = linkStatus(lookup, author);
+    const first = await plan(link);
+    if (opening && first.action !== 'close') {
+      await sendReply({ github, context, core }, link.status === 'unlinked');
     }
+    await act({ github, context, core }, first, link);
 
-    if (authorAssigned) {
-      try {
-        await github.rest.pulls.requestReviewers({
-          owner,
-          repo,
-          pull_number: number,
-          reviewers: [RTIBBLESBOT_USERNAME],
-        });
-        await github.rest.issues.addLabels({
-          owner,
-          repo,
-          issue_number: number,
-          labels: [LABEL_COMMUNITY_REVIEW],
-        });
-      } catch (error) {
-        core.setFailed(`Failed to request review or add the label: ${error.message}`);
+    if (opening && first.action === 'label') {
+      const relookup = await getLinkedIssues(number, { github, context, core });
+      if (relookup?.length) {
+        const relink = linkStatus(relookup, author);
+        await act({ github, context, core }, await plan(relink), relink);
       }
     }
   } catch (error) {

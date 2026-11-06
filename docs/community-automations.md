@@ -65,18 +65,23 @@ Sends reply to a community pull request, and acts on the issue that pull request
 
 What happens depends on who the linked issue is assigned to:
 
-- assigned to someone else: posts a closing message instead of the reply, closes the pull request, and notifies Slack
 - assigned to the author: sends the reply, then requests `rtibblesbot` for review and adds the `community-review` label
-- not assigned, or no issue linked: sends the reply
+- assigned to someone else, or to no one: posts a closing message instead of the reply, closes the pull request, and notifies Slack
+- no issue linked: sends the reply, asks for an issue to be linked under `## References`, and adds the `unlinked` label
 
-An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
+An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. If the author is assigned to any linked issue, the pull request is not closed. Close contributors are never closed or labelled `unlinked`.
 
-If the author is assigned to any linked issue, the pull request is not closed.
+It runs on `opened`, and again on `edited` when the description changes. An edit sends no reply: it closes, labels, or removes `unlinked` by the rules above, and starts review only on a pull request that carried `unlinked`.
+
+The weekly `unassign-inactive-issues` run closes every open pull request labelled `unlinked` for longer than `PR_UNLINKED_MAX_DAYS` days, except a close contributor's. It re-reads the links first, because a link added from the Development sidebar fires no `edited` event: a pull request now linked to its author's issue loses the label and starts review instead.
 
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
 - `BOT_MESSAGE_LINK_ISSUE`: Text added when no issue is linked
-- `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message text
+- `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message when the issue is assigned to someone else
+- `BOT_MESSAGE_PULL_REQUEST_UNASSIGNED`: Closing message when the issue is assigned to no one
+- `BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED`: Closing message from the sweep when still no issue is linked
+- `PR_UNLINKED_MAX_DAYS`: How long `unlinked` stays on before the sweep closes the pull request
 
 # `pull-request-template`
 
