@@ -46,11 +46,40 @@ const MULTILINE = [
 
 const GOOD_BODY = ['## Summary', '', 'What this does.', '', '## Notes', '', 'A note.'].join('\n');
 
-function fakeGithub({ templates = {} } = {}) {
+function fakeGithub({ templates = {}, maintainers = [], comments = [] } = {}) {
   const reads = [];
+  const commented = { created: [], updated: [], deleted: [] };
+  const listComments = async () => {};
   return {
     reads,
+    commented,
+    paginate: async (method, params) => {
+      assert.equal(method, listComments);
+      assert.equal(params.issue_number, 42);
+      return comments;
+    },
     rest: {
+      issues: {
+        listComments,
+        createComment: async ({ issue_number, body }) => {
+          commented.created.push({ issue_number, body });
+          return { data: { html_url: 'https://github.com/comment' } };
+        },
+        updateComment: async ({ comment_id, body }) => {
+          commented.updated.push({ comment_id, body });
+        },
+        deleteComment: async ({ comment_id }) => {
+          commented.deleted.push(comment_id);
+        },
+      },
+      teams: {
+        getMembershipForUserInOrg: async ({ username }) => {
+          if (maintainers.includes(username)) return { data: { state: 'active' } };
+          const error = new Error('Not Found');
+          error.status = 404;
+          throw error;
+        },
+      },
       repos: {
         getContent: async ({ path, ref }) => {
           reads.push({ path, ref });
@@ -66,11 +95,22 @@ function fakeGithub({ templates = {} } = {}) {
   };
 }
 
-function fakeContext({ body = GOOD_BODY, author = 'contributor', base = 'develop' } = {}) {
+function fakeContext({
+  body = GOOD_BODY,
+  author = 'contributor',
+  association = 'CONTRIBUTOR',
+  base = 'develop',
+} = {}) {
   return {
     repo: { owner: 'learningequality', repo: 'kolibri' },
     payload: {
-      pull_request: { number: 42, body, user: { login: author }, base: { ref: base } },
+      pull_request: {
+        number: 42,
+        body,
+        user: { login: author },
+        author_association: association,
+        base: { ref: base },
+      },
     },
   };
 }
@@ -225,6 +265,118 @@ test('a bot author passes without a template read', async () => {
 
   assert.deepEqual(core.failures, []);
   assert.deepEqual(github.reads, []);
+});
+
+const COMMENT_MARKER = '<!-- pull-request-template-check -->';
+
+const ourComment = (id, body = `${COMMENT_MARKER}\nold`) => ({
+  id,
+  user: { login: LE_BOT_USERNAME },
+  body,
+});
+
+test('a failing body gets one comment naming every problem and the template', async () => {
+  const github = fakeGithub({ templates: repoTemplate(UNMARKED) });
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core: fakeCore() });
+
+  assert.equal(github.commented.created.length, 1);
+  const { issue_number, body } = github.commented.created[0];
+  assert.equal(issue_number, 42);
+  assert.ok(body.includes(COMMENT_MARKER));
+  assert.match(body, /`## Summary` is missing/);
+  assert.match(body, /`## Notes` is missing/);
+  assert.ok(
+    body.includes(
+      'https://github.com/learningequality/kolibri/blob/develop/.github/pull_request_template.md',
+    ),
+  );
+});
+
+test('a body falling back to the shared template links to it', async () => {
+  const github = fakeGithub();
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core: fakeCore() });
+
+  assert.ok(
+    github.commented.created[0].body.includes(
+      'https://github.com/learningequality/.github/blob/main/.github/PULL_REQUEST_TEMPLATE.md',
+    ),
+  );
+});
+
+test('a body still failing after an edit updates the comment rather than adding one', async () => {
+  const github = fakeGithub({ templates: repoTemplate(MARKED), comments: [ourComment(7)] });
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core: fakeCore() });
+
+  assert.deepEqual(github.commented.created, []);
+  assert.equal(github.commented.updated.length, 1);
+  assert.equal(github.commented.updated[0].comment_id, 7);
+  assert.match(github.commented.updated[0].body, /`## Summary` is missing/);
+});
+
+test('an unchanged failure leaves the comment alone', async () => {
+  const first = fakeGithub({ templates: repoTemplate(MARKED) });
+  await pullRequestTemplate({
+    github: first,
+    context: fakeContext({ body: '' }),
+    core: fakeCore(),
+  });
+  const github = fakeGithub({
+    templates: repoTemplate(MARKED),
+    comments: [ourComment(7, first.commented.created[0].body)],
+  });
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core: fakeCore() });
+
+  assert.deepEqual(github.commented.created, []);
+  assert.deepEqual(github.commented.updated, []);
+});
+
+test('a passing body deletes the comment', async () => {
+  const someoneElse = { id: 8, user: { login: 'reviewer' }, body: COMMENT_MARKER };
+  const github = fakeGithub({
+    templates: repoTemplate(MARKED),
+    comments: [ourComment(7), someoneElse],
+  });
+  await pullRequestTemplate({ github, context: fakeContext(), core: fakeCore() });
+
+  assert.deepEqual(github.commented.deleted, [7]);
+  assert.deepEqual(github.commented.created, []);
+});
+
+test('a comment that cannot be posted still fails the check', async () => {
+  const core = fakeCore();
+  const github = fakeGithub({ templates: repoTemplate(MARKED) });
+  github.rest.issues.createComment = async () => {
+    throw new Error('forbidden');
+  };
+  await pullRequestTemplate({ github, context: fakeContext({ body: '' }), core });
+
+  assert.equal(core.failures.length, 1);
+  assert.match(core.failures[0], /## Summary/);
+  assert.equal(core.warnings.length, 1);
+});
+
+test('a maintainer passes without a template read', async () => {
+  const core = fakeCore();
+  const github = fakeGithub({ templates: repoTemplate(MARKED), maintainers: ['bjesterbot'] });
+  await pullRequestTemplate({
+    github,
+    context: fakeContext({ body: '', author: 'bjesterbot', association: 'CONTRIBUTOR' }),
+    core,
+  });
+
+  assert.deepEqual(core.failures, []);
+  assert.deepEqual(github.reads, []);
+});
+
+test('an org member outside the maintainer teams is checked', async () => {
+  const core = fakeCore();
+  await pullRequestTemplate({
+    github: fakeGithub({ templates: repoTemplate(MARKED) }),
+    context: fakeContext({ body: '', author: 'community-guide', association: 'MEMBER' }),
+    core,
+  });
+
+  assert.equal(core.failures.length, 1);
 });
 
 test('the template is read from the base branch, never the head', async () => {
