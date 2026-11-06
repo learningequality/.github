@@ -1,4 +1,4 @@
-const { sweepIssueReviewLabels } = require('./issue-review-sweep');
+const { sweepIssueReviewLabels, closeIssuesMissingTemplate } = require('./issue-review-sweep');
 
 const formatUnassignments = unassignments => {
   if (unassignments.length === 0) return '';
@@ -259,6 +259,7 @@ module.exports = async ({ github, context, core }) => {
     }
 
     await sweepIssueReviewLabels(owner, repo, { github, core });
+    await closeIssuesMissingTemplate(owner, repo, { github, core });
 
     const issues = await getAllIssues(github, owner, repo);
     //console.log(`Processing ${issues.length} open issues`);

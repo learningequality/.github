@@ -186,6 +186,15 @@ const BOT_MESSAGE_ISSUE_VALIDATION =
   `- @rtibblesbot's comments are LLM-generated, so please evaluate them critically.\n\n` +
   `A maintainer decides what happens next. This check does not close the issue.`;
 
+const LABEL_NEEDS_TEMPLATE = 'needs-template';
+const ISSUE_TEMPLATE_MAX_DAYS = 7;
+const ISSUE_TEMPLATE_MARKER = '<!-- issue-template-check -->';
+
+const BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED =
+  `**Closing this issue because its description still doesn't follow an issue template ` +
+  `after ${ISSUE_TEMPLATE_MAX_DAYS} days.** Once you've edited it to follow one, ` +
+  `comment here and a maintainer can reopen it.`;
+
 // Repositories to include in PR statistics reports
 const PR_STATS_REPOS = [
   'kolibri',
@@ -252,6 +261,10 @@ module.exports = {
   ISSUE_VALIDATION_NO_VERDICT_FOLLOW_UP,
   ISSUE_REVIEW_MAX_DAYS,
   BOT_MESSAGE_ISSUE_VALIDATION,
+  LABEL_NEEDS_TEMPLATE,
+  ISSUE_TEMPLATE_MAX_DAYS,
+  ISSUE_TEMPLATE_MARKER,
+  BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED,
   TEAMS_WITH_CLOSE_CONTRIBUTORS,
   HOLIDAY_MESSAGE,
   PR_STATS_REPOS,
