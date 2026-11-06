@@ -57,8 +57,8 @@ automations:
     leaf: contributor-pr-reply.yml
     on:
       pull_request_target:
-        types: [opened]
-    if: "github.event_name == 'pull_request_target' && github.event.action == 'opened'"
+        types: [opened, edited]
+    if: "github.event_name == 'pull_request_target' && (github.event.action == 'opened' || (github.event.action == 'edited' && github.event.changes.body))"
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
