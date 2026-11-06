@@ -29,7 +29,7 @@ const GENERATED_HEADER =
 # ${description}
 `;
 
-const DUMP_OPTS = { indent: 2, lineWidth: -1, noRefs: true, quotingType: '"' };
+const DUMP_OPTS = { indent: 2, lineWidth: -1, noRefs: true, quoteStyle: 'double' };
 
 const DEFAULT_PERMISSIONS = { contents: 'read' };
 const PERMISSION_RANK = { none: 0, read: 1, write: 2 };
@@ -44,12 +44,19 @@ function unquoteOnKey(content, suffix) {
   return content.replace(/^"on":/m, suffix ? `on: ${suffix}` : 'on:');
 }
 
-function loadRegistry() {
-  const raw = yaml.load(fs.readFileSync(REGISTRY_PATH, 'utf8'));
+// js-yaml 5's default schema no longer resolves `<<` merge keys.
+const LOAD_OPTS = { schema: yaml.CORE_SCHEMA.withTags(yaml.mergeTag) };
+
+function parseRegistry(source) {
+  const raw = yaml.load(source, LOAD_OPTS);
   return {
     automations: raw.automations.filter(a => a.enabled),
     retiredSecrets: raw.retired_secrets || [],
   };
+}
+
+function loadRegistry() {
+  return parseRegistry(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 }
 
 function titleCase(name) {
@@ -326,4 +333,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { buildReusableWorkflows };
+module.exports = { buildReusableWorkflows, parseRegistry };
