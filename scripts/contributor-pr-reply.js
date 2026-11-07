@@ -1,6 +1,11 @@
-const { BOT_MESSAGE_PULL_REQUEST, BOT_MESSAGE_LINK_ISSUE } = require('./constants');
+const {
+  BOT_MESSAGE_PULL_REQUEST,
+  BOT_MESSAGE_LINK_ISSUE,
+  BOT_MESSAGE_LINKED_ISSUE,
+  BOT_MESSAGE_LINK_WHICH_ISSUE,
+} = require('./constants');
 const { sendBotMessage, getLinkedIssues, escapeIssueTitleForSlackMessage } = require('./utils');
-const { linkStatus, planLink, applyLink } = require('./pull-request-link');
+const { linkReferences, linkStatus, planLink, applyLink } = require('./pull-request-link');
 
 function slackLine(context, text) {
   const { repo } = context.repo;
@@ -8,11 +13,17 @@ function slackLine(context, text) {
   return `*[${repo}] ${text}: <${url}|${escapeIssueTitleForSlackMessage(title)}>*`;
 }
 
-async function sendReply({ github, context, core }, unlinked) {
+function linkNote(link, { named, ambiguous }) {
+  if (named) return BOT_MESSAGE_LINKED_ISSUE(named.number);
+  if (link.status !== 'unlinked') return null;
+  if (ambiguous.length) return BOT_MESSAGE_LINK_WHICH_ISSUE(ambiguous.map(issue => issue.number));
+  return BOT_MESSAGE_LINK_ISSUE;
+}
+
+async function sendReply({ github, context, core }, note) {
   const { number, user } = context.payload.pull_request;
-  const body = unlinked
-    ? `${BOT_MESSAGE_PULL_REQUEST(user.login)}\n\n${BOT_MESSAGE_LINK_ISSUE}`
-    : BOT_MESSAGE_PULL_REQUEST(user.login);
+  const reply = BOT_MESSAGE_PULL_REQUEST(user.login);
+  const body = note ? `${reply}\n\n${note}` : reply;
   const botMessageUrl = await sendBotMessage(number, body, { github, context, core });
   core.setOutput(
     'slack_notification',
@@ -63,15 +74,18 @@ module.exports = async ({ github, context, core }) => {
     const lookup = await getLinkedIssues(number, { github, context, core });
     if (lookup === null) {
       if (opening) {
-        await sendReply({ github, context, core }, false);
+        await sendReply({ github, context, core }, null);
       }
       return;
     }
 
-    const link = linkStatus(lookup, author);
+    const found = lookup.length
+      ? { linked: lookup, named: null, ambiguous: [] }
+      : await linkReferences(owner, repo, pullRequest, { github, core });
+    const link = linkStatus(found.linked, author);
     const first = await plan(link);
     if (opening && first.action !== 'close') {
-      await sendReply({ github, context, core }, link.status === 'unlinked');
+      await sendReply({ github, context, core }, linkNote(link, found));
     }
     await act({ github, context, core }, first, link);
 

@@ -5,7 +5,40 @@ const {
   LABEL_UNLINKED,
   RTIBBLESBOT_USERNAME,
 } = require('./constants');
-const { addLabel, removeLabel, isCloseContributor } = require('./utils');
+const {
+  addLabel,
+  removeLabel,
+  isCloseContributor,
+  findIssueReferences,
+  getReferencedIssues,
+  addClosingIssueReference,
+} = require('./utils');
+
+function chooseReferences(issues, author, defaultBase) {
+  const closing = defaultBase ? [] : issues.filter(issue => issue.keyword);
+  if (closing.length) return { link: closing, named: false, ambiguous: [] };
+  const assigned = issues.filter(issue => issue.assignees.includes(author));
+  if (assigned.length === 1) return { link: assigned, named: true, ambiguous: [] };
+  return { link: [], named: false, ambiguous: assigned.length > 1 ? assigned : [] };
+}
+
+async function linkReferences(owner, repo, pullRequest, { github, core }) {
+  const references = findIssueReferences(pullRequest.body, owner, repo);
+  if (!references.length) return { linked: [], named: null, ambiguous: [] };
+  const issues = await getReferencedIssues(owner, repo, references, { github, core });
+  const defaultBase = pullRequest.base.ref === pullRequest.base.repo.default_branch;
+  const { link, named, ambiguous } = chooseReferences(issues, pullRequest.user.login, defaultBase);
+  const linked = [];
+  for (const issue of link) {
+    try {
+      await addClosingIssueReference(issue.id, pullRequest.node_id, github);
+      linked.push(issue);
+    } catch (error) {
+      core.warning(`Failed to link #${issue.number} to #${pullRequest.number}: ${error.message}`);
+    }
+  }
+  return { linked, named: named && linked.length ? linked[0] : null, ambiguous };
+}
 
 function linkStatus(linkedIssues, author) {
   if (!linkedIssues.length) return { status: 'unlinked' };
@@ -86,4 +119,4 @@ async function applyLink(owner, repo, number, plan, { github, core }) {
   return null;
 }
 
-module.exports = { linkStatus, planLink, applyLink };
+module.exports = { linkReferences, linkStatus, planLink, applyLink };

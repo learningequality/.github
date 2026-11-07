@@ -305,6 +305,98 @@ async function getLinkedIssues(prNumber, { github, context, core }) {
   }
 }
 
+const UNREAD_MARKDOWN = /<!--[\s\S]*?-->|(`{3,}|~{3,})[\s\S]*?(?:\1|$)|`[^`\n]*`/g;
+const ISSUE_REFERENCE = new RegExp(
+  String.raw`https?://github\.com/([\w.-]+)/([\w.-]+)/issues/(\d+)` +
+    String.raw`|(?<![\w/&#])(?:([\w.-]+)/([\w.-]+))?#(\d+)\b`,
+  'gi',
+);
+const CLOSING_KEYWORD = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+\[?$/i;
+const GRAPHQL_INT_MAX = 2147483647;
+
+function findIssueReferences(body, owner, repo) {
+  const text = (body || '').replace(UNREAD_MARKDOWN, ' ');
+  const found = new Map();
+  for (const match of text.matchAll(ISSUE_REFERENCE)) {
+    const [, urlOwner, urlRepo, urlNumber, refOwner, refRepo, refNumber] = match;
+    const refersOwner = urlOwner ?? refOwner ?? owner;
+    const refersRepo = urlRepo ?? refRepo ?? repo;
+    if (`${refersOwner}/${refersRepo}`.toLowerCase() !== `${owner}/${repo}`.toLowerCase()) {
+      continue;
+    }
+    const number = Number(urlNumber ?? refNumber);
+    if (number > GRAPHQL_INT_MAX) {
+      continue;
+    }
+    const keyword = CLOSING_KEYWORD.test(text.slice(0, match.index));
+    found.set(number, { number, keyword: keyword || Boolean(found.get(number)?.keyword) });
+  }
+  return [...found.values()];
+}
+
+/**
+ * GitHub answers a number with no issue or pull request by raising an error that still
+ * carries the data for the other numbers.
+ */
+async function getReferencedIssues(owner, repo, references, { github, core }) {
+  const fields = references
+    .map(
+      ({ number }) => `
+        issue${number}: issueOrPullRequest(number: ${number}) {
+          __typename
+          ... on Issue {
+            id
+            number
+            url
+            state
+            assignees(first: 10) {
+              nodes {
+                login
+              }
+            }
+          }
+        }`,
+    )
+    .join('');
+  const query = `
+    query ($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {${fields}
+      }
+    }`;
+
+  let repository;
+  try {
+    ({ repository } = await github.graphql(query, { owner, repo }));
+  } catch (error) {
+    repository = error.data?.repository;
+    if (!repository) {
+      core.warning(`Failed to fetch referenced issues: ${error.message}`);
+      return [];
+    }
+  }
+  return references
+    .map(({ number, keyword }) => ({ issue: repository[`issue${number}`], keyword }))
+    .filter(({ issue }) => issue?.__typename === 'Issue' && issue.state === 'OPEN')
+    .map(({ issue, keyword }) => ({
+      id: issue.id,
+      number: issue.number,
+      url: issue.url,
+      keyword,
+      assignees: issue.assignees.nodes.map(assignee => assignee.login),
+    }));
+}
+
+async function addClosingIssueReference(issueId, pullRequestId, github) {
+  await github.graphql(
+    `mutation ($issueId: ID!, $pullRequestIds: [ID!]!) {
+      addCloseIssueReferences(input: { issueId: $issueId, pullRequestIds: $pullRequestIds }) {
+        clientMutationId
+      }
+    }`,
+    { issueId, pullRequestIds: [pullRequestId] },
+  );
+}
+
 /**
  * Fetches issues assigned to an assignee in given repositories.
  */
@@ -456,6 +548,9 @@ module.exports = {
   addLabel,
   removeLabel,
   getLinkedIssues,
+  findIssueReferences,
+  getReferencedIssues,
+  addClosingIssueReference,
   getIssues,
   getPullRequests,
   deleteBotComments,

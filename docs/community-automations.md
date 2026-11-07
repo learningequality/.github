@@ -71,6 +71,12 @@ What happens depends on who the linked issue is assigned to:
 
 An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. If the author is assigned to any linked issue, the pull request is not closed. Close contributors are never closed or labelled `unlinked`.
 
+When nothing is linked, the automation reads the description for open issues in the same repository, as `#123`, `owner/repo#123`, or an issue URL, outside code and HTML comments, and links some itself:
+
+- on a base other than the default branch, where GitHub ignores closing keywords: every issue after a closing keyword, whoever it is assigned to
+- otherwise, the one mentioned issue assigned to the author; the reply names it
+- several mentioned issues assigned to the author link none; the reply names them and asks which one
+
 It runs on `opened`, and again on `edited` when the description changes. An edit sends no reply: it closes, labels, or removes `unlinked` by the rules above, and starts review only on a pull request that carried `unlinked`.
 
 The weekly `unassign-inactive-issues` run closes every open pull request labelled `unlinked` for longer than `PR_UNLINKED_MAX_DAYS` days, except a close contributor's. It re-reads the links first, because a link added from the Development sidebar fires no `edited` event: a pull request now linked to its author's issue loses the label and starts review instead.
@@ -78,6 +84,8 @@ The weekly `unassign-inactive-issues` run closes every open pull request labelle
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
 - `BOT_MESSAGE_LINK_ISSUE`: Text added when no issue is linked
+- `BOT_MESSAGE_LINKED_ISSUE`: Text added when the automation linked the author's issue
+- `BOT_MESSAGE_LINK_WHICH_ISSUE`: Text added when several mentioned issues are assigned to the author
 - `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message when the issue is assigned to someone else
 - `BOT_MESSAGE_PULL_REQUEST_UNASSIGNED`: Closing message when the issue is assigned to no one
 - `BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED`: Closing message from the sweep when still no issue is linked

@@ -166,7 +166,15 @@ const BOT_MESSAGE_PULL_REQUEST = author =>
 const LABEL_UNLINKED = 'unlinked';
 const PR_UNLINKED_MAX_DAYS = 7;
 
-const BOT_MESSAGE_LINK_ISSUE = `**📎 We couldn't find an issue linked to this pull request.** Please edit the description and link the issue assigned to you under **References**, for example \`Fixes #123\` or \`Closes #123\`. A plain \`#123\` mention doesn't link the PR to the issue. **Pull requests with no linked issue are closed after ${PR_UNLINKED_MAX_DAYS} days.**`;
+const BOT_MESSAGE_UNLINKED_DEADLINE = `**Pull requests with no linked issue are closed after ${PR_UNLINKED_MAX_DAYS} days.**`;
+
+const BOT_MESSAGE_LINK_ISSUE = `**📎 We couldn't find an issue linked to this pull request.** Please edit the description and link the issue assigned to you under **References**, for example \`Fixes #123\` or \`Closes #123\`. A plain \`#123\` mention doesn't link the PR to the issue. ${BOT_MESSAGE_UNLINKED_DEADLINE}\n\n**Open an issue and get assigned to it before you open a pull request.** Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process.`;
+
+const BOT_MESSAGE_LINKED_ISSUE = number =>
+  `**📎 We linked this pull request to #${number}, the issue assigned to you.** Next time, link it yourself with \`Closes #${number}\` under **References**.`;
+
+const BOT_MESSAGE_LINK_WHICH_ISSUE = numbers =>
+  `**📎 This pull request mentions more than one issue assigned to you: ${numbers.map(number => `#${number}`).join(', ')}.** Please edit the description and add \`Closes #123\` under **References** to say which one this pull request closes. ${BOT_MESSAGE_UNLINKED_DEADLINE}`;
 
 const BOT_MESSAGE_PULL_REQUEST_UNASSIGNED = (author, issueUrl) =>
   `👋 Hi @${author}, thanks for your interest! \n\n **We're closing this pull request because ${issueUrl} isn't assigned to you.** We check and assign issues before work on them starts. Comment on the issue to ask to be assigned, and open a new pull request once you are. Visit [Contributing guidelines](https://learningequality.org/contributing-to-our-open-code-base) to learn about the contributing process.${GSOC_NOTE}`;
@@ -254,6 +262,8 @@ module.exports = {
   BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE,
   BOT_MESSAGE_PULL_REQUEST,
   BOT_MESSAGE_LINK_ISSUE,
+  BOT_MESSAGE_LINKED_ISSUE,
+  BOT_MESSAGE_LINK_WHICH_ISSUE,
   BOT_MESSAGE_PULL_REQUEST_CLOSED,
   BOT_MESSAGE_PULL_REQUEST_UNASSIGNED,
   BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED,
