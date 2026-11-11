@@ -2,9 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const isContributorScript = require('./is-contributor');
-const { CLOSE_CONTRIBUTORS, LE_BOT_USERNAME } = require('./constants');
+const { CLOSE_CONTRIBUTORS, LE_BOT_USERNAME, MAINTAINER_TEAMS } = require('./constants');
 
 const CLOSE_CONTRIBUTOR = CLOSE_CONTRIBUTORS[0];
+const [ADMIN_TEAM] = MAINTAINER_TEAMS;
 
 function fakeCore() {
   const outputs = {};
@@ -24,7 +25,23 @@ function fakeCore() {
   };
 }
 
-async function run(username, authorAssociation) {
+function fakeGithub(teams) {
+  return {
+    rest: {
+      teams: {
+        getMembershipForUserInOrg: async ({ org, team_slug, username }) => {
+          assert.equal(org, 'learningequality');
+          if ((teams[team_slug] || []).includes(username)) return { data: { state: 'active' } };
+          const error = new Error('Not Found');
+          error.status = 404;
+          throw error;
+        },
+      },
+    },
+  };
+}
+
+async function run(username, authorAssociation, { teams = {}, github } = {}) {
   const before = {
     USERNAME: process.env.USERNAME,
     AUTHOR_ASSOCIATION: process.env.AUTHOR_ASSOCIATION,
@@ -38,7 +55,7 @@ async function run(username, authorAssociation) {
 
     await isContributorScript({
       core,
-      github: {},
+      github: github || fakeGithub(teams),
       context: { repo: { owner: 'learningequality', repo: 'kolibri' } },
     });
   } finally {
@@ -75,15 +92,44 @@ test('a bot is not a contributor', async () => {
   assert.equal(core.outputs.is_contributor, false);
 });
 
-test('a team member who is not a close contributor is not a contributor', async () => {
-  const core = await run('coreteam', 'MEMBER');
+test('a member of any maintainer team is not a contributor whatever the event reports', async () => {
+  for (const team of MAINTAINER_TEAMS) {
+    for (const association of ['MEMBER', 'CONTRIBUTOR', 'NONE']) {
+      const core = await run('teammate', association, { teams: { [team]: ['teammate'] } });
 
-  assert.equal(core.outputs.is_contributor, false);
+      assert.equal(core.outputs.is_contributor, false, `${team} ${association}`);
+    }
+  }
 });
 
-test('a close contributor stays a contributor even as a team member', async () => {
-  // GSoC and other team memberships make some close contributors 'MEMBER'.
-  const core = await run(CLOSE_CONTRIBUTOR, 'MEMBER');
+test('an org member outside the maintainer teams is a contributor', async () => {
+  const core = await run('community-guide', 'MEMBER', {
+    teams: { 'learning-equality-community-guide': ['community-guide'] },
+  });
+
+  assert.equal(core.outputs.is_contributor, true);
+});
+
+test('a failed membership check fails rather than guessing', async () => {
+  const github = {
+    rest: {
+      teams: {
+        getMembershipForUserInOrg: async () => {
+          const error = new Error('server error');
+          error.status = 500;
+          throw error;
+        },
+      },
+    },
+  };
+
+  await assert.rejects(run('outsider', 'NONE', { github }), /outsider.*server error/);
+});
+
+test('a close contributor stays a contributor even in a maintainer team', async () => {
+  const core = await run(CLOSE_CONTRIBUTOR, 'MEMBER', {
+    teams: { [ADMIN_TEAM]: [CLOSE_CONTRIBUTOR] },
+  });
 
   assert.equal(core.outputs.is_contributor, true);
 });

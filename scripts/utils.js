@@ -1,4 +1,4 @@
-const { BOT_USERNAMES } = require('./constants');
+const { BOT_USERNAMES, MAINTAINER_TEAMS } = require('./constants');
 // const { CLOSE_CONTRIBUTORS, TEAMS_WITH_CLOSE_CONTRIBUTORS } = require('./constants');
 const { CLOSE_CONTRIBUTORS } = require('./constants');
 
@@ -35,15 +35,32 @@ async function isContributor(username, authorAssociation, { github, context, cor
     return false;
   }
 
-  const isClose = await isCloseContributor(username, { github, context, core });
-  // Some close contributors may be 'MEMBER's due to GSoC or other GitHub team
-  // memberships, so here we need to exclude only team members who are not
-  // close contributors
-  if (authorAssociation === 'MEMBER' && !isClose) {
-    return false;
+  if (await isCloseContributor(username, { github, context, core })) {
+    return true;
   }
 
-  return true;
+  return !(await isMaintainer(username, { github, context }));
+}
+
+// Webhook payloads report a private org member's author_association as NONE or CONTRIBUTOR,
+// and community guides are org members too, so maintainers are known by team.
+async function isMaintainer(username, { github, context }) {
+  const memberships = await Promise.all(
+    MAINTAINER_TEAMS.map(async team_slug => {
+      try {
+        const { data } = await github.rest.teams.getMembershipForUserInOrg({
+          org: context.repo.owner,
+          team_slug,
+          username,
+        });
+        return data.state === 'active';
+      } catch (error) {
+        if (error.status === 404) return false;
+        throw new Error(`Could not check whether ${username} is in ${team_slug}: ${error.message}`);
+      }
+    }),
+  );
+  return memberships.includes(true);
 }
 
 /**

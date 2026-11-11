@@ -11,6 +11,8 @@ const BOT_USERNAMES = [
   RTIBBLESBOT_USERNAME,
 ];
 
+const MAINTAINER_TEAMS = ['le-admins-team', 'read-only-coding-agents', 'triaging-coding-agents'];
+
 // close contributors are treated a bit special in some workflows,
 // for example, we receive a high priority notification about their
 // comments on all issues rather than just on 'help wanted' issues
@@ -219,6 +221,7 @@ const PR_TEMPLATE_TARGET = '.github/PULL_REQUEST_TEMPLATE.md';
 module.exports = {
   LE_BOT_USERNAME,
   BOT_USERNAMES,
+  MAINTAINER_TEAMS,
   CLOSE_CONTRIBUTORS,
   KEYWORDS_DETECT_ASSIGNMENT_REQUEST,
   ISSUE_LABEL_HELP_WANTED,

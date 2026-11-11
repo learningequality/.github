@@ -6,8 +6,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const { isBot } = require('./utils');
-const { PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
+const { isContributor } = require('./utils');
+const { LE_BOT_USERNAME, PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
 
 const ORG_TEMPLATE_PATH = path.join(__dirname, '..', PR_TEMPLATE_TARGET);
 
@@ -15,6 +15,7 @@ const HEADING = /^## [^#]/;
 const REQUIRED_MARKER = /^\s*<!--\s*REQUIRED\s*-->\s*$/;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
 const PLACEHOLDER = '…';
+const COMMENT_MARKER = '<!-- pull-request-template-check -->';
 
 function sections(markdown) {
   const out = [];
@@ -82,7 +83,10 @@ async function readRepoTemplate({ github, context, core }, ref) {
       });
       if (response.data?.content) {
         core.info(`Checking against ${templatePath} on ${ref}.`);
-        return { template: Buffer.from(response.data.content, 'base64').toString('utf8') };
+        return {
+          template: Buffer.from(response.data.content, 'base64').toString('utf8'),
+          url: `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${ref}/${templatePath}`,
+        };
       }
     } catch (error) {
       if (error.status !== 404) {
@@ -93,13 +97,53 @@ async function readRepoTemplate({ github, context, core }, ref) {
   return { template: null };
 }
 
+async function syncComment({ github, context, core }, issueNumber, body) {
+  const { owner, repo } = context.repo;
+  try {
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner,
+      repo,
+      issue_number: issueNumber,
+      per_page: 100,
+    });
+    const ours = comments.filter(
+      comment => comment.user?.login === LE_BOT_USERNAME && comment.body?.includes(COMMENT_MARKER),
+    );
+    if (body === null) {
+      await Promise.all(
+        ours.map(comment =>
+          github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id }),
+        ),
+      );
+    } else if (!ours.length) {
+      await github.rest.issues.createComment({ owner, repo, issue_number: issueNumber, body });
+    } else if (ours[0].body !== body) {
+      await github.rest.issues.updateComment({ owner, repo, comment_id: ours[0].id, body });
+    }
+  } catch (error) {
+    core.warning(`Could not update the template comment: ${error.message}`);
+  }
+}
+
+function commentBody(problems, templateUrl) {
+  return [
+    COMMENT_MARKER,
+    `**📝 The description doesn't follow the [pull request template](${templateUrl}) yet.** ` +
+      'Please edit it to fix:',
+    '',
+    ...problems.map(problem => `- ${problem}`),
+    '',
+    'The check runs again when you save, and this comment goes away once it passes.',
+  ].join('\n');
+}
+
 module.exports = async ({ github, context, core }) => {
   try {
     const pullRequest = context.payload.pull_request;
     const author = pullRequest.user.login;
 
-    if (await isBot(author, { core })) {
-      core.info(`${author} is a bot, so the template is not checked.`);
+    if (!(await isContributor(author, pullRequest.author_association, { github, context, core }))) {
+      core.info(`${author} is a maintainer or bot, so the template is not checked.`);
       return;
     }
 
@@ -123,8 +167,18 @@ module.exports = async ({ github, context, core }) => {
     const problems = failures(pullRequest.body, required);
     if (!problems.length) {
       core.info(`The body carries all ${required.length} required sections.`);
+      await syncComment({ github, context, core }, pullRequest.number, null);
       return;
     }
+
+    const templateUrl =
+      found.url ??
+      `https://github.com/${context.repo.owner}/.github/blob/main/${PR_TEMPLATE_TARGET}`;
+    await syncComment(
+      { github, context, core },
+      pullRequest.number,
+      commentBody(problems, templateUrl),
+    );
 
     for (const problem of problems) {
       core.error(problem);
