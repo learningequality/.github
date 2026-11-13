@@ -11,7 +11,12 @@ const BOT_USERNAMES = [
   RTIBBLESBOT_USERNAME,
 ];
 
-const MAINTAINER_TEAMS = ['le-admins-team', 'read-only-coding-agents', 'triaging-coding-agents'];
+const MAINTAINER_TEAMS = [
+  'le-admins-team',
+  'read-only-coding-agents',
+  'triaging-coding-agents',
+  'learning-equality-code-reviewers',
+];
 
 // close contributors are treated a bit special in some workflows,
 // for example, we receive a high priority notification about their
