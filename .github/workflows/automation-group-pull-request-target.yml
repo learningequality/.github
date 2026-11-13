@@ -46,7 +46,7 @@ jobs:
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
   contributor-pr-reply:
     name: Contributor PR Reply
-    if: ${{ github.event_name == 'pull_request_target' && github.event.action == 'opened' }}
+    if: ${{ github.event_name == 'pull_request_target' && (github.event.action == 'opened' || (github.event.action == 'edited' && github.event.changes.body)) }}
     uses: learningequality/.github/.github/workflows/contributor-pr-reply.yml@main
     permissions:
       contents: read

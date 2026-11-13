@@ -28,6 +28,9 @@ jobs:
     needs: [check-if-contributor]
     if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: contributor-pr-reply-${{ github.event.pull_request.number }}-${{ github.event.action }}
+      cancel-in-progress: false
     steps:
       - name: Generate App Token
         id: generate-token

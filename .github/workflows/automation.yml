@@ -32,7 +32,7 @@ on:
 jobs:
   pull-request-target:
     name: Pull Request Target
-    if: ${{ (github.event_name == 'pull_request_target' && github.event.action == 'review_requested') || (github.event_name == 'pull_request_target' && github.event.action == 'labeled') || (github.event_name == 'pull_request_target' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]') || (github.event_name == 'pull_request_target' && github.event.action == 'opened') || (github.event_name == 'pull_request_target' && contains(fromJSON('["opened","edited","reopened"]'), github.event.action)) }}
+    if: ${{ (github.event_name == 'pull_request_target' && github.event.action == 'review_requested') || (github.event_name == 'pull_request_target' && github.event.action == 'labeled') || (github.event_name == 'pull_request_target' && github.event.action == 'opened' && github.event.pull_request.user.login == 'dependabot[bot]') || (github.event_name == 'pull_request_target' && (github.event.action == 'opened' || (github.event.action == 'edited' && github.event.changes.body))) || (github.event_name == 'pull_request_target' && contains(fromJSON('["opened","edited","reopened"]'), github.event.action)) }}
     uses: learningequality/.github/.github/workflows/automation-group-pull-request-target.yml@main
     permissions:
       contents: read

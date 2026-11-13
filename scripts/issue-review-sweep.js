@@ -6,8 +6,12 @@ const {
   LABEL_NEEDS_TEMPLATE,
   ISSUE_TEMPLATE_MAX_DAYS,
   BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED,
+  LABEL_UNLINKED,
+  PR_UNLINKED_MAX_DAYS,
+  BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED,
 } = require('./constants');
-const { removeLabel } = require('./utils');
+const { removeLabel, getLinkedIssues } = require('./utils');
+const { linkStatus, planLink, applyLink } = require('./pull-request-link');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -134,4 +138,45 @@ async function closeIssuesMissingTemplate(owner, repo, { github, core }, now = D
   return closed;
 }
 
-module.exports = { sweepIssueReviewLabels, closeIssuesMissingTemplate };
+async function closeUnlinkedPullRequests(owner, repo, { github, context, core }, now = Date.now()) {
+  const stale = await staleIssues(
+    LABEL_UNLINKED,
+    PR_UNLINKED_MAX_DAYS,
+    owner,
+    repo,
+    { github, core },
+    now,
+  );
+  const closed = [];
+  for (const { issue: pullRequest } of stale.filter(({ issue }) => issue.pull_request)) {
+    const { number } = pullRequest;
+    const linked = await getLinkedIssues(number, { github, context, core });
+    if (linked === null) {
+      continue;
+    }
+    const status = linkStatus(linked, pullRequest.user.login);
+    const link = { ...status, message: status.message ?? BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED };
+    try {
+      const plan = await planLink(
+        owner,
+        repo,
+        pullRequest,
+        link,
+        { github, core },
+        {
+          opening: false,
+        },
+      );
+      await applyLink(owner, repo, number, plan, { github, core });
+      if (plan.action === 'close') {
+        closed.push(number);
+        core.info(`Closed pull request #${number}: ${link.status}.`);
+      }
+    } catch (error) {
+      core.warning(`Failed to act on pull request #${number}: ${error.message}`);
+    }
+  }
+  return closed;
+}
+
+module.exports = { sweepIssueReviewLabels, closeIssuesMissingTemplate, closeUnlinkedPullRequests };
