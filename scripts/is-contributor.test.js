@@ -110,6 +110,16 @@ test('an org member outside the maintainer teams is a contributor', async () => 
   assert.equal(core.outputs.is_contributor, true);
 });
 
+test('a code reviewer is not a contributor whatever the event reports', async () => {
+  for (const association of ['MEMBER', 'CONTRIBUTOR', 'NONE']) {
+    const core = await run('reviewer', association, {
+      teams: { 'learning-equality-code-reviewers': ['reviewer'] },
+    });
+
+    assert.equal(core.outputs.is_contributor, false, association);
+  }
+});
+
 test('a failed membership check fails rather than guessing', async () => {
   const github = {
     rest: {

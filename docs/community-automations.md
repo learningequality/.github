@@ -5,17 +5,17 @@ Manages GitHub issue comments. Sends Slack notifications and GitHub bot replies.
 | Contributor type | Issue type | Comment type | #support-dev | #support-dev-notifications | GitHub bot | GitHub bot message |
 |------------------|------------|--------------|--------------|---------------------------|------------|-------------------|
 | **Core team** | Any | Any | No | No | No | - |
-| **Close contributor** | Any | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
-| **Issue creator** | `help-wanted` | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
-| **Issue creator** | Private | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | No | - |
+| **Close contributor** | Any | regular, [assign keyword][assign-keywords] | **Yes** | No | No | - |
+| **Issue creator** | `help-wanted` | regular, [assign keyword][assign-keywords] | **Yes** | No | No | - |
+| **Issue creator** | Private | regular, [assign keyword][assign-keywords] | No | Yes | No | - |
 | **Other** | Private | regular | No | Yes | No | - |
-| **Other** | Private | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | Yes`*` | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
-| **Other** | Unassigned `help-wanted` (not good first issue) | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
+| **Other** | Private | [assign keyword][assign-keywords] | No | Yes | Yes`*` | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
+| **Other** | Unassigned `help-wanted` (not good first issue) | regular, [assign keyword][assign-keywords] | **Yes** | No | No | - |
 | **Other** | Unassigned `help-wanted` + good first issue | regular | **Yes** | No | No | - |
-| **Other** | Unassigned `help-wanted` + good first issue | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | Yes`*` | `BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE` |
-| **Other** | `help-wanted` assigned to commenter | regular, [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | **Yes** | No | No | - |
+| **Other** | Unassigned `help-wanted` + good first issue | [assign keyword][assign-keywords] | **Yes** | No | Yes`*` | `BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE` |
+| **Other** | `help-wanted` assigned to commenter | regular, [assign keyword][assign-keywords] | **Yes** | No | No | - |
 | **Other** | `help-wanted` assigned to someone else | regular | No | Yes | No | - |
-| **Other** | `help-wanted` assigned to someone else | [assign keyword](https://github.com/learningequality/.github/blob/main/scripts/constants.js#L44) | No | Yes | Yes`*` | `BOT_MESSAGE_ALREADY_ASSIGNED` |
+| **Other** | `help-wanted` assigned to someone else | [assign keyword][assign-keywords] | No | Yes | Yes`*` | `BOT_MESSAGE_ALREADY_ASSIGNED` |
 | **Close contributor** | Private | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ISSUE_NOT_OPEN` |
 | **Close contributor** | `help-wanted` assigned to commenter | `/assign` command | No | No | No | - (silent no-op) |
 | **Close contributor** | `help-wanted` assigned to someone else | `/assign` command | No | Yes | Yes | `BOT_MESSAGE_ALREADY_ASSIGNED` |
@@ -47,6 +47,8 @@ In `scripts/constants.js` set:
 - `BOT_MESSAGE_ASSIGN_SUCCESS`: Assignment confirmation message
 - `BOT_MESSAGE_ASSIGN_NOT_GOOD_FIRST_ISSUE`: Decline message for non-good-first-issue issues
 - `BOT_MESSAGE_KEYWORD_GOOD_FIRST_ISSUE`: Keyword reply with `/assign` guidance
+
+[assign-keywords]: https://github.com/learningequality/.github/blob/main/scripts/constants.js#L51
 
 # `good-first-issue-comment`
 
