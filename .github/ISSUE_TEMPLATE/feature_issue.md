@@ -14,16 +14,21 @@ type: Tracking Issue
 -->
 
 ## Requirements
+<!-- REQUIRED -->
 
 ### What problem are we solving?
+<!-- REQUIRED -->
 
 ### Why this? Why now?
+<!-- REQUIRED -->
 
 ## Outcomes
+<!-- REQUIRED -->
 
 - [Specific, measurable outcome]
 
 ## Constraints
+<!-- REQUIRED -->
 
 - [Budget, deadline, technical limitation]
 
@@ -48,12 +53,14 @@ type: Tracking Issue
 - [Explicit exclusion]
 
 ## Context
+<!-- REQUIRED -->
 
 ### Relevant Feedback
 
 - [Feedback from partners, users, clearinghouse, teammates]
 
 ### Technical Context
+<!-- REQUIRED -->
 
 - [Relevant systems, prior art, technical considerations]
 
