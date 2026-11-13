@@ -15,7 +15,7 @@ const CLOSE_CONTRIBUTOR = CLOSE_CONTRIBUTORS[0];
 function fakeContext(
   author = AUTHOR,
   title = 'Fix it',
-  { action = 'opened', state = 'open', labels = [] } = {},
+  { action = 'opened', state = 'open', labels = [], body = '', base = 'develop' } = {},
 ) {
   return {
     repo: { owner: 'learningequality', repo: 'kolibri' },
@@ -23,15 +23,20 @@ function fakeContext(
       action,
       pull_request: {
         number: 42,
+        node_id: 'PR_42',
         html_url: 'https://github.com/learningequality/kolibri/pull/42',
         title,
+        body,
         state,
         labels: labels.map(name => ({ name })),
         user: { login: author },
+        base: { ref: base, repo: { default_branch: 'develop' } },
       },
     },
   };
 }
+
+const describing = (body, options = {}) => fakeContext(AUTHOR, 'Fix it', { body, ...options });
 
 const edited = (author = AUTHOR, options = {}) =>
   fakeContext(author, 'Fix it', { action: 'edited', ...options });
@@ -57,17 +62,65 @@ function fakeCore() {
   };
 }
 
-function fakeGithub(linkedIssues = [], { graphqlError, relinked } = {}) {
-  const calls = { comments: [], updates: [], reviewers: [], labels: [], removed: [], order: [] };
+function referencedNode(number, { assignees = [], state = 'OPEN', type = 'Issue' } = {}) {
+  if (type !== 'Issue') {
+    return { __typename: type };
+  }
+  return {
+    __typename: type,
+    id: `I_${number}`,
+    number,
+    url: `https://github.com/learningequality/kolibri/issues/${number}`,
+    state,
+    assignees: { nodes: assignees.map(login => ({ login })) },
+  };
+}
+
+function lookUpReferences(query, referenced) {
+  const repository = {};
+  for (const [, alias, number] of query.matchAll(/(\w+): issueOrPullRequest\(number: (\d+)\)/g)) {
+    const issue = referenced[number];
+    repository[alias] = issue ? referencedNode(Number(number), issue) : null;
+  }
+  if (Object.values(repository).includes(null)) {
+    throw Object.assign(new Error('Could not resolve to an issue'), { data: { repository } });
+  }
+  return { repository };
+}
+
+function fakeGithub(
+  linkedIssues = [],
+  { graphqlError, relinked, referenced = {}, linkError } = {},
+) {
+  const calls = {
+    comments: [],
+    updates: [],
+    reviewers: [],
+    labels: [],
+    removed: [],
+    links: [],
+    order: [],
+  };
   const current = new Set();
   let lookups = 0;
   return {
     calls,
     current,
     paginate: async (fn, params) => fn(params),
-    graphql: async () => {
+    graphql: async (query, variables) => {
       if (graphqlError) {
         throw new Error(graphqlError);
+      }
+      if (query.includes('addCloseIssueReferences')) {
+        if (linkError) {
+          throw new Error(linkError);
+        }
+        calls.links.push(variables);
+        calls.order.push('link');
+        return {};
+      }
+      if (query.includes('issueOrPullRequest')) {
+        return lookUpReferences(query, referenced);
       }
       lookups += 1;
       const issues = lookups > 1 && relinked ? relinked : linkedIssues;
@@ -373,4 +426,123 @@ test('a failed lookup does not ask the author to link an issue', async () => {
   await run(github);
 
   assert.doesNotMatch(github.calls.comments[0].body, /link the issue/);
+});
+
+test('a mentioned issue assigned to the author is linked and named', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [AUTHOR] } } });
+  await run(
+    github,
+    describing('Fix for [the bug](https://github.com/learningequality/kolibri/issues/7)'),
+  );
+
+  assert.deepEqual(github.calls.links, [{ issueId: 'I_7', pullRequestIds: ['PR_42'] }]);
+  assert.match(github.calls.comments[0].body, /We linked this pull request to #7/);
+  assert.match(github.calls.comments[0].body, /`Closes #7`/);
+  assert.doesNotMatch(github.calls.comments[0].body, /couldn't find an issue/);
+  assert.deepEqual(github.calls.reviewers, [RTIBBLESBOT_USERNAME]);
+  assert.deepEqual(github.calls.labels, [LABEL_COMMUNITY_REVIEW]);
+});
+
+test('a mentioned issue the author cannot claim is not linked', async () => {
+  const cases = [
+    { assignees: ['someone-else'] },
+    { assignees: [] },
+    { assignees: [AUTHOR], state: 'CLOSED' },
+    { type: 'PullRequest' },
+  ];
+  for (const issue of cases) {
+    const github = fakeGithub([], { referenced: { 7: issue } });
+    await run(github, describing('See #7'));
+
+    assert.deepEqual(github.calls.links, []);
+    assert.deepEqual(github.calls.updates, []);
+    assert.deepEqual(github.calls.labels, [LABEL_UNLINKED]);
+    assert.match(github.calls.comments[0].body, /couldn't find an issue/);
+  }
+});
+
+test('two mentioned issues assigned to the author are named and neither is linked', async () => {
+  const github = fakeGithub([], {
+    referenced: { 7: { assignees: [AUTHOR] }, 8: { assignees: [AUTHOR] } },
+  });
+  await run(github, describing('See #7 and #8'));
+
+  assert.deepEqual(github.calls.links, []);
+  assert.deepEqual(github.calls.labels, [LABEL_UNLINKED]);
+  assert.match(github.calls.comments[0].body, /#7, #8/);
+  assert.match(github.calls.comments[0].body, /which one this pull request closes/);
+});
+
+test('a missing issue number does not hide the other mentions', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [AUTHOR] } } });
+  const core = await run(github, describing('See #7 and #9999'));
+
+  assert.equal(github.calls.links.length, 1);
+  assert.deepEqual(core.failures, []);
+});
+
+test('an unlinked pull request is told the issue comes first', async () => {
+  const github = fakeGithub([]);
+  await run(github, describing('A drive-by fix'));
+
+  assert.match(github.calls.comments[0].body, /Open an issue and get assigned to it/);
+});
+
+test('a closing keyword on another base links the issue the way the default branch would', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: ['someone-else'] } } });
+  await run(github, describing('Fixes #7', { base: 'release-v0.20.x' }));
+
+  assert.deepEqual(github.calls.links, [{ issueId: 'I_7', pullRequestIds: ['PR_42'] }]);
+  assert.deepEqual(github.calls.updates, [{ pull_number: 42, state: 'closed' }]);
+  assert.match(github.calls.comments[0].body, /issues\/7 is assigned to someone else/);
+});
+
+test('a closing keyword on another base starts review without naming the link', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [AUTHOR] } } });
+  await run(github, describing('Fixes #7', { base: 'release-v0.20.x' }));
+
+  assert.equal(github.calls.links.length, 1);
+  assert.deepEqual(github.calls.reviewers, [RTIBBLESBOT_USERNAME]);
+  assert.doesNotMatch(github.calls.comments[0].body, /We linked/);
+});
+
+test('a closing keyword on the default branch is left to GitHub', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: ['someone-else'] } } });
+  await run(github, describing('Fixes #7'));
+
+  assert.deepEqual(github.calls.links, []);
+  assert.deepEqual(github.calls.updates, []);
+});
+
+test('a pull request that already links an issue reads no mentions', async () => {
+  const github = fakeGithub([{ number: 7, assignees: [AUTHOR] }], {
+    referenced: { 8: { assignees: [AUTHOR] } },
+  });
+  await run(github, describing('Fixes #7, see #8'));
+
+  assert.deepEqual(github.calls.links, []);
+});
+
+test('a refused link falls back to asking', async () => {
+  const github = fakeGithub([], {
+    referenced: { 7: { assignees: [AUTHOR] } },
+    linkError: 'Resource not accessible',
+  });
+  const core = await run(github, describing('See #7'));
+
+  assert.match(github.calls.comments[0].body, /couldn't find an issue/);
+  assert.doesNotMatch(github.calls.comments[0].body, /We linked/);
+  assert.deepEqual(github.calls.labels, [LABEL_UNLINKED]);
+  assert.match(core.warnings.join('\n'), /Resource not accessible/);
+  assert.deepEqual(core.failures, []);
+});
+
+test('an edit mentioning the issue assigned to the author links it and starts review', async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [AUTHOR] } } });
+  await run(github, edited(AUTHOR, { labels: [LABEL_UNLINKED], body: 'See #7' }));
+
+  assert.equal(github.calls.links.length, 1);
+  assert.deepEqual(github.calls.comments, []);
+  assert.deepEqual(github.calls.removed, [LABEL_UNLINKED]);
+  assert.deepEqual(github.calls.reviewers, [RTIBBLESBOT_USERNAME]);
 });
