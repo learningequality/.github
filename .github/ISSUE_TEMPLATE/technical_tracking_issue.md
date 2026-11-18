@@ -14,6 +14,7 @@ Instructions:
 -->
 
 ## Overview
+<!-- REQUIRED -->
 
 <!--
 Describe what this tracking issue encompasses and why the work matters.
@@ -21,6 +22,7 @@ Keep it concise: 3-5 sentences covering the "what" and "why".
 -->
 
 ### Scope
+<!-- REQUIRED -->
 
 <!--
 Define boundaries clearly.

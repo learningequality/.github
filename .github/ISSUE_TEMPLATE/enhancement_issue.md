@@ -18,9 +18,11 @@ Instructions:
 **Target branch:** <!-- e.g. develop, release-v0.17.x -->
 
 ## Current behavior
+<!-- REQUIRED -->
 <!-- Briefly describe the current behavior; you may include screenshots, code, and notes -->
 
 ## Desired behavior
+<!-- REQUIRED -->
 <!-- Briefly describe the behavior you would like to see -->
 
 ## Value add

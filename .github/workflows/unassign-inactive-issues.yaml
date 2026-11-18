@@ -24,7 +24,7 @@ jobs:
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
           permission-issues: write
           permission-members: read
-          permission-pull-requests: read
+          permission-pull-requests: write
       - name: Checkout .github repository
         uses: actions/checkout@v7
         with:

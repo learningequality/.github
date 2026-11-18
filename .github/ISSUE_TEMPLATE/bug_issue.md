@@ -16,6 +16,7 @@ Instructions:
 **Target branch:** <!-- e.g. develop, release-v0.17.x -->
 
 ## Observed behavior
+<!-- REQUIRED -->
 <!--
 Description of the behavior that was observed, including screenshots or other references when applicable
 -->
@@ -39,6 +40,7 @@ Please wrap errors in triple backticks for clean formatting like this:
 …
 
 ## Expected behavior
+<!-- REQUIRED -->
 <!--
 Description of what behavior was expected but did not occur
 -->
@@ -53,6 +55,7 @@ Implications and real-world consequences for learners, coaches, admins, and othe
 …
 
 ## Steps to reproduce
+<!-- REQUIRED -->
 <!--
 Precise steps that someone else can follow in order to see this behavior
 -->
@@ -60,6 +63,7 @@ Precise steps that someone else can follow in order to see this behavior
 …
 
 ## Context
+<!-- REQUIRED -->
 <!--
 Tell us about your environment, including:
  * Application version

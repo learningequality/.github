@@ -52,7 +52,7 @@ jobs:
       LE_BOT_PRIVATE_KEY: ${{ secrets.LE_BOT_PRIVATE_KEY }}
   issue-validation:
     name: Issue Validation
-    if: ${{ github.event_name == 'issues' && github.event.action == 'opened' }}
+    if: ${{ github.event_name == 'issues' && (github.event.action == 'opened' || (contains(fromJSON('["edited","reopened"]'), github.event.action) && contains(github.event.issue.labels.*.name, 'needs-template'))) }}
     uses: learningequality/.github/.github/workflows/issue-validation.yml@main
     permissions:
       contents: read

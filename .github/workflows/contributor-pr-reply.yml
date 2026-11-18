@@ -28,6 +28,9 @@ jobs:
     needs: [check-if-contributor]
     if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: contributor-pr-reply-${{ github.event.pull_request.number }}-${{ github.event.action }}
+      cancel-in-progress: false
     steps:
       - name: Generate App Token
         id: generate-token
@@ -35,7 +38,7 @@ jobs:
         with:
           app-id: ${{ secrets.LE_BOT_APP_ID }}
           private-key: ${{ secrets.LE_BOT_PRIVATE_KEY }}
-          permission-issues: read
+          permission-issues: write
           permission-pull-requests: write
       - name: Checkout .github repository
         uses: actions/checkout@v7

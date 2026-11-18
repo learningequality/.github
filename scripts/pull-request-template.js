@@ -7,64 +7,12 @@ const fs = require('fs');
 const path = require('path');
 
 const { isContributor } = require('./utils');
-const { LE_BOT_USERNAME, PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
+const { requiredSections, failures, syncComment } = require('./template-check');
+const { PR_TEMPLATE_PATHS, PR_TEMPLATE_TARGET } = require('./constants');
 
 const ORG_TEMPLATE_PATH = path.join(__dirname, '..', PR_TEMPLATE_TARGET);
 
-const HEADING = /^## [^#]/;
-const REQUIRED_MARKER = /^\s*<!--\s*REQUIRED\s*-->\s*$/;
-const HTML_COMMENT = /<!--[\s\S]*?-->/g;
-const PLACEHOLDER = '…';
 const COMMENT_MARKER = '<!-- pull-request-template-check -->';
-
-function sections(markdown) {
-  const out = [];
-  for (const line of (markdown || '').split(/\r?\n/)) {
-    if (HEADING.test(line)) out.push({ heading: line.trim(), lines: [] });
-    else if (out.length) out[out.length - 1].lines.push(line);
-  }
-  return out;
-}
-
-function isMarked(section) {
-  const first = section.lines.find(line => line.trim() !== '');
-  return first !== undefined && REQUIRED_MARKER.test(first);
-}
-
-// A template that marks nothing requires every section, so a repo whose template
-// has no markers is strict rather than unchecked.
-function requiredSections(template) {
-  const all = sections(template);
-  const marked = all.filter(isMarked);
-  return marked.length ? marked : all;
-}
-
-function content(section) {
-  return section.lines.join('\n').replace(HTML_COMMENT, '').trim();
-}
-
-function failures(body, required) {
-  const found = new Map(sections(body).map(section => [section.heading.toLowerCase(), section]));
-  const problems = [];
-  for (const { heading, lines } of required) {
-    const section = found.get(heading.toLowerCase());
-    if (!section) {
-      problems.push(`\`${heading}\` is missing.`);
-      continue;
-    }
-    const text = content(section);
-    if (text === '') {
-      problems.push(`\`${heading}\` is empty.`);
-    } else if (text.split('\n').some(line => line.trim() === PLACEHOLDER)) {
-      // The template puts the placeholder on a line of its own, so an ellipsis
-      // inside a sentence is prose rather than an unfilled section.
-      problems.push(`\`${heading}\` still holds the \`${PLACEHOLDER}\` placeholder.`);
-    } else if (text === content({ lines })) {
-      problems.push(`\`${heading}\` still holds the text from the template.`);
-    }
-  }
-  return problems;
-}
 
 /**
  * The repo's own template, `null` if none exists, or `{ unreadable }` if a
@@ -95,34 +43,6 @@ async function readRepoTemplate({ github, context, core }, ref) {
     }
   }
   return { template: null };
-}
-
-async function syncComment({ github, context, core }, issueNumber, body) {
-  const { owner, repo } = context.repo;
-  try {
-    const comments = await github.paginate(github.rest.issues.listComments, {
-      owner,
-      repo,
-      issue_number: issueNumber,
-      per_page: 100,
-    });
-    const ours = comments.filter(
-      comment => comment.user?.login === LE_BOT_USERNAME && comment.body?.includes(COMMENT_MARKER),
-    );
-    if (body === null) {
-      await Promise.all(
-        ours.map(comment =>
-          github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id }),
-        ),
-      );
-    } else if (!ours.length) {
-      await github.rest.issues.createComment({ owner, repo, issue_number: issueNumber, body });
-    } else if (ours[0].body !== body) {
-      await github.rest.issues.updateComment({ owner, repo, comment_id: ours[0].id, body });
-    }
-  } catch (error) {
-    core.warning(`Could not update the template comment: ${error.message}`);
-  }
 }
 
 function commentBody(problems, templateUrl) {
@@ -167,7 +87,7 @@ module.exports = async ({ github, context, core }) => {
     const problems = failures(pullRequest.body, required);
     if (!problems.length) {
       core.info(`The body carries all ${required.length} required sections.`);
-      await syncComment({ github, context, core }, pullRequest.number, null);
+      await syncComment({ github, context, core }, pullRequest.number, COMMENT_MARKER, null);
       return;
     }
 
@@ -177,6 +97,7 @@ module.exports = async ({ github, context, core }) => {
     await syncComment(
       { github, context, core },
       pullRequest.number,
+      COMMENT_MARKER,
       commentBody(problems, templateUrl),
     );
 

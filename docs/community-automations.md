@@ -67,18 +67,31 @@ Sends reply to a community pull request, and acts on the issue that pull request
 
 What happens depends on who the linked issue is assigned to:
 
-- assigned to someone else: posts a closing message instead of the reply, closes the pull request, and notifies Slack
 - assigned to the author: sends the reply, then requests `rtibblesbot` for review and adds the `community-review` label
-- not assigned, or no issue linked: sends the reply
+- assigned to someone else, or to no one: posts a closing message instead of the reply, closes the pull request, and notifies Slack
+- no issue linked: sends the reply, asks for an issue to be linked under `## References`, and adds the `unlinked` label
 
-An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. A pull request with no linked issue is asked to add one under `## References`.
+An issue counts as linked only when the description closes it, for example `Fixes #123`. Assignments on any other issue are ignored. If the author is assigned to any linked issue, the pull request is not closed. Close contributors are never closed or labelled `unlinked`.
 
-If the author is assigned to any linked issue, the pull request is not closed.
+When nothing is linked, the automation reads the description for open issues in the same repository, as `#123`, `owner/repo#123`, or an issue URL, outside code and HTML comments, and links some itself:
+
+- on a base other than the default branch, where GitHub ignores closing keywords: every issue after a closing keyword, whoever it is assigned to
+- otherwise, the one mentioned issue assigned to the author; the reply names it
+- several mentioned issues assigned to the author link none; the reply names them and asks which one
+
+It runs on `opened`, and again on `edited` when the description changes. An edit sends no reply: it closes, labels, or removes `unlinked` by the rules above, and starts review only on a pull request that carried `unlinked`.
+
+The weekly `unassign-inactive-issues` run closes every open pull request labelled `unlinked` for longer than `PR_UNLINKED_MAX_DAYS` days, except a close contributor's. It re-reads the links first, because a link added from the Development sidebar fires no `edited` event: a pull request now linked to its author's issue loses the label and starts review instead.
 
 In `scripts/constants.js` set:
 - `BOT_MESSAGE_PULL_REQUEST`: Message text
 - `BOT_MESSAGE_LINK_ISSUE`: Text added when no issue is linked
-- `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message text
+- `BOT_MESSAGE_LINKED_ISSUE`: Text added when the automation linked the author's issue
+- `BOT_MESSAGE_LINK_WHICH_ISSUE`: Text added when several mentioned issues are assigned to the author
+- `BOT_MESSAGE_PULL_REQUEST_CLOSED`: Closing message when the issue is assigned to someone else
+- `BOT_MESSAGE_PULL_REQUEST_UNASSIGNED`: Closing message when the issue is assigned to no one
+- `BOT_MESSAGE_PULL_REQUEST_UNLINKED_CLOSED`: Closing message from the sweep when still no issue is linked
+- `PR_UNLINKED_MAX_DAYS`: How long `unlinked` stays on before the sweep closes the pull request
 
 # `pull-request-template`
 
@@ -92,6 +105,8 @@ A section is required when its heading carries a `<!-- REQUIRED -->` comment in 
 ## Summary
 <!-- REQUIRED -->
 ```
+
+A `###` heading can be marked too. A section runs to the next heading of the same or higher level, so a `##` section includes its `###` subsections. A body's heading matches the template's at either level and in any case.
 
 A template that marks no section requires every level-two heading, so that a repo is strict rather than silently unchecked. To change what a repo requires, edit the markers in that repo's template. No change is required here.
 
@@ -110,9 +125,14 @@ These two automations ask `rtibblesbot` to validate claims in contributor-submit
 
 ## `issue-validation`
 
-Runs on `issues: [opened]`. It proceeds only if the repository is in `ISSUE_VALIDATION_REPOS`, the issue opener is a contributor, and the issue does not already have the `community-issue-review` label.
+Runs on `issues: [opened, edited, reopened]` for open issues whose opener is a contributor, in public repositories. `edited` and `reopened` only run while the issue carries `needs-template`, so issues opened before the check existed are never flagged.
 
-It posts a comment mentioning `@rtibblesbot` and adds the label. If the label does not exist in the repository, the add-label call creates it.
+It first checks the description against this repo's `.github/ISSUE_TEMPLATE/*.md`, using the `<!-- REQUIRED -->` rules of `pull-request-template`. The issue does not record which template it came from, so it passes if it satisfies any one of them.
+
+- **Fails:** posts one comment naming the template it shares the most headings with and what that template still needs, and adds `needs-template`. No validation is requested.
+- **Passes:** deletes that comment, removes `needs-template`, and requests validation, unless the issue already carries `community-issue-review`.
+
+Validation is requested by a comment mentioning `@rtibblesbot` and the `community-issue-review` label. If a label does not exist in the repository, the add-label call creates it.
 
 **The mention is essential.** The agent polls its GitHub notifications and has no inbound endpoint, so a mention is the only way to reach it. Adding a label does not generate a notification, and a handle inside backticks, as in `BOT_MESSAGE_RTIBBLESBOT_REVIEW`, does not trigger one either.
 
@@ -147,18 +167,22 @@ The weekly `unassign-inactive-issues` run also sweeps stalled validations throug
 
 If the agent never responds, for example, because the service is down or all available tokens have reached their limits, the label would otherwise remain indefinitely. The sweep removes it when the issue's `labeled` event is older than `ISSUE_REVIEW_MAX_DAYS` days.
 
+The same run closes, as not planned, every open issue labelled `needs-template` for longer than `ISSUE_TEMPLATE_MAX_DAYS` days, with `BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED`. To keep an issue open, a maintainer fixes its description or removes the label. Reopening a closed issue reruns the check and restarts the clock.
+
 ## Scope and configuration
 
-Neither automation closes issues or acts on the validation findings. The agent's comment recommends whether the issue should be closed; a maintainer must request that action in a reply.
+Neither automation acts on the validation findings. The agent's comment recommends whether the issue should be closed; a maintainer must request that action in a reply.
 
 Configure the following constants in `scripts/constants.js`:
 
-- `ISSUE_VALIDATION_REPOS`: The repositories where validation runs, which are the community repositories plus the sandbox the automations are tested in.
 - `LABEL_COMMUNITY_ISSUE_REVIEW`: The label applied while validation is in progress.
 - `ISSUE_VALIDATION_MARKER`: The marker that signals validation completion, shared with `learningequality/coding-agent`.
 - `ISSUE_REVIEW_MAX_DAYS`: The maximum age of the label before the sweep clears it.
 - `BOT_MESSAGE_ISSUE_VALIDATION`: The comment text posted to request validation.
 - `ISSUE_VALIDATION_FOLLOW_UPS`: The six verdicts and the follow-up each one asks a maintainer for, used in the Slack line.
+- `LABEL_NEEDS_TEMPLATE`: The label on an issue that fails the template check.
+- `ISSUE_TEMPLATE_MAX_DAYS`: How long that label stays on before the sweep closes the issue.
+- `BOT_MESSAGE_ISSUE_TEMPLATE_CLOSED`: The comment posted when the sweep closes an issue.
 
 # `holiday-message`
 

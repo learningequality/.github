@@ -13,19 +13,23 @@ type: Tracking Issue
 _[General guidance: Product issues should describe the feature, but are not actually technically specced for dev work.]_
 
 ## Overview
+<!-- REQUIRED -->
 
 _[First, the workflow in one sentence]_
 
 ### Description and outcomes
+<!-- REQUIRED -->
 _[Then, more detail. Provide a short summary and/or list key outcomes that the user should be able to accomplish with this feature.]_
 
 
 
 ### Resources
+<!-- REQUIRED -->
 - _[Link Gherkin Scenarios]_
 - _[Link Figma Scenarios]_
 
 ### Accessibility Requirements
+<!-- REQUIRED -->
 
 
 ## AI usage

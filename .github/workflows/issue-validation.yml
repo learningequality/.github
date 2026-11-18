@@ -1,4 +1,4 @@
-name: Ask rtibblesbot to validate a contributor issue
+name: Check a contributor issue against the templates and request validation
 on:
   workflow_call:
     secrets:
@@ -25,6 +25,9 @@ jobs:
     needs: [check-if-contributor]
     if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: issue-validation-${{ github.event.issue.number }}
+      cancel-in-progress: false
     steps:
       - name: Generate App Token
         id: generate-token
