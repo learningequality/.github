@@ -93,8 +93,8 @@ automations:
     leaf: manage-issue-header.yml
     on:
       issues:
-        types: [opened, reopened]
-    if: "github.event_name == 'issues' && contains(fromJSON('[\"opened\",\"reopened\"]'), github.event.action)"
+        types: [opened, reopened, edited]
+    if: "github.event_name == 'issues' && (contains(fromJSON('[\"opened\",\"reopened\"]'), github.event.action) || (github.event.action == 'edited' && github.event.changes.body))"
     secrets:
       LE_BOT_APP_ID: required
       LE_BOT_PRIVATE_KEY: required
