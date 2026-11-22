@@ -79,6 +79,8 @@ When nothing is linked, the automation reads the description for open issues in 
 - otherwise, the one mentioned issue assigned to the author; the reply names it
 - several mentioned issues assigned to the author link none; the reply names them and asks which one
 
+For everyone else, including maintainers and bots, it only applies the first rule: off the default branch, with nothing linked yet, it links every issue after a closing keyword. Nothing is replied, labelled, or closed.
+
 It runs on `opened`, and again on `edited` when the description changes. An edit sends no reply: it closes, labels, or removes `unlinked` by the rules above, and starts review only on a pull request that carried `unlinked`.
 
 The weekly `unassign-inactive-issues` run closes every open pull request labelled `unlinked` for longer than `PR_UNLINKED_MAX_DAYS` days, except a close contributor's. It re-reads the links first, because a link added from the Development sidebar fires no `edited` event: a pull request now linked to its author's issue loses the label and starts review instead.

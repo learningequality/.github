@@ -18,8 +18,9 @@ the `if:` condition on each job did not match, so check the event first.
 
 Some automations run only when `is-contributor` is true, meaning the author is not a bot, an org
 owner, or in a `MAINTAINER_TEAMS` team (see `scripts/constants.js`). A maintainer cannot trigger
-them, so they skip. These are `review-requested`, `pull-request-label`, `contributor-pr-reply`, and
-`contributor-issue-comment`, plus `holiday-message` when enabled.
+them, so they skip. These are `review-requested`, `pull-request-label`, `contributor-pr-reply`
+(except linking off the default branch), and `contributor-issue-comment`, plus `holiday-message`
+when enabled.
 
 Use a second GitHub account that is not in the organization. It needs no permissions, secrets, or
 app. To open a pull request, fork `test-actions` and open one back to it. `pull_request_target` then

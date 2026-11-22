@@ -171,12 +171,14 @@ function fakeGithub(
   };
 }
 
-async function run(github, context = fakeContext()) {
+async function run(github, context = fakeContext(), { contributor = true } = {}) {
   context.payload.pull_request.labels.forEach(({ name }) => github.current.add(name));
   const core = fakeCore();
-  await contributorPrReply({ github, context, core });
+  await contributorPrReply({ github, context, core, contributor });
   return core;
 }
+
+const asMaintainer = (github, context) => run(github, context, { contributor: false });
 
 test('a linked issue assigned to someone else closes the pull request', async () => {
   const github = fakeGithub([{ number: 7, assignees: ['someone-else'] }]);
@@ -545,4 +547,50 @@ test('an edit mentioning the issue assigned to the author links it and starts re
   assert.deepEqual(github.calls.comments, []);
   assert.deepEqual(github.calls.removed, [LABEL_UNLINKED]);
   assert.deepEqual(github.calls.reviewers, [RTIBBLESBOT_USERNAME]);
+});
+
+test("a maintainer's closing keyword on another base links the issue and nothing else", async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: ['someone-else'] } } });
+  const core = await asMaintainer(github, describing('Fixes #7', { base: 'release-v0.20.x' }));
+
+  assert.deepEqual(github.calls.links, [{ issueId: 'I_7', pullRequestIds: ['PR_42'] }]);
+  assert.deepEqual(github.calls.comments, []);
+  assert.deepEqual(github.calls.updates, []);
+  assert.deepEqual(github.calls.labels, []);
+  assert.deepEqual(github.calls.reviewers, []);
+  assert.equal(core.outputs.slack_notification, '');
+  assert.deepEqual(core.failures, []);
+});
+
+test("a maintainer's edit adding a closing keyword on another base links the issue", async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [] } } });
+  await asMaintainer(github, edited(AUTHOR, { body: 'Closes #7', base: 'release-v0.20.x' }));
+
+  assert.equal(github.calls.links.length, 1);
+  assert.deepEqual(github.calls.updates, []);
+});
+
+test("a maintainer's mention without a closing keyword is not linked", async () => {
+  const github = fakeGithub([], { referenced: { 7: { assignees: [AUTHOR] } } });
+  await asMaintainer(github, describing('See #7', { base: 'release-v0.20.x' }));
+
+  assert.deepEqual(github.calls.links, []);
+  assert.deepEqual(github.calls.labels, []);
+});
+
+test("a maintainer's pull request that already links an issue links no more", async () => {
+  const github = fakeGithub([{ number: 8, assignees: [] }], {
+    referenced: { 7: { assignees: [] } },
+  });
+  await asMaintainer(github, describing('Fixes #7', { base: 'release-v0.20.x' }));
+
+  assert.deepEqual(github.calls.links, []);
+});
+
+test("a maintainer's pull request to the default branch makes no lookup", async () => {
+  const github = fakeGithub([], { graphqlError: 'unexpected lookup' });
+  const core = await asMaintainer(github, describing('Fixes #7'));
+
+  assert.deepEqual(core.warnings, []);
+  assert.deepEqual(github.calls.comments, []);
 });
