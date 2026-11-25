@@ -54,7 +54,7 @@ module.exports = async ({ github, context, core }) => {
         header = isIssueHelpWanted(issue) ? HELP_WANTED_HEADER : NON_HELP_WANTED_HEADER;
         break;
       case 'reopened':
-        // check for pre-existing 'help wanted' label
+      case 'edited':
         header = isIssueHelpWanted(issue) ? HELP_WANTED_HEADER : NON_HELP_WANTED_HEADER;
         break;
       case 'labeled':
@@ -94,8 +94,11 @@ module.exports = async ({ github, context, core }) => {
 
     const currentBody = issue.data.body || '';
 
-    let newBody = clearHeader(currentBody);
-    newBody = header + newBody;
+    const newBody = header + clearHeader(currentBody);
+    if (newBody === currentBody) {
+      core.info('Header is already up to date.');
+      return;
+    }
 
     await github.rest.issues.update({
       owner: repoOwner,

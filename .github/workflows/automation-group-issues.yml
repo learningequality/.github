@@ -16,7 +16,7 @@ on:
 jobs:
   issue-open:
     name: Issue Open
-    if: ${{ github.event_name == 'issues' && contains(fromJSON('["opened","reopened"]'), github.event.action) }}
+    if: ${{ github.event_name == 'issues' && (contains(fromJSON('["opened","reopened"]'), github.event.action) || (github.event.action == 'edited' && github.event.changes.body)) }}
     uses: learningequality/.github/.github/workflows/manage-issue-header.yml@main
     permissions:
       contents: read
