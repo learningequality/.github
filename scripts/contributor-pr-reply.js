@@ -5,7 +5,13 @@ const {
   BOT_MESSAGE_LINK_WHICH_ISSUE,
 } = require('./constants');
 const { sendBotMessage, getLinkedIssues, escapeIssueTitleForSlackMessage } = require('./utils');
-const { linkReferences, linkStatus, planLink, applyLink } = require('./pull-request-link');
+const {
+  isDefaultBase,
+  linkReferences,
+  linkStatus,
+  planLink,
+  applyLink,
+} = require('./pull-request-link');
 
 function slackLine(context, text) {
   const { repo } = context.repo;
@@ -54,7 +60,16 @@ async function act({ github, context, core }, plan, link) {
   }
 }
 
-module.exports = async ({ github, context, core }) => {
+async function linkClosingReferences({ github, context, core }) {
+  const { owner, repo } = context.repo;
+  const pullRequest = context.payload.pull_request;
+  if (isDefaultBase(pullRequest)) return;
+  const lookup = await getLinkedIssues(pullRequest.number, { github, context, core });
+  if (lookup === null || lookup.length) return;
+  await linkReferences(owner, repo, pullRequest, { github, core }, { contributor: false });
+}
+
+module.exports = async ({ github, context, core, contributor }) => {
   try {
     const { owner, repo } = context.repo;
     const pullRequest = context.payload.pull_request;
@@ -65,6 +80,11 @@ module.exports = async ({ github, context, core }) => {
 
     if (!opening && pullRequest.state !== 'open') {
       core.info(`Pull request #${number} is ${pullRequest.state}.`);
+      return;
+    }
+
+    if (!contributor) {
+      await linkClosingReferences({ github, context, core });
       return;
     }
 
@@ -81,7 +101,7 @@ module.exports = async ({ github, context, core }) => {
 
     const found = lookup.length
       ? { linked: lookup, named: null, ambiguous: [] }
-      : await linkReferences(owner, repo, pullRequest, { github, core });
+      : await linkReferences(owner, repo, pullRequest, { github, core }, { contributor: true });
     const link = linkStatus(found.linked, author);
     const first = await plan(link);
     if (opening && first.action !== 'close') {

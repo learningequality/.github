@@ -14,20 +14,28 @@ const {
   addClosingIssueReference,
 } = require('./utils');
 
-function chooseReferences(issues, author, defaultBase) {
+function isDefaultBase(pullRequest) {
+  return pullRequest.base.ref === pullRequest.base.repo.default_branch;
+}
+
+function chooseReferences(issues, author, defaultBase, contributor) {
   const closing = defaultBase ? [] : issues.filter(issue => issue.keyword);
-  if (closing.length) return { link: closing, named: false, ambiguous: [] };
+  if (closing.length || !contributor) return { link: closing, named: false, ambiguous: [] };
   const assigned = issues.filter(issue => issue.assignees.includes(author));
   if (assigned.length === 1) return { link: assigned, named: true, ambiguous: [] };
   return { link: [], named: false, ambiguous: assigned.length > 1 ? assigned : [] };
 }
 
-async function linkReferences(owner, repo, pullRequest, { github, core }) {
+async function linkReferences(owner, repo, pullRequest, { github, core }, { contributor }) {
   const references = findIssueReferences(pullRequest.body, owner, repo);
   if (!references.length) return { linked: [], named: null, ambiguous: [] };
   const issues = await getReferencedIssues(owner, repo, references, { github, core });
-  const defaultBase = pullRequest.base.ref === pullRequest.base.repo.default_branch;
-  const { link, named, ambiguous } = chooseReferences(issues, pullRequest.user.login, defaultBase);
+  const { link, named, ambiguous } = chooseReferences(
+    issues,
+    pullRequest.user.login,
+    isDefaultBase(pullRequest),
+    contributor,
+  );
   const linked = [];
   for (const issue of link) {
     try {
@@ -119,4 +127,4 @@ async function applyLink(owner, repo, number, plan, { github, core }) {
   return null;
 }
 
-module.exports = { linkReferences, linkStatus, planLink, applyLink };
+module.exports = { isDefaultBase, linkReferences, linkStatus, planLink, applyLink };

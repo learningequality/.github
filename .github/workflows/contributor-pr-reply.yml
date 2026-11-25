@@ -1,4 +1,4 @@
-name: Send reply on a new contributor pull request
+name: Link issues and reply on a new pull request
 on:
   workflow_call:
     secrets:
@@ -24,9 +24,8 @@ jobs:
       username: ${{ github.event.pull_request.user.login }}
       author_association: ${{ github.event.pull_request.author_association }}
   send-reply:
-    name: Send reply
+    name: Link issues and send reply
     needs: [check-if-contributor]
-    if: ${{ needs.check-if-contributor.outputs.is_contributor == 'true' }}
     runs-on: ubuntu-latest
     concurrency:
       group: contributor-pr-reply-${{ github.event.pull_request.number }}-${{ github.event.action }}
@@ -54,11 +53,14 @@ jobs:
       - name: Run script
         id: script
         uses: actions/github-script@v9
+        env:
+          IS_CONTRIBUTOR: ${{ needs.check-if-contributor.outputs.is_contributor }}
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const script = require('./scripts/contributor-pr-reply.js');
-            return await script({ github, context, core });
+            const contributor = process.env.IS_CONTRIBUTOR === 'true';
+            return await script({ github, context, core, contributor });
       - name: Send Slack notification
         if: ${{ !cancelled() && steps.script.outputs.slack_notification != '' }}
         uses: slackapi/slack-github-action@v4.0.0
