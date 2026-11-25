@@ -1,0 +1,6 @@
+{
+  "le_bot": "learning-equality-bot[bot]",
+  "sentry": "sentry-io[bot]",
+  "dependabot": "dependabot[bot]",
+  "rtibblesbot": "rtibblesbot"
+}

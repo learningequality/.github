@@ -1,15 +1,10 @@
 // See docs/community-automations.md
 
-const LE_BOT_USERNAME = 'learning-equality-bot[bot]';
-const SENTRY_BOT_USERNAME = 'sentry-io[bot]';
-const DEPENDABOT_USERNAME = 'dependabot[bot]';
-const RTIBBLESBOT_USERNAME = 'rtibblesbot';
-const BOT_USERNAMES = [
-  LE_BOT_USERNAME,
-  SENTRY_BOT_USERNAME,
-  DEPENDABOT_USERNAME,
-  RTIBBLESBOT_USERNAME,
-];
+const BOTS = require('./bot-usernames.json');
+
+const LE_BOT_USERNAME = BOTS.le_bot;
+const RTIBBLESBOT_USERNAME = BOTS.rtibblesbot;
+const BOT_USERNAMES = Object.values(BOTS);
 
 const MAINTAINER_TEAMS = [
   'le-admins-team',

@@ -1,15 +1,20 @@
 import json
 import logging
 import os
+from pathlib import Path
 
 import requests
 
 logger = logging.getLogger(__name__)
 
+BOT_USERNAMES = set(json.loads((Path(__file__).parent / "bot-usernames.json").read_text()).values())
+
 
 def get_user_type(owner, repo, username, token):
     if not username:
         return None
+    if username in BOT_USERNAMES:
+        return "bot"
 
     url = f"https://api.github.com/repos/{owner}/{repo}/collaborators/{username}"
     headers = {"Authorization": f"token {token}"}
